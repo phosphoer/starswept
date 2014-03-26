@@ -1,0 +1,86 @@
+html, body
+{
+  padding: 0px;
+  margin: 0px;
+  font-family: sans-serif;
+}
+
+#curtain
+{
+  background-color: #000;
+}
+
+.bar
+{
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  min-height: 20px;
+  padding: 5px;
+  background: #222;
+}
+
+.tutorial
+{
+  color: #ddd;
+  font-size: 72pt;
+  display: none;
+  position: absolute;
+  left: 50px;
+  top: 50px;
+}
+
+.health-indicator, .score-indicator, .collected-indicator, .max-indicator, .kills-indicator
+{
+  display: inline-block;
+  font-size: 14pt;
+  margin-right: 10px;
+}
+
+.max-indicator
+{
+  position: absolute;;
+  right: 5px;
+}
+
+.health-indicator-label, .score-indicator-label, .collected-indicator-label, .max-indicator-label, .kills-indicator-label
+{
+  margin-right: 5px;
+  color: #ddd;
+}
+
+.score-sep
+{
+  color: #ddd;
+}
+
+.score-indicator-value
+{
+  color: #5f5;
+}
+
+.kills-indicator-value
+{
+  color: #f55;
+}
+
+.collected-indicator-value
+{
+  color: #55f;
+}
+
+.health-indicator-value.good
+{
+  color: #5f5;
+}
+
+.health-indicator-value.damaged
+{
+  color: #ff5;
+}
+
+.health-indicator-value.critical
+{
+  color: #f55;
+}
