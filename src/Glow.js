@@ -2,7 +2,7 @@ TANK.registerComponent("Glow")
 
 .interfaces("Drawable")
 
-.requires("Pos2D, Velocity")
+.requires("Pos2D, Velocity, Life")
 
 .construct(function()
 {
@@ -14,11 +14,13 @@ TANK.registerComponent("Glow")
   this.colorB = "rgba(150, 150, 255, 0.05)";
   this.colorC = "rgba(80, 80, 150, 0.0)";
   this.alphaDecay = 0;
+  this.friction = 1;
 })
 
 .initialize(function()
 {
   var t = this.parent.Pos2D;
+  var v = this.parent.Velocity;
 
   // Make buffer
   this.pixelBuffer = new PixelBuffer();
@@ -48,6 +50,9 @@ TANK.registerComponent("Glow")
       if (this.alpha < 0)
         this.alpha = 0;
     }
+    v.x *= this.friction;
+    v.y *= this.friction;
+
     ctx.save();
     ctx.globalAlpha = this.alpha;
     ctx.translate(t.x - camera.x, t.y - camera.y);

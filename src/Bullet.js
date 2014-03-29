@@ -2,12 +2,11 @@ TANK.registerComponent("Bullet")
 
 .interfaces("Drawable")
 
-.requires("Pos2D, Velocity, Collider")
+.requires("Pos2D, Velocity, Collider, Life")
 
 .construct(function()
 {
   this.zdepth = 2;
-  this.life = 5;
 })
 
 .initialize(function()
@@ -24,13 +23,6 @@ TANK.registerComponent("Bullet")
   // Predraw shape
   this.pixelBuffer.context.fillStyle = "#fff";
   this.pixelBuffer.context.fillRect(0, 0, 1, 1);
-
-  this.addEventListener("OnEnterFrame", function(dt)
-  {
-    this.life -= dt;
-    if (this.life < 0)
-      TANK.removeEntity(this.parent);
-  });
 
   this.OnCollide = function(obj)
   {

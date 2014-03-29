@@ -43,9 +43,14 @@ TANK.registerComponent("Ship")
   this.right = false;
   this.down = false;
   this.trailTimer = 0;
+  this.dead = false;
 
   this.relaodTime = 0.25;
   this.reloadTimer = 0;
+  this.maxTurnSpeed = 3;
+  this.maxSpeed = 150;
+  this.health = 1;
+  this.deadTimer = 0;
 })
 
 .initialize(function()
@@ -78,6 +83,7 @@ TANK.registerComponent("Ship")
       e.Pos2D.y = t.y + Math.sin(t.rotation) * 75;
       e.Velocity.x = Math.cos(t.rotation) * 800;
       e.Velocity.y = Math.sin(t.rotation) * 800;
+      e.Life.life = 5;
       TANK.addEntity(e);
     }
   };
@@ -85,6 +91,8 @@ TANK.registerComponent("Ship")
   // Movement functions
   this.startUp = function() 
   {
+    if (this.up || this.dead)
+      return;
     this.up = true;
     for (var i = 0; i < this.lights.length; ++i)
       if (this.lights[i].isEngine)
@@ -93,6 +101,8 @@ TANK.registerComponent("Ship")
   };
   this.stopUp = function()
   {
+    if (!this.up)
+      return;
     this.up = false;
     for (var i = 0; i < this.lights.length; ++i)
       if (this.lights[i].isEngine)
@@ -106,6 +116,38 @@ TANK.registerComponent("Ship")
   this.startDown = function() {this.down = true;};
   this.stopDown = function() {this.down = false;};
 
+  // Explode the ship 
+  this.explode = function()
+  {
+    // Remove object and spawn particles
+    TANK.removeEntity(this.parent);
+    for (var i = 0; i < 150; ++i)
+    {
+      var e = TANK.createEntity("Glow");
+      var rotation = Math.random() * Math.PI * 2;
+      var speed = 100 + Math.random() * 300;
+      e.Pos2D.x = t.x - 50 + Math.random() * 100;
+      e.Pos2D.y = t.y - 50 + Math.random() * 100;
+      e.Velocity.x = Math.cos(rotation) * speed;
+      e.Velocity.y = Math.sin(rotation) * speed;
+      e.Glow.alphaDecay = 0.7 + Math.random() * 0.5;
+      e.Glow.friction = 0.99 - Math.random() * 0.05;
+      e.Glow.innerRadius = 1 + Math.random() * 1.5;
+      e.Glow.radius = e.Glow.innerRadius + 4 + Math.random() * 4;
+      e.Glow.colorA = "rgba(255, 255, 210, 0.6)";
+      e.Glow.colorB = "rgba(255, 255, 150, 0.3)";
+      e.Glow.colorC = "rgba(180, 20, 20, 0.0)";
+      e.Life.life = 5;
+      TANK.addEntity(e);
+    }
+
+    // Shake screen if on camera
+    var camera = TANK.RenderManager.camera;
+    var dist = TANK.Math.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+    if (dist < window.innerWidth / 2)
+      TANK.dispatchEvent("OnCameraShake", 0.5);
+  };
+
   // Collision response
   this.OnCollide = function(obj)
   {
@@ -113,12 +155,34 @@ TANK.registerComponent("Ship")
     {
       v.x += obj.Velocity.x * 0.02;
       v.y += obj.Velocity.y * 0.02;
+      var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + obj.Velocity.x, t.y + obj.Velocity.y]);
+      v.r += dir * 0.5;
+      this.health -= 0.2;
     }
   };
 
   // Update loop
   this.addEventListener("OnEnterFrame", function(dt)
   {
+    // Check if dead
+    if (this.health < 0 && !this.dead)
+    {
+      this.deadTimer = 1.5 + Math.random() * 1.5;
+      this.dead = true;
+    }
+
+    if (this.deadTimer < 0)
+    {
+      this.explode();
+    }
+
+    if (this.dead)
+    {
+      this.deadTimer -= dt;
+      return;
+    }
+
+    // Apply movement
     if (this.up)
     {
       v.x += Math.cos(t.rotation) * dt * 50;
@@ -136,6 +200,17 @@ TANK.registerComponent("Ship")
     if (this.right)
     {
       v.r += dt * 2;
+    }
+
+    // Cap movement
+    if (Math.abs(v.r) > this.maxTurnSpeed)
+      v.r *= 0.95;
+    var speed = Math.sqrt(v.x * v.x + v.y * v.y);
+    if (speed > this.maxSpeed)
+    {
+      var moveAngle = Math.atan2(v.y, v.x);
+      v.x = Math.cos(moveAngle) * this.maxSpeed;
+      v.y = Math.sin(moveAngle) * this.maxSpeed;
     }
 
     // Timers
@@ -160,6 +235,7 @@ TANK.registerComponent("Ship")
           e.Velocity.x = Math.cos(t.rotation) * -120;
           e.Velocity.y = Math.sin(t.rotation) * -120;
           e.Glow.alphaDecay = 0.8;
+          e.Life.life = 3;
           TANK.addEntity(e);
         }
       }

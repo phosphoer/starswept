@@ -4,12 +4,28 @@ TANK.registerComponent("Player")
 
 .construct(function()
 {
+  this.shakeTime = 0;
 })
 
 .initialize(function()
 {
   var ship = this.parent.Ship;
   var t = this.parent.Pos2D;
+
+  this.shakeCamera = function(duration)
+  {
+    this.shakeTime = duration;
+  };
+
+  this.OnCollide = function(obj)
+  {
+    this.shakeCamera(0.1);
+  };
+
+  this.addEventListener("OnCameraShake", function(duration)
+  {
+    this.shakeCamera(duration);
+  });
 
   this.addEventListener("OnMouseWheel", function(delta)
   {
@@ -18,10 +34,16 @@ TANK.registerComponent("Player")
       TANK.RenderManager.camera.z = 1;
   });
 
+  this.addEventListener("OnMouseDown", function(button)
+  {
+    if (button == TANK.Key.LEFT_MOUSE)
+    {
+      ship.shoot();
+    }
+  });
+
   this.addEventListener("OnKeyPress", function(keyCode)
   {
-    if (keyCode === TANK.Key.SPACE)
-      ship.shoot();
     if (keyCode === TANK.Key.W)
       ship.startUp();
     if (keyCode === TANK.Key.S)
@@ -48,5 +70,12 @@ TANK.registerComponent("Player")
   {
     TANK.RenderManager.camera.x = t.x;
     TANK.RenderManager.camera.y = t.y;
+
+    if (this.shakeTime > 0)
+    {
+      this.shakeTime -= dt;
+      TANK.RenderManager.camera.x += -5 + Math.random() * 10;
+      TANK.RenderManager.camera.y += -5 + Math.random() * 10;
+    }
   });
 });

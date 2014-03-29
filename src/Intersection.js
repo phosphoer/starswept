@@ -66,7 +66,7 @@ Math.lineIntersection = function(line1A, line1B, line2A, line2B)
 Math.getDirectionToPoint = function(posA, rotationA, posB)
 {
   var dir = [Math.cos(rotationA), Math.sin(rotationA)];
-  var targetAngle = Math.atan2(posA[1] - posB[1], posA[0] - posB[0]);
+  var targetAngle = Math.atan2(posB[1] - posA[1], posB[0] - posA[0]);
   var targetDir = [Math.cos(targetAngle), Math.sin(targetAngle)];
   return dir[0] * targetDir[1] - dir[1] * targetDir[0];
 };
