@@ -45,9 +45,9 @@ TANK.registerComponent("Ship")
   this.trailTimer = 0;
   this.dead = false;
 
-  this.relaodTime = 0.25;
+  this.relaodTime = 0.5;
   this.reloadTimer = 0;
-  this.maxTurnSpeed = 3;
+  this.maxTurnSpeed = 1.5;
   this.maxSpeed = 150;
   this.health = 1;
   this.deadTimer = 0;
@@ -115,6 +115,29 @@ TANK.registerComponent("Ship")
   this.stopRight = function() {this.right = false;};
   this.startDown = function() {this.down = true;};
   this.stopDown = function() {this.down = false;};
+
+  // Move towards a given point
+  this.moveTowards = function(pos)
+  {
+    var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation, pos);
+    if (dir < -0.1)
+    {
+      this.startLeft();
+      this.stopRight();
+    }
+    else if (dir > 0.1)
+    {
+      this.startRight();
+      this.stopLeft();
+    }
+    else
+    {
+      this.startUp();
+      this.stopLeft();
+      this.stopRight();
+      v.r *= 0.95;
+    }
+  };
 
   // Explode the ship 
   this.explode = function()

@@ -10,6 +10,7 @@
     // Stored as an array [x, y]
     this.mousePos = [0, 0];
     this.lastMousePos = [0, 0];
+    this.mousePosWorld = [0, 0];
 
     // ### Mouse movement
     // The last delta the mouse had
@@ -309,5 +310,13 @@
       this.space.dispatchEvent("OnMouseWheel", e.wheelDelta, this._keysHeld, this._buttonsHeld);
     }
     this._mouseWheelEvents = [];
+
+    this.mousePosWorld = [this.mousePos[0], this.mousePos[1]];
+    this.mousePosWorld[0] -= window.innerWidth / 2;
+    this.mousePosWorld[1] -= window.innerHeight / 2;
+    this.mousePosWorld[0] *= TANK.RenderManager.camera.z;
+    this.mousePosWorld[1] *= TANK.RenderManager.camera.z;
+    this.mousePosWorld[0] += TANK.RenderManager.camera.x;
+    this.mousePosWorld[1] += TANK.RenderManager.camera.y;
   };
 }());

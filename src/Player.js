@@ -1,10 +1,15 @@
 TANK.registerComponent("Player")
 
+.interfaces("Drawable")
+
 .requires("Ship")
 
 .construct(function()
 {
+  this.zdepth = 5;
   this.shakeTime = 0;
+  this.shootButtonAlpha = 0;
+  this.draggingShootButton = false;
 })
 
 .initialize(function()
@@ -15,11 +20,6 @@ TANK.registerComponent("Player")
   this.shakeCamera = function(duration)
   {
     this.shakeTime = duration;
-  };
-
-  this.checkSelect = function()
-  {
-    for (var i in 
   };
 
   this.OnCollide = function(obj)
@@ -39,8 +39,34 @@ TANK.registerComponent("Player")
       TANK.RenderManager.camera.z = 1;
   });
 
+  this.addEventListener("OnMouseButtonHeld", function(button)
+  {
+    if (this.draggingShootButton)
+    {
+      ship.shoot();
+    }
+    else
+    {
+      ship.moveTowards(TANK.InputManager.mousePosWorld);
+    }
+  });
+
   this.addEventListener("OnMouseDown", function(button)
   {
+    var dist = TANK.Math.pointDistancePoint(TANK.InputManager.mousePosWorld, [t.x, t.y]);
+    if (dist < 50)
+    {
+      this.draggingShootButton = true;
+      ship.stopUp();
+    }
+  });  
+
+  this.addEventListener("OnMouseUp", function(button)
+  {
+    this.draggingShootButton = false;
+    ship.stopUp();
+    ship.stopLeft();
+    ship.stopRight();
   });
 
   this.addEventListener("OnKeyPress", function(keyCode)
@@ -69,9 +95,26 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnEnterFrame", function(dt)
   {
+    // Show shoot button
+    var mouseDist = TANK.Math.pointDistancePoint(TANK.InputManager.mousePosWorld, [t.x, t.y]);
+    if (mouseDist < 75)
+    {
+      this.shootButtonAlpha += dt * 2;
+      if (this.shootButtonAlpha > 0.5)
+        this.shootButtonAlpha = 0.5;
+    }
+    else if (!this.draggingShootButton)
+    {
+      this.shootButtonAlpha -= dt * 3;
+      if (this.shootButtonAlpha < 0)
+        this.shootButtonAlpha = 0;
+    }
+
+    // Camera follow
     TANK.RenderManager.camera.x = t.x;
     TANK.RenderManager.camera.y = t.y;
 
+    // Camera shake
     if (this.shakeTime > 0)
     {
       this.shakeTime -= dt;
@@ -79,4 +122,36 @@ TANK.registerComponent("Player")
       TANK.RenderManager.camera.y += -5 + Math.random() * 10;
     }
   });
+
+  this.draw = function(ctx, camera)
+  {
+    var pos = TANK.InputManager.mousePosWorld;
+
+    // Draw shoot button
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    if (this.draggingShootButton)
+      ctx.translate(pos[0] - camera.x, pos[1] - camera.y);
+    ctx.scale(TANK.Game.scaleFactor, TANK.Game.scaleFactor);
+    ctx.fillStyle = "rgba(255, 50, 50, " + this.shootButtonAlpha + ")";
+    ctx.beginPath();
+    ctx.arc(0, 0, 2, Math.PI * 2, false);
+    ctx.fill();
+    ctx.closePath();
+    ctx.restore();
+
+    // Draw line to shoot button
+    if (this.draggingShootButton)
+    {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 50, 50, 0.5)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(t.x - camera.x, t.y - camera.y);
+      ctx.lineTo(pos[0] - camera.x, pos[1] - camera.y);
+      ctx.stroke();
+      ctx.closePath();
+      ctx.restore();
+    }
+  };
 });

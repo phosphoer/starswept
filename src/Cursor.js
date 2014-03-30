@@ -20,14 +20,8 @@ TANK.registerComponent("Cursor")
   {
     var t = this.parent.Pos2D;
 
-    t.x = TANK.InputManager.mousePos[0];
-    t.y = TANK.InputManager.mousePos[1];
-    t.x -= window.innerWidth / 2;
-    t.y -= window.innerHeight / 2;
-    t.x *= TANK.RenderManager.camera.z;
-    t.y *= TANK.RenderManager.camera.z;
-    t.x += TANK.RenderManager.camera.x;
-    t.y += TANK.RenderManager.camera.y;
+    t.x = TANK.InputManager.mousePosWorld[0];
+    t.y = TANK.InputManager.mousePosWorld[1];
   };
 
   this.draw = function(ctx, camera)
