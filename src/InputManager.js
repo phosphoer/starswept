@@ -43,6 +43,8 @@
       context.addEventListener("touchend", that.touchend);
       context.addEventListener("mousewheel", that.mousewheel);
       context.addEventListener("contextmenu", that.contextmenu);
+      context.addEventListener("gestureend", that.gestureend);
+      context.addEventListener("gesturechange", that.gesturechange);
     };
 
     this.removeMouseListeners = function(context)
@@ -55,6 +57,8 @@
       context.removeEventListener("touchend", that.touchend);
       context.removeEventListener("mousewheel", that.mousewheel);
       context.removeEventListener("contextmenu", that.contextmenu);
+      context.removeEventListener("gestureend", that.gestureend);
+      context.removeEventListener("gesturechange", that.gesturechange);
     };
 
     // ### Input UI element
@@ -92,6 +96,8 @@
     this._mouseDownEvents = [];
     this._mouseUpEvents = [];
     this._mouseWheelEvents = [];
+    this._gestureEndEvents = [];
+    this._gestureChangeEvents = [];
     this._keysHeld = {};
     this._buttonsHeld = {};
 
@@ -200,6 +206,12 @@
         e.touches[i].y = e.touches[i].pageY;
         that._mouseMoveEvents.push(e.touches[i]);
       }
+      if (e.touches.length === 0)
+      {
+        e.x = e.pageX;
+        e.y = e.pageY;
+        that._mouseMoveEvents.push(e);
+      }
 
       if (that.preventMouseDefault)
       {
@@ -252,6 +264,36 @@
           e.stopPropagation();
       }
     };
+
+    this.gestureend = function (e)
+    {
+      that._gestureEndEvents.push(e);
+
+      if (that.preventMouseDefault)
+      {
+        if (e.preventDefault)
+          e.preventDefault();
+        if (e.stopPropagation)
+          e.stopPropagation();
+      }
+
+      return false;
+    }
+
+    this.gesturechange = function (e)
+    {
+      that._gestureChangeEvents.push(e);
+
+      if (that.preventMouseDefault)
+      {
+        if (e.preventDefault)
+          e.preventDefault();
+        if (e.stopPropagation)
+          e.stopPropagation();
+      }
+
+      return false;
+    }
 
     this.contextmenu = function (e)
     {
@@ -332,6 +374,14 @@
       this.lastMousePos[0] = this.mousePos[0];
       this.lastMousePos[1] = this.mousePos[1];
 
+      this.mousePosWorld = [this.mousePos[0], this.mousePos[1]];
+      this.mousePosWorld[0] -= window.innerWidth / 2;
+      this.mousePosWorld[1] -= window.innerHeight / 2;
+      this.mousePosWorld[0] *= TANK.RenderManager.camera.z;
+      this.mousePosWorld[1] *= TANK.RenderManager.camera.z;
+      this.mousePosWorld[0] += TANK.RenderManager.camera.x;
+      this.mousePosWorld[1] += TANK.RenderManager.camera.y;
+
       var mouseEvent = {};
       mouseEvent.x = this.mousePos[0];
       mouseEvent.y = this.mousePos[1];
@@ -345,6 +395,22 @@
     for (var i in this._mouseDownEvents)
     {
       e = this._mouseDownEvents[i];
+
+      this.mousePos = [e.x, e.y];
+      if (this._context)
+      {
+        this.mousePos[0] -= this._context.offsetLeft;
+        this.mousePos[1] -= this._context.offsetTop;
+      }
+
+      this.mousePosWorld = [this.mousePos[0], this.mousePos[1]];
+      this.mousePosWorld[0] -= window.innerWidth / 2;
+      this.mousePosWorld[1] -= window.innerHeight / 2;
+      this.mousePosWorld[0] *= TANK.RenderManager.camera.z;
+      this.mousePosWorld[1] *= TANK.RenderManager.camera.z;
+      this.mousePosWorld[0] += TANK.RenderManager.camera.x;
+      this.mousePosWorld[1] += TANK.RenderManager.camera.y;
+
       this.space.dispatchEvent("OnMouseDown", e.button, this._keysHeld, this._buttonsHeld);
       this._buttonsHeld[e.button] = true;
     }
@@ -371,6 +437,21 @@
       this.space.dispatchEvent("OnMouseWheel", e.wheelDelta, this._keysHeld, this._buttonsHeld);
     }
     this._mouseWheelEvents = [];
+
+    // Handle gesture events
+    for (var i = 0; i < this._gestureChangeEvents.length; ++i)
+    {
+      e = this._gestureChangeEvents[i];
+      this.space.dispatchEvent("OnGestureChange", e);
+    }
+    this._gestureChangeEvents = [];
+
+    for (var i = 0; i < this._gestureEndEvents.length; ++i)
+    {
+      e = this._gestureEndEvents[i];
+      this.space.dispatchEvent("OnGestureEnd", e);
+    }
+    this._gestureEndEvents = [];
 
     this.mousePosWorld = [this.mousePos[0], this.mousePos[1]];
     this.mousePosWorld[0] -= window.innerWidth / 2;

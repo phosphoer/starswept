@@ -224,7 +224,7 @@ TANK.registerComponent("Ship")
     this.trailTimer -= dt;
 
     // Spawn engine trail effect
-    if (this.trailTimer < 0)
+    if (this.trailTimer < 0 && !isMobile.any())
     {
       for (var i = 0; i < this.lights.length; ++i)
       {
@@ -244,7 +244,7 @@ TANK.registerComponent("Ship")
           e.Life.life = 3;
           TANK.addEntity(e);
         }
-      }
+      }        
       this.trailTimer = 0.03;
     }
   });

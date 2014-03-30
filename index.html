@@ -11,6 +11,7 @@
     <script src="lib/perlin.js"></script>
     <script src="lib/Tank.min.js"></script>
 
+    <script src="src/Util.js"></script>
     <script src="src/InputManager.js"></script>
     <script src="src/Intersection.js"></script>
     <script src="src/Collider.js"></script>
@@ -64,6 +65,12 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       window.onresize = function()
+      {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      };
+
+      window.onorientationchange = function()
       {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
