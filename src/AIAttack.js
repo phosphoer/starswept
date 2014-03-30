@@ -64,7 +64,7 @@ TANK.registerComponent("AIAttack")
     // Shoot randomly
     if (Math.random() < 0.05 && aimingAtTarget && targetDist < 1000)
     {
-      ship.shoot();
+      this.parent.Weapons.shoot();
     }
 
     // Cap movement

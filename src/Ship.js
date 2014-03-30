@@ -2,7 +2,7 @@ TANK.registerComponent("Ship")
 
 .interfaces("Drawable")
 
-.requires("Pos2D, Velocity, Lights, Collider")
+.requires("Pos2D, Velocity, Lights, Collider, Weapons")
 
 .construct(function()
 {
@@ -45,8 +45,6 @@ TANK.registerComponent("Ship")
   this.trailTimer = 0;
   this.dead = false;
 
-  this.relaodTime = 0.5;
-  this.reloadTimer = 0;
   this.maxTurnSpeed = 1.5;
   this.maxSpeed = 150;
   this.health = 1;
@@ -72,21 +70,6 @@ TANK.registerComponent("Ship")
     that.parent.Collider.width = that.image.width * TANK.Game.scaleFactor;
     that.parent.Collider.height = that.image.height * TANK.Game.scaleFactor;
   });
-
-  this.shoot = function()
-  {
-    if (this.reloadTimer < 0)
-    {
-      this.reloadTimer = this.relaodTime;
-      var e = TANK.createEntity("Bullet");
-      e.Pos2D.x = t.x + Math.cos(t.rotation) * 75;
-      e.Pos2D.y = t.y + Math.sin(t.rotation) * 75;
-      e.Velocity.x = Math.cos(t.rotation) * 800;
-      e.Velocity.y = Math.sin(t.rotation) * 800;
-      e.Life.life = 5;
-      TANK.addEntity(e);
-    }
-  };
 
   // Movement functions
   this.startUp = function() 

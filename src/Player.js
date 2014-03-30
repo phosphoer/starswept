@@ -43,7 +43,8 @@ TANK.registerComponent("Player")
   {
     if (this.draggingShootButton)
     {
-      ship.shoot();
+      this.parent.Weapons.aimAt(TANK.InputManager.mousePosWorld);
+      this.parent.Weapons.shoot();
     }
     else
     {
@@ -64,6 +65,7 @@ TANK.registerComponent("Player")
   this.addEventListener("OnMouseUp", function(button)
   {
     this.draggingShootButton = false;
+    this.parent.Weapons.aimAt(null);
     ship.stopUp();
     ship.stopLeft();
     ship.stopRight();
