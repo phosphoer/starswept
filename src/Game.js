@@ -34,4 +34,6 @@ TANK.registerComponent("Game")
   e.Pos2D.x = 0;
   e.Pos2D.y = 0;
   TANK.addEntity(e, "Player");
+
+  this.factions[0].controlPoints[0].buyShip();
 });

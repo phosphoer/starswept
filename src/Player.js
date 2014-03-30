@@ -17,6 +17,11 @@ TANK.registerComponent("Player")
     this.shakeTime = duration;
   };
 
+  this.checkSelect = function()
+  {
+    for (var i in 
+  };
+
   this.OnCollide = function(obj)
   {
     this.shakeCamera(0.1);
@@ -36,10 +41,6 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseDown", function(button)
   {
-    if (button == TANK.Key.LEFT_MOUSE)
-    {
-      ship.shoot();
-    }
   });
 
   this.addEventListener("OnKeyPress", function(keyCode)

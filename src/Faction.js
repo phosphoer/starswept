@@ -3,7 +3,7 @@ TANK.registerComponent("Faction")
 .construct(function()
 {
   this.team = 0;
-  this.money = 0;
+  this.money = 50;
   this.controlPoints = [];
 })
 
