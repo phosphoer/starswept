@@ -10,6 +10,9 @@ TANK.registerComponent("StarField")
 
 .initialize(function()
 {
+  this.pixelBuffer = new PixelBuffer();
+  this.pixelBuffer.createBuffer(window.innerWidth, window.innerHeight);
+
   for (var i = 0; i < 100; ++i)
   {
     var r =
@@ -26,25 +29,20 @@ TANK.registerComponent("StarField")
     });
   }
 
+  for (var i = 0; i < this.stars.length; ++i)
+  {
+    var x = (this.stars[i].x);
+    var y = (this.stars[i].y);
+
+    this.pixelBuffer.context.fillStyle = this.stars[i].color;
+    this.pixelBuffer.context.fillRect(x, y, this.stars[i].size, this.stars[i].size);
+  }
+
   this.draw = function(ctx, camera)
   {
     ctx.save();
-    for (var i = 0; i < this.stars.length; ++i)
-    {
-      var x = (this.stars[i].x - camera.x * this.stars[i].z) - window.innerWidth / 2;
-      var y = (this.stars[i].y - camera.y * this.stars[i].z) - window.innerHeight / 2;
-      x %= window.innerWidth;
-      y %= window.innerHeight;
-      while (x < -window.innerWidth / 2)
-        x += window.innerWidth;
-      while (y <  -window.innerHeight / 2)
-        y += window.innerHeight;
-
-      x *= TANK.RenderManager.camera.z;
-      y *= TANK.RenderManager.camera.z;
-      ctx.fillStyle = this.stars[i].color;
-      ctx.fillRect(x, y, this.stars[i].size * TANK.RenderManager.camera.z, this.stars[i].size * TANK.RenderManager.camera.z);
-    }
+    ctx.scale(camera.z, camera.z);
+    ctx.drawImage(this.pixelBuffer.canvas, -window.innerWidth / 2, -window.innerHeight / 2);
     ctx.restore();
   };
 });
