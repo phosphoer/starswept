@@ -6,31 +6,46 @@ TANK.registerComponent("Weapons")
 
 .construct(function()
 {
-  this.reloadTime = 0.5;
-  this.reloadTimer = 0;
-  this.arcAngle = 0;
-  this.arc = Math.PI / 3;
-  this.angle = 0;
-  this.range = 800;
-  this.destAngle = 0;
+  this.guns = []
 })
 
 .initialize(function()
 {
   var t = this.parent.Pos2D;
 
+  this.addGun = function()
+  {
+    var gun = {};
+    gun.reloadTime = 0.5;
+    gun.reloadTimer = 0;
+    gun.arcAngle = 0;
+    gun.arc = Math.PI / 3;
+    gun.angle = 0;
+    gun.range = 800;
+    this.guns.push(gun);
+  };
+
   this.shoot = function()
   {
-    if (this.reloadTimer < 0)
+    for (var i = 0; i < this.guns.length; ++i)
     {
-      this.reloadTimer = this.reloadTime;
-      var e = TANK.createEntity("Bullet");
-      e.Pos2D.x = t.x + Math.cos(t.rotation + this.angle + this.arcAngle) * 75;
-      e.Pos2D.y = t.y + Math.sin(t.rotation + this.angle + this.arcAngle) * 75;
-      e.Velocity.x = Math.cos(t.rotation + this.angle + this.arcAngle) * 800;
-      e.Velocity.y = Math.sin(t.rotation + this.angle + this.arcAngle) * 800;
-      e.Life.life = 5;
-      TANK.addEntity(e);
+      var gun = this.guns[i];
+      var dirLeft = Math.getDirectionToPoint([t.x, t.y], t.rotation + gun.arcAngle - gun.arc / 2, this.targetPos);
+      var dirRight = Math.getDirectionToPoint([t.x, t.y], t.rotation + gun.arcAngle + gun.arc / 2, this.targetPos);
+      if (dirLeft < 0 || dirRight > 0)
+        continue;
+
+      if (gun.reloadTimer < 0)
+      {
+        gun.reloadTimer = gun.reloadTime;
+        var e = TANK.createEntity("Bullet");
+        e.Pos2D.x = t.x + Math.cos(t.rotation + gun.angle + gun.arcAngle) * 75;
+        e.Pos2D.y = t.y + Math.sin(t.rotation + gun.angle + gun.arcAngle) * 75;
+        e.Velocity.x = Math.cos(t.rotation + gun.angle + gun.arcAngle) * 800;
+        e.Velocity.y = Math.sin(t.rotation + gun.angle + gun.arcAngle) * 800;
+        e.Life.life = 5;
+        TANK.addEntity(e);
+      }
     }
   };
 
@@ -44,25 +59,30 @@ TANK.registerComponent("Weapons")
 
   this.addEventListener("OnEnterFrame", function(dt)
   {
-    this.reloadTimer -= dt;
-
-    if (this.targetPos)
+    for (var i = 0; i < this.guns.length; ++i)
     {
-      var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation + this.angle + this.arcAngle, this.targetPos);
-      if (dir < -0.01)
-      {
-        this.angle -= dt * 0.5;
-      }
-      else if (dir > 0.01)
-      {
-        this.angle += dt * 0.5;
-      }
-    }
+      var gun = this.guns[i];
+      gun.reloadTimer -= dt;
 
-    if (this.angle < this.arc / -2)
-      this.angle = this.arc / -2;
-    if (this.angle > this.arc / 2)
-      this.angle = this.arc / 2;
+      if (this.targetPos)
+      {
+        var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation + gun.angle + gun.arcAngle, this.targetPos);
+        if (dir < -0.01)
+        {
+          gun.angle -= dt * 0.5;
+        }
+        else if (dir > 0.01)
+        {
+          gun.angle += dt * 0.5;
+        }
+      }
+
+      if (gun.angle < gun.arc / -2)
+        gun.angle = gun.arc / -2;
+      if (gun.angle > gun.arc / 2)
+        gun.angle = gun.arc / 2;
+    }
+    
   });
 
   this.draw = function(ctx, camera)
@@ -72,19 +92,29 @@ TANK.registerComponent("Weapons")
     ctx.rotate(t.rotation);
     ctx.strokeStyle = "rgba(100, 255, 100, 0.25)";
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(this.arcAngle + this.angle) * this.range, Math.sin(this.arcAngle + this.angle) * this.range);
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(this.arcAngle - this.arc / 2) * this.range, Math.sin(this.arcAngle - this.arc / 2) * this.range);
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(this.arcAngle + this.arc / 2) * this.range, Math.sin(this.arcAngle + this.arc / 2) * this.range);
-    ctx.stroke();
-    ctx.closePath();
-    ctx.beginPath();
-    ctx.arc(0, 0, this.range, this.arcAngle - this.arc / 2, this.arcAngle + this.arc / 2);
-    ctx.stroke();
-    ctx.closePath();
+
+    for (var i = 0; i < this.guns.length; ++i)
+    {
+      var gun = this.guns[i];
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(gun.arcAngle + gun.angle) * gun.range, Math.sin(gun.arcAngle + gun.angle) * gun.range);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(gun.arcAngle - gun.arc / 2) * gun.range, Math.sin(gun.arcAngle - gun.arc / 2) * gun.range);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(gun.arcAngle + gun.arc / 2) * gun.range, Math.sin(gun.arcAngle + gun.arc / 2) * gun.range);
+      ctx.stroke();
+      ctx.closePath();
+      ctx.beginPath();
+      ctx.arc(0, 0, gun.range, gun.arcAngle - gun.arc / 2, gun.arcAngle + gun.arc / 2);
+      ctx.stroke();
+      ctx.closePath();
+    }
     ctx.restore();
   };
+
+  this.addGun();
+  this.addGun();
+  this.guns[1].arcAngle = Math.PI / 2;
+  this.guns[1].arc = Math.PI / 4;
 });
