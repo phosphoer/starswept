@@ -33,6 +33,24 @@
     // right click
     this.preventRightClick = true;
 
+    this.addMouseListeners = function(context)
+    {
+      context.addEventListener("mousemove", that.mousemove);
+      context.addEventListener("mousedown", that.mousedown);
+      context.addEventListener("mouseup", that.mouseup);
+      context.addEventListener("mousewheel", that.mousewheel);
+      context.addEventListener("contextmenu", that.contextmenu);
+    };
+
+    this.removeMouseListeners = function(context)
+    {
+      context.removeEventListener("mousemove", that.mousemove);
+      context.removeEventListener("mousedown", that.mousedown);
+      context.removeEventListener("mouseup", that.mouseup);
+      context.removeEventListener("mousewheel", that.mousewheel);
+      context.removeEventListener("contextmenu", that.contextmenu);
+    };
+
     // ### Input UI element
     // Defines which HTML element mouse input is relative to
     // If left null mouse input will be relative to window
@@ -43,37 +61,21 @@
     {
       if (that._context)
       {
-        that.context.removeEventListener("mousemove", that.mousemove);
-        that.context.removeEventListener("mousedown", that.mousedown);
-        that.context.removeEventListener("mouseup", that.mouseup);
-        that.context.removeEventListener("mousewheel", that.mousewheel);
-        that.context.removeEventListener("contextmenu", that.contextmenu);
+        that.removeMouseListeners(that.context);
       }
       else
       {
-        removeEventListener("mousemove", that.mousemove);
-        removeEventListener("mousedown", that.mousedown);
-        removeEventListener("mouseup", that.mouseup);
-        removeEventListener("mousewheel", that.mousewheel);
-        removeEventListener("contextmenu", that.contextmenu);
+        that.removeMouseListeners(window);
       }
 
       that._context = val;
       if (that._context)
       {
-        that.context.addEventListener("mousemove", that.mousemove);
-        that.context.addEventListener("mousedown", that.mousedown);
-        that.context.addEventListener("mouseup", that.mouseup);
-        that.context.addEventListener("mousewheel", that.mousewheel);
-        that.context.addEventListener("contextmenu", that.contextmenu);
+        that.addMouseListeners(that.context);
       }
       else
       {
-        addEventListener("mousemove", that.mousemove);
-        addEventListener("mousedown", that.mousedown);
-        addEventListener("mouseup", that.mouseup);
-        addEventListener("mousewheel", that.mousewheel);
-        addEventListener("contextmenu", that.contextmenu);
+        that.addMouseListeners(window);
       }
     });
 
@@ -213,19 +215,11 @@
     removeEventListener("keyup", this.keyup);
     if (this.context)
     {
-      this.context.removeEventListener("mousemove", this.mousemove);
-      this.context.removeEventListener("mousedown", this.mousedown);
-      this.context.removeEventListener("mouseup", this.mouseup);
-      this.context.removeEventListener("mousewheel", this.mousewheel);
-      this.context.removeEventListener("contextmenu", this.contextmenu);
+      this.removeMouseListeners(this.context);
     }
     else
     {
-      removeEventListener("mousemove", this.mousemove);
-      removeEventListener("mousedown", this.mousedown);
-      removeEventListener("mouseup", this.mouseup);
-      removeEventListener("mousewheel", this.mousewheel);
-      removeEventListener("contextmenu", this.contextmenu);
+      this.addMouseListeners(window);
     }
   });
 
