@@ -2,7 +2,7 @@ TANK.registerComponent("Game")
 
 .construct(function()
 {
-  this.scaleFactor = 8;
+  this.scaleFactor = 3;
   this.factions = [];
 })
 
