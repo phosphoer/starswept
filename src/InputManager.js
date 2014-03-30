@@ -38,6 +38,9 @@
       context.addEventListener("mousemove", that.mousemove);
       context.addEventListener("mousedown", that.mousedown);
       context.addEventListener("mouseup", that.mouseup);
+      context.addEventListener("touchmove", that.touchmove);
+      context.addEventListener("touchstart", that.touchstart);
+      context.addEventListener("touchend", that.touchend);
       context.addEventListener("mousewheel", that.mousewheel);
       context.addEventListener("contextmenu", that.contextmenu);
     };
@@ -47,6 +50,9 @@
       context.removeEventListener("mousemove", that.mousemove);
       context.removeEventListener("mousedown", that.mousedown);
       context.removeEventListener("mouseup", that.mouseup);
+      context.removeEventListener("touchmove", that.touchmove);
+      context.removeEventListener("touchstart", that.touchstart);
+      context.removeEventListener("touchend", that.touchend);
       context.removeEventListener("mousewheel", that.mousewheel);
       context.removeEventListener("contextmenu", that.contextmenu);
     };
@@ -185,6 +191,67 @@
 
       return false;
     }
+
+    this.touchmove = function(e)
+    {
+      for (var i = 0; i < e.touches.length; ++i)
+      {
+        e.touches[i].x = e.touches[i].pageX;
+        e.touches[i].y = e.touches[i].pageY;
+        that._mouseMoveEvents.push(e.touches[i]);
+      }
+
+      if (that.preventMouseDefault)
+      {
+        if (e.preventDefault)
+          e.preventDefault();
+        if (e.stopPropagation)
+          e.stopPropagation();
+      }
+    };
+
+    this.touchstart = function(e)
+    {
+      for (var i = 0; i < e.touches.length; ++i)
+      {
+        e.touches[i].x = e.touches[i].pageX;
+        e.touches[i].y = e.touches[i].pageY;
+        e.touches[i].button = 0;
+        that._mouseDownEvents.push(e.touches[i]);
+      }
+
+      if (that.preventMouseDefault)
+      {
+        if (e.preventDefault)
+          e.preventDefault();
+        if (e.stopPropagation)
+          e.stopPropagation();
+      }
+    };
+
+    this.touchend = function(e)
+    {
+      for (var i = 0; i < e.touches.length; ++i)
+      {
+        e.touches[i].x = e.touches[i].pageX;
+        e.touches[i].y = e.touches[i].pageY;
+        e.touches[i].button = 0;
+        that._mouseUpEvents.push(e.touches[i]);
+      }
+      if (e.touches.length === 0)
+      {
+        e.button = 0;
+        that._mouseUpEvents.push(e);
+      }
+
+      if (that.preventMouseDefault)
+      {
+        if (e.preventDefault)
+          e.preventDefault();
+        if (e.stopPropagation)
+          e.stopPropagation();
+      }
+    };
 
     this.contextmenu = function (e)
     {
