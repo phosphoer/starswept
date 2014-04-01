@@ -1,6 +1,8 @@
 TANK.registerComponent("AIShip")
 
-.requires("Ship")
+.interfaces("Selectable")
+
+.requires("Ship, Selectable")
 
 .construct(function()
 {
