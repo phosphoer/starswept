@@ -1,6 +1,6 @@
 TANK.registerComponent("Ship")
 
-.interfaces("Drawable")
+.interfaces("Drawable, Selectable")
 
 .requires("Pos2D, Velocity, Lights, Collider, Weapons")
 

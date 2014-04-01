@@ -10,12 +10,42 @@ TANK.registerComponent("Player")
   this.shakeTime = 0;
   this.shootButtonAlpha = 0;
   this.draggingShootButton = false;
+  this.selectingItem = false;
 })
 
 .initialize(function()
 {
   var ship = this.parent.Ship;
   var t = this.parent.Pos2D;
+
+  this.checkForSelection = function()
+  {
+    var selectables = TANK.getComponentsWithInterface("Selectable");
+
+    // Get cursor pos
+    var e = TANK.createEntity("Cursor");
+    TANK.addEntity(e);
+    e.Cursor.updatePos();
+
+    var selected = null;
+    for (var i in selectables)
+    {
+      var selectable = selectables[i].parent;
+      if (e.Collider.collide(selectable.Collider))
+      {
+        selected = selectable;
+        break;
+      }
+    }
+    TANK.removeEntity(e);
+
+    if (selected)
+    {
+      return true;
+    }
+
+    return false;
+  };
 
   this.shakeCamera = function(duration)
   {
@@ -59,6 +89,9 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseButtonHeld", function(button)
   {
+    if (this.selectingItem)
+      return;
+
     if (this.draggingShootButton)
     {
       this.parent.Weapons.aimAt(TANK.InputManager.mousePosWorld);
@@ -72,6 +105,8 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseDown", function(button)
   {
+    this.selectingItem = this.checkForSelection();
+
     var dist = TANK.Math.pointDistancePoint(TANK.InputManager.mousePosWorld, [t.x, t.y]);
     if (dist < 50)
     {
@@ -81,6 +116,7 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseUp", function(button)
   {
+    this.selectingItem = false;
     this.draggingShootButton = false;
     this.parent.Weapons.aimAt(null);
     ship.stopUp();
