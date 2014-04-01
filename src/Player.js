@@ -76,7 +76,6 @@ TANK.registerComponent("Player")
     if (dist < 50)
     {
       this.draggingShootButton = true;
-      ship.stopUp();
     }
   });  
 
