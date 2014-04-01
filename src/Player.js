@@ -10,6 +10,7 @@ TANK.registerComponent("Player")
   this.shakeTime = 0;
   this.shootButtonAlpha = 0;
   this.draggingShootButton = false;
+  this.touches = 0;
 })
 
 .initialize(function()
@@ -43,7 +44,7 @@ TANK.registerComponent("Player")
   {
     if (this.draggingShootButton)
       return;
-    
+
     if (e.scale)
     {
       var scale = Math.min(e.scale, 1.1);
@@ -64,7 +65,7 @@ TANK.registerComponent("Player")
       this.parent.Weapons.aimAt(TANK.InputManager.mousePosWorld);
       this.parent.Weapons.shoot();
     }
-    else
+    if (!this.draggingShootButton || this.touches > 1)
     {
       ship.moveTowards(TANK.InputManager.mousePosWorld);
     }
@@ -72,6 +73,7 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseDown", function(button)
   {
+    ++this.touches;
     var dist = TANK.Math.pointDistancePoint(TANK.InputManager.mousePosWorld, [t.x, t.y]);
     if (dist < 50)
     {
@@ -81,6 +83,7 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseUp", function(button)
   {
+    --this.touches;
     this.draggingShootButton = false;
     this.parent.Weapons.aimAt(null);
     ship.stopUp();
