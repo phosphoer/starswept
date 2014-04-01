@@ -46,9 +46,12 @@ TANK.registerComponent("Player")
       var scale = Math.min(e.scale, 1.1);
       scale = Math.max(scale, 0.9);
       window.document.title = scale;
-      TANK.RenderManager.camera.z = Math.log(TANK.RenderManager.camera.z * scale);
+      TANK.RenderManager.camera.z = Math.sqrt(TANK.RenderManager.camera.z * scale);
       if (TANK.RenderManager.camera.z < 1)
         TANK.RenderManager.camera.z = 1;
+      if (TANK.RenderManager.camera.z > 10)
+        TANK.RenderManager.camera.z = 10;
+
     }
   });
 
