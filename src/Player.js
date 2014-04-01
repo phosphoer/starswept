@@ -41,6 +41,9 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnGestureChange", function(e)
   {
+    if (this.draggingShootButton)
+      return;
+    
     if (e.scale)
     {
       var scale = Math.min(e.scale, 1.1);
