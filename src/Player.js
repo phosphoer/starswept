@@ -43,9 +43,9 @@ TANK.registerComponent("Player")
   {
     if (e.scale)
     {
-      e.scale = Math.min(e.scale, 1.01);
-      e.scale = Math.max(e.scale, 0.99);
-      TANK.RenderManager.camera.z *= e.scale;
+      var scale = Math.min(e.scale, 1.01);
+      scale = Math.max(e.scale, 0.99);
+      TANK.RenderManager.camera.z *= scale;
       if (TANK.RenderManager.camera.z < 1)
         TANK.RenderManager.camera.z = 1;
     }
