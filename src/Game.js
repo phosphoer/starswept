@@ -4,11 +4,26 @@ TANK.registerComponent("Game")
 {
   this.scaleFactor = isMobile.any() ? 4 : 8;
   this.factions = [];
+  this.barCommands = [];
 })
 
 .initialize(function()
 {
   lowLag.init();
+
+  this.barUI = new Ractive(
+  {
+    el: "barContainer",
+    template: "#barTemplate",
+    data: {commands: this.barCommands} 
+  });
+
+  this.barUI.on("activate", function(e)
+  {
+    e.context.entity.invoke("OnContextButton", e.context);
+  });
+
+  this.barCommands.length = 0;
 
   var e = TANK.createEntity("Faction");
   e.Faction.team = 0;

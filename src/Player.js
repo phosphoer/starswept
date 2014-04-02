@@ -47,6 +47,12 @@ TANK.registerComponent("Player")
     return false;
   };
 
+  this.fillCommands = function()
+  {
+    TANK.Game.barCommands.splice(0, TANK.Game.barCommands.length);
+    TANK.Game.barCommands.push({name: "Request Assistance"});
+  };
+
   this.shakeCamera = function(duration)
   {
     this.shakeTime = duration;
@@ -106,6 +112,8 @@ TANK.registerComponent("Player")
   this.addEventListener("OnMouseDown", function(button)
   {
     this.selectingItem = this.checkForSelection();
+    if (!this.selectingItem)
+      this.fillCommands();
 
     var dist = TANK.Math.pointDistancePoint(TANK.InputManager.mousePosWorld, [t.x, t.y]);
     if (dist < 50)
@@ -209,4 +217,6 @@ TANK.registerComponent("Player")
       ctx.restore();
     }
   };
+
+  this.fillCommands();
 });

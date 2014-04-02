@@ -76,5 +76,17 @@
         canvas.height = window.innerHeight;
       };
     </script>
+
+    <div id="barContainer"></div>
+
+    <script id="barTemplate" type="text/ractive">
+      <div class="bar">
+        {{#commands}}
+          <div class='bar-button' on-click="activate">{{name}}</div>
+        {{/commands}}
+      </div>
+    </script>
+
+    <script src="lib/ractive.js"></script>
   </body>
 </html>
