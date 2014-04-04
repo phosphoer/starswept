@@ -10,7 +10,7 @@ TANK.registerComponent("Player")
   this.shakeTime = 0;
   this.shootButtonAlpha = 0;
   this.draggingShootButton = false;
-  this.selectingItem = false;
+  this.dragSource = null;
 })
 
 .initialize(function()
@@ -18,9 +18,9 @@ TANK.registerComponent("Player")
   var ship = this.parent.Ship;
   var t = this.parent.Pos2D;
 
-  this.checkForSelection = function()
+  this.checkForSelection = function(interface)
   {
-    var selectables = TANK.getComponentsWithInterface("Selectable");
+    var selectables = TANK.getComponentsWithInterface(interface);
 
     // Get cursor pos
     var e = TANK.createEntity("Cursor");
@@ -39,18 +39,7 @@ TANK.registerComponent("Player")
     }
     TANK.removeEntity(e);
 
-    if (selected)
-    {
-      return true;
-    }
-
-    return false;
-  };
-
-  this.fillCommands = function()
-  {
-    TANK.Game.barCommands.splice(0, TANK.Game.barCommands.length);
-    TANK.Game.barCommands.push({name: "Request Assistance"});
+    return selected;
   };
 
   this.shakeCamera = function(duration)
@@ -95,7 +84,7 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseButtonHeld", function(button)
   {
-    if (this.selectingItem)
+    if (this.dragSource)
       return;
 
     if (this.draggingShootButton)
@@ -111,9 +100,12 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseDown", function(button)
   {
-    this.selectingItem = this.checkForSelection();
-    if (!this.selectingItem)
-      this.fillCommands();
+    this.dragSource = this.checkForSelection("Draggable");
+    if (this.dragSource)
+    {
+      this.dragSource.invoke("OnDragStart");
+      return;
+    }
 
     var dist = TANK.Math.pointDistancePoint(TANK.InputManager.mousePosWorld, [t.x, t.y]);
     if (dist < 50)
@@ -124,7 +116,14 @@ TANK.registerComponent("Player")
 
   this.addEventListener("OnMouseUp", function(button)
   {
-    this.selectingItem = false;
+    if (this.dragSource)
+    {
+      this.dragDest = this.checkForSelection("Droppable");
+      this.dragSource.invoke("OnDragEnd", this.dragDest);
+    }
+
+    this.dragSource = null;
+    this.dragDest = null;
     this.draggingShootButton = false;
     this.parent.Weapons.aimAt(null);
     ship.stopUp();
@@ -217,6 +216,4 @@ TANK.registerComponent("Player")
       ctx.restore();
     }
   };
-
-  this.fillCommands();
 });

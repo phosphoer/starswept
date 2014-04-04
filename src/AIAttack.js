@@ -7,6 +7,7 @@ TANK.registerComponent("AIAttack")
   this.target = null;
   this.maxTurnSpeed = 1;
   this.optimalDistance = 400;
+  this.giveUpTimer = 5;
 })
 
 .initialize(function()
@@ -15,12 +16,15 @@ TANK.registerComponent("AIAttack")
   var v = this.parent.Velocity;
   var ship = this.parent.Ship;
 
-  this.target = TANK.getEntity("Player");
-
   this.addEventListener("OnEnterFrame", function(dt)
   {
     if (!this.target || !TANK.getEntity(this.target.id))
+    {
+      this.giveUpTimer -= dt;
+      if (this.giveUpTimer < 0)
+        this.parent.AIShip.removeBehavior("AIAttack");
       return;
+    }
 
     // Get direction to player
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
@@ -52,7 +56,9 @@ TANK.registerComponent("AIAttack")
       v.r *= 0.95;
     }
 
-    if (aimingAtTarget && targetDist > this.optimalDistance)
+    this.parent.Weapons.aimAt(targetPos);
+
+    if (targetDist > this.optimalDistance)
     {
       ship.startUp();
     }
@@ -62,7 +68,7 @@ TANK.registerComponent("AIAttack")
     }
 
     // Shoot randomly
-    if (Math.random() < 0.05 && aimingAtTarget && targetDist < 1000)
+    if (Math.random() < 0.05 && this.parent.Weapons.aimingAtTarget && targetDist < 1500)
     {
       this.parent.Weapons.shoot();
     }

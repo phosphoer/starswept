@@ -21,7 +21,7 @@ TANK.registerComponent("ControlPoint")
       this.faction.money -= 30;
 
       var e = TANK.createEntity("AIShip");
-      e.AIShip.team = this.faction.team;
+      e.Ship.team = this.faction.team;
       e.Pos2D.x = t.x - 400 + Math.random() * 800;
       e.Pos2D.y = t.y - 400 + Math.random() * 800;
       TANK.addEntity(e);

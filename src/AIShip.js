@@ -1,12 +1,11 @@
 TANK.registerComponent("AIShip")
 
-.interfaces("Selectable")
+.interfaces("Draggable, Droppable")
 
-.requires("Ship, Selectable")
+.requires("Ship, Draggable")
 
 .construct(function()
 {
-  this.team = 0;
   this.behaviors = {};
   this.numBehaviors = 0;
 })
@@ -17,26 +16,25 @@ TANK.registerComponent("AIShip")
   var v = this.parent.Velocity;
   var ship = this.parent.Ship;
 
-  this.target = TANK.getEntity("Player");
-
-  this.OnSelected = function()
+  // Damage response
+  this.OnDamaged = function(damage, dir, owner)
   {
-    TANK.Game.barCommands.splice(0, TANK.Game.barCommands.length);
-    TANK.Game.barCommands.push({name: "Follow Me", id: "follow", entity: this.parent});
-    TANK.Game.barCommands.push({name: "Self Destruct", id: "destruct", entity: this.parent});
+    if (owner && owner.Ship && owner.Ship.team != ship.team)
+    {
+      this.addBehavior("AIAttack");
+      this.parent.AIAttack.target = owner;
+    }
   };
 
-  this.OnContextButton = function(command)
+  this.OnDragEnd = function(dest)
   {
-    if (command.id === "follow")
+    if (dest && dest.Ship)
     {
-      this.clearBehaviors();
-      this.addBehavior("AIFollow");
-      this.parent.AIFollow.target = TANK.getEntity("Player");
-    }
-    else if (command.id === "destruct")
-    {
-      TANK.removeEntity(this.parent);
+      if (dest.Ship.team != ship.team)
+      {
+        this.addBehavior("AIAttack");
+        this.parent.AIAttack.target = dest;
+      }
     }
   };
 
@@ -71,7 +69,4 @@ TANK.registerComponent("AIShip")
 
 .destruct(function()
 {
-  var player = TANK.getEntity("Player");
-  if (this.parent.Selectable.selected && player)
-    player.Player.fillCommands();
 });

@@ -45,6 +45,7 @@ TANK.registerComponent("Ship")
   this.trailTimer = 0;
   this.dead = false;
 
+  this.team = 0;
   this.maxTurnSpeed = 1.5;
   this.maxSpeed = 150;
   this.health = 1;
@@ -154,17 +155,19 @@ TANK.registerComponent("Ship")
       TANK.dispatchEvent("OnCameraShake", 0.5);
   };
 
+  // Damage response
+  this.OnDamaged = function(damage, dir, owner)
+  {
+    v.x += dir[0] * 0.02;
+    v.y += dir[1] * 0.02;
+    var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
+    v.r += dir * 0.5;
+    this.health -= damage;
+  };
+
   // Collision response
   this.OnCollide = function(obj)
   {
-    if (obj.Bullet)
-    {
-      v.x += obj.Velocity.x * 0.02;
-      v.y += obj.Velocity.y * 0.02;
-      var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + obj.Velocity.x, t.y + obj.Velocity.y]);
-      v.r += dir * 0.5;
-      this.health -= 0.2;
-    }
   };
 
   // Update loop

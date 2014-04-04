@@ -7,6 +7,7 @@ TANK.registerComponent("Bullet")
 .construct(function()
 {
   this.zdepth = 2;
+  this.owner = null;
 })
 
 .initialize(function()
@@ -26,6 +27,7 @@ TANK.registerComponent("Bullet")
 
   this.OnCollide = function(obj)
   {
+    obj.invoke("OnDamaged", 0.2, [this.parent.Velocity.x, this.parent.Velocity.y], this.owner);
     TANK.removeEntity(this.parent);
   };
 

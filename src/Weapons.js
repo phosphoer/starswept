@@ -6,7 +6,7 @@ TANK.registerComponent("Weapons")
 
 .construct(function()
 {
-  this.guns = []
+  this.guns = [];
 })
 
 .initialize(function()
@@ -27,9 +27,17 @@ TANK.registerComponent("Weapons")
 
   this.shoot = function()
   {
+    if (!this.targetPos)
+    {
+      console.warn("Tried to shoot with no target!");
+      return;
+    }
+
     for (var i = 0; i < this.guns.length; ++i)
     {
       var gun = this.guns[i];
+
+      // Don't shoot if gun is aiming outside arc
       var dirLeft = Math.getDirectionToPoint([t.x, t.y], t.rotation + gun.arcAngle - gun.arc / 2, this.targetPos);
       var dirRight = Math.getDirectionToPoint([t.x, t.y], t.rotation + gun.arcAngle + gun.arc / 2, this.targetPos);
       if (dirLeft < 0 || dirRight > 0)
@@ -44,6 +52,7 @@ TANK.registerComponent("Weapons")
         e.Velocity.x = Math.cos(t.rotation + gun.angle + gun.arcAngle) * 800;
         e.Velocity.y = Math.sin(t.rotation + gun.angle + gun.arcAngle) * 800;
         e.Life.life = 5;
+        e.Bullet.owner = this.parent;
         TANK.addEntity(e);
       }
     }
@@ -59,6 +68,7 @@ TANK.registerComponent("Weapons")
 
   this.addEventListener("OnEnterFrame", function(dt)
   {
+    this.aimingAtTarget = false;
     for (var i = 0; i < this.guns.length; ++i)
     {
       var gun = this.guns[i];
@@ -66,6 +76,7 @@ TANK.registerComponent("Weapons")
 
       if (this.targetPos)
       {
+        gun.aimingAtTarget = false;
         var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation + gun.angle + gun.arcAngle, this.targetPos);
         if (dir < -0.01)
         {
@@ -74,6 +85,11 @@ TANK.registerComponent("Weapons")
         else if (dir > 0.01)
         {
           gun.angle += dt * 0.5;
+        }
+        else
+        {
+          gun.aimingAtTarget = true;
+          this.aimingAtTarget = true;
         }
       }
 

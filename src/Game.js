@@ -20,7 +20,6 @@ TANK.registerComponent("Game")
 
   this.barUI.on("activate", function(e)
   {
-    e.context.entity.invoke("OnContextButton", e.context);
   });
 
   this.barCommands.length = 0;
@@ -40,8 +39,8 @@ TANK.registerComponent("Game")
   TANK.addEntity(e);
 
   e = TANK.createEntity("ControlPoint");
-  e.Pos2D.x = 5000;
-  e.Pos2D.y = 5000;
+  e.Pos2D.x = 500;
+  e.Pos2D.y = 500;
   this.factions[1].addControlPoint(e.ControlPoint);
   TANK.addEntity(e);
 
