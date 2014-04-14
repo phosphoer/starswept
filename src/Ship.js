@@ -10,13 +10,13 @@ TANK.registerComponent("Ship")
   this.image = new Image();
   this.image.src = "res/shuttle.png";
 
-  this.lights = 
+  this.lights =
   [
     {
       x: 0, y: 0, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states: 
+      states:
       {
-        on: {radius: 4, alpha: 0.8}, 
+        on: {radius: 4, alpha: 0.8},
         off: {radius: 3, alpha: 0.5}
       }
     },
@@ -30,7 +30,7 @@ TANK.registerComponent("Ship")
     },
     {
       x: 7, y: 0, radius: 2, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
-      states: 
+      states:
       {
         on: {alpha: 0.5},
         off: {alpha: 0.2}
@@ -73,7 +73,7 @@ TANK.registerComponent("Ship")
   });
 
   // Movement functions
-  this.startUp = function() 
+  this.startUp = function()
   {
     if (this.up || this.dead)
       return;
@@ -123,7 +123,7 @@ TANK.registerComponent("Ship")
     }
   };
 
-  // Explode the ship 
+  // Explode the ship
   this.explode = function()
   {
     // Remove object and spawn particles
@@ -247,7 +247,7 @@ TANK.registerComponent("Ship")
           e.Life.life = 3;
           TANK.addEntity(e);
         }
-      }        
+      }
       this.trailTimer = 0.03;
     }
   });

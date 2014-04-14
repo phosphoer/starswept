@@ -31,7 +31,7 @@ Math.AABBInAABB = function(centerA, sizeA, centerB, sizeB)
 
 Math.pointInOBB = function(point, center, size, angle)
 {
-  pointRot = [];
+  var pointRot = [];
   pointRot[0] = (point[0] - center[0]) * Math.cos(-angle) - (point[1] - center[1]) * Math.sin(-angle) + center[0];
   pointRot[1] = (point[0] - center[0]) * Math.sin(-angle) + (point[1] - center[1]) * Math.cos(-angle) + center[1];
   return Math.pointInAABB(pointRot, center, size);
