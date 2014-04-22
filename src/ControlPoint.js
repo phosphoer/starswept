@@ -1,6 +1,6 @@
 TANK.registerComponent("ControlPoint")
 
-.includes("Planet")
+.includes(["Planet", "Droppable"])
 
 .construct(function()
 {

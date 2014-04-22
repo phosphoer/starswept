@@ -1,4 +1,4 @@
-TANK.registerComponent("AIAttack")
+TANK.registerComponent("AIApproach")
 
 .includes("AIShip")
 
@@ -6,8 +6,9 @@ TANK.registerComponent("AIAttack")
 {
   this.target = null;
   this.maxTurnSpeed = 1;
-  this.optimalDistance = 400;
+  this.optimalDistance = 300;
   this.giveUpTimer = 5;
+  this.aimingAtTarget = false;
 })
 
 .initialize(function()
@@ -22,20 +23,23 @@ TANK.registerComponent("AIAttack")
     {
       this.giveUpTimer -= dt;
       if (this.giveUpTimer < 0)
-        this._entity.AIShip.removeBehavior("AIAttack");
+        this._entity.AIShip.removeBehavior("AIApproach");
       return;
     }
 
-    // Get direction to player
+    // Get direction to target
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetVel = this.target.Velocity;
-    targetPos[0] += targetVel.x * 1;
-    targetPos[1] += targetVel.y * 1;
+    if (targetVel)
+    {
+      targetPos[0] += targetVel.x * 1;
+      targetPos[1] += targetVel.y * 1;
+    }
     var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, targetPos);
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
 
     // Target is to the left
-    var aimingAtTarget = false;
+    this.aimingAtTarget = false;
     if (dir < -0.1)
     {
       ship.startLeft();
@@ -50,13 +54,11 @@ TANK.registerComponent("AIAttack")
     // Aiming at target
     else
     {
-      aimingAtTarget = true;
+      this.aimingAtTarget = true;
       ship.stopRight();
       ship.stopLeft();
       v.r *= 0.95;
     }
-
-    this._entity.Weapons.aimAt(targetPos);
 
     if (targetDist > this.optimalDistance)
     {
@@ -67,16 +69,58 @@ TANK.registerComponent("AIAttack")
       ship.stopUp();
     }
 
-    // Shoot randomly
-    if (Math.random() < 0.05 && this._entity.Weapons.aimingAtTarget && targetDist < 1500)
-    {
-      this._entity.Weapons.shoot();
-    }
-
     // Cap movement
     if (Math.abs(v.r) > this.maxTurnSpeed)
       v.r *= 0.95;
   };
+});
+TANK.registerComponent("AIAttack")
+
+.includes("AIShip")
+
+.construct(function()
+{
+  this.target = null;
+  this.maxTurnSpeed = 1;
+  this.optimalDistance = 500;
+  this.giveUpTimer = 5;
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
+  var ship = this._entity.Ship;
+
+  this._entity.AIShip.addBehavior("AIApproach");
+
+  this.update = function(dt)
+  {
+    this._entity.AIApproach.target = this.target;
+    if (!this.target || !TANK.main.getChild(this.target._id))
+    {
+      this.giveUpTimer -= dt;
+      if (this.giveUpTimer < 0)
+        this._entity.AIShip.removeBehavior("AIAttack");
+      return;
+    }
+
+    // Get direction to player
+    var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
+    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+
+    // Shoot randomly
+    this._entity.Weapons.aimAt(targetPos);
+    if (Math.random() < 0.05 && this._entity.Weapons.aimingAtTarget && targetDist < 1500)
+    {
+      this._entity.Weapons.shoot();
+    }
+  };
+})
+
+.uninitialize(function()
+{
+  this._entity.AIShip.removeBehavior("AIApproach");
 });
 TANK.registerComponent("AIFaction")
 
@@ -128,13 +172,18 @@ TANK.registerComponent("AIShip")
 
   this.listenTo(this._entity, "dragend", function(dest)
   {
-    if (dest && dest.Ship)
+    if (!dest)
+      return;
+
+    if (dest.Ship && dest.Ship.team != ship.team)
     {
-      if (dest.Ship.team != ship.team)
-      {
-        this.addBehavior("AIAttack");
-        this._entity.AIAttack.target = dest;
-      }
+      this.addBehavior("AIAttack");
+      this._entity.AIAttack.target = dest;
+    }
+    else if (dest.ControlPoint)
+    {
+      this.addBehavior("AIApproach");
+      this._entity.AIApproach.target = dest;
     }
   });
 
@@ -210,7 +259,7 @@ TANK.registerComponent("Bullet")
 });
 TANK.registerComponent("ControlPoint")
 
-.includes("Planet")
+.includes(["Planet", "Droppable"])
 
 .construct(function()
 {
@@ -387,8 +436,6 @@ TANK.registerComponent("Game")
   {
   });
 
-  this.barCommands.length = 0;
-
   this.update = function(dt)
   {
     this.mousePosWorld = [TANK.main.Input.mousePos[0], TANK.main.Input.mousePos[1]];
@@ -417,8 +464,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 500;
-    e.Pos2D.y = 500;
+    e.Pos2D.x = 1000;
+    e.Pos2D.y = 1000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
@@ -643,7 +690,7 @@ function PixelBuffer()
 
 TANK.registerComponent("Planet")
 
-.includes("Pos2D")
+.includes(["Pos2D", "Collider2D"])
 
 .construct(function()
 {
@@ -669,6 +716,9 @@ TANK.registerComponent("Planet")
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
+
+  this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
 
   // Iterate over every pixel
   this.forEachPixel = function(func)

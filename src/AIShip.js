@@ -26,13 +26,18 @@ TANK.registerComponent("AIShip")
 
   this.listenTo(this._entity, "dragend", function(dest)
   {
-    if (dest && dest.Ship)
+    if (!dest)
+      return;
+
+    if (dest.Ship && dest.Ship.team != ship.team)
     {
-      if (dest.Ship.team != ship.team)
-      {
-        this.addBehavior("AIAttack");
-        this._entity.AIAttack.target = dest;
-      }
+      this.addBehavior("AIAttack");
+      this._entity.AIAttack.target = dest;
+    }
+    else if (dest.ControlPoint)
+    {
+      this.addBehavior("AIApproach");
+      this._entity.AIApproach.target = dest;
     }
   });
 

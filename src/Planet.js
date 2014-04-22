@@ -3,7 +3,7 @@
 
 TANK.registerComponent("Planet")
 
-.includes("Pos2D")
+.includes(["Pos2D", "Collider2D"])
 
 .construct(function()
 {
@@ -29,6 +29,9 @@ TANK.registerComponent("Planet")
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
+
+  this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
 
   // Iterate over every pixel
   this.forEachPixel = function(func)

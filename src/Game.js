@@ -23,8 +23,6 @@ TANK.registerComponent("Game")
   {
   });
 
-  this.barCommands.length = 0;
-
   this.update = function(dt)
   {
     this.mousePosWorld = [TANK.main.Input.mousePos[0], TANK.main.Input.mousePos[1]];
@@ -53,8 +51,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 500;
-    e.Pos2D.y = 500;
+    e.Pos2D.x = 1000;
+    e.Pos2D.y = 1000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
