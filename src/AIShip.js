@@ -1,6 +1,6 @@
 TANK.registerComponent("AIShip")
 
-.includes(["Ship", "Draggable", "Droppable"])
+.includes(["Ship", "Droppable"])
 
 .construct(function()
 {
@@ -13,6 +13,12 @@ TANK.registerComponent("AIShip")
   var t = this._entity.Pos2D;
   var v = this._entity.Velocity;
   var ship = this._entity.Ship;
+
+  // Only draggable if on the player team
+  if (ship.team === 0)
+  {
+    this._entity.addComponent("Draggable");
+  }
 
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, owner)
