@@ -5,6 +5,7 @@ TANK.registerComponent("Game")
   this.scaleFactor = isMobile.any() ? 4 : 8;
   this.factions = [];
   this.barCommands = [];
+  this.mousePosWorld = [0, 0];
 })
 
 .initialize(function()
@@ -15,7 +16,7 @@ TANK.registerComponent("Game")
   {
     el: "barContainer",
     template: "#barTemplate",
-    data: {commands: this.barCommands} 
+    data: {commands: this.barCommands}
   });
 
   this.barUI.on("activate", function(e)
@@ -24,30 +25,44 @@ TANK.registerComponent("Game")
 
   this.barCommands.length = 0;
 
-  var e = TANK.createEntity("Faction");
-  e.Faction.team = 0;
-  this.factions.push(e.Faction);
-  TANK.addEntity(e);
+  this.update = function(dt)
+  {
+    this.mousePosWorld = [TANK.main.Input.mousePos[0], TANK.main.Input.mousePos[1]];
+    this.mousePosWorld[0] -= window.innerWidth / 2;
+    this.mousePosWorld[1] -= window.innerHeight / 2;
+    this.mousePosWorld[0] *= TANK.main.Renderer2D.camera.z;
+    this.mousePosWorld[1] *= TANK.main.Renderer2D.camera.z;
+    this.mousePosWorld[0] += TANK.main.Renderer2D.camera.x;
+    this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
+  };
 
-  e = TANK.createEntity("AIFaction");
-  e.Faction.team = 1;
-  this.factions.push(e.Faction);
-  TANK.addEntity(e);
+  this.listenTo(TANK.main, "start", function()
+  {
+    var e = TANK.createEntity("Faction");
+    e.Faction.team = 0;
+    this.factions.push(e.Faction);
+    TANK.main.addChild(e);
 
-  e = TANK.createEntity("ControlPoint");
-  this.factions[0].addControlPoint(e.ControlPoint);
-  TANK.addEntity(e);
+    e = TANK.createEntity("AIFaction");
+    e.Faction.team = 1;
+    this.factions.push(e.Faction);
+    TANK.main.addChild(e);
 
-  e = TANK.createEntity("ControlPoint");
-  e.Pos2D.x = 500;
-  e.Pos2D.y = 500;
-  this.factions[1].addControlPoint(e.ControlPoint);
-  TANK.addEntity(e);
+    e = TANK.createEntity("ControlPoint");
+    this.factions[0].addControlPoint(e.ControlPoint);
+    TANK.main.addChild(e);
 
-  e = TANK.createEntity("Player");
-  e.Pos2D.x = 0;
-  e.Pos2D.y = 0;
-  TANK.addEntity(e, "Player");
+    e = TANK.createEntity("ControlPoint");
+    e.Pos2D.x = 500;
+    e.Pos2D.y = 500;
+    this.factions[1].addControlPoint(e.ControlPoint);
+    TANK.main.addChild(e);
 
-  this.factions[0].controlPoints[0].buyShip();
+    e = TANK.createEntity("Player");
+    e.Pos2D.x = 0;
+    e.Pos2D.y = 0;
+    TANK.main.addChild(e, "Player");
+
+    this.factions[0].controlPoints[0].buyShip();
+  });
 });

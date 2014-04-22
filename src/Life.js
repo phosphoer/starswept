@@ -7,10 +7,10 @@ TANK.registerComponent("Life")
 
 .initialize(function()
 {
-  this.addEventListener("OnEnterFrame", function(dt)
+  this.update = function(dt)
   {
     this.life -= dt;
     if (this.life < 0)
-      TANK.removeEntity(this.parent);
-  });
+      this._entity._parent.removeChild(this._entity);
+  };
 });

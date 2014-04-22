@@ -1,6 +1,6 @@
 TANK.registerComponent("AIAttack")
 
-.requires("AIShip")
+.includes("AIShip")
 
 .construct(function()
 {
@@ -12,17 +12,17 @@ TANK.registerComponent("AIAttack")
 
 .initialize(function()
 {
-  var t = this.parent.Pos2D;
-  var v = this.parent.Velocity;
-  var ship = this.parent.Ship;
+  var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
+  var ship = this._entity.Ship;
 
-  this.addEventListener("OnEnterFrame", function(dt)
+  this.update = function(dt)
   {
-    if (!this.target || !TANK.getEntity(this.target.id))
+    if (!this.target || !TANK.main.getChild(this.target._id))
     {
       this.giveUpTimer -= dt;
       if (this.giveUpTimer < 0)
-        this.parent.AIShip.removeBehavior("AIAttack");
+        this._entity.AIShip.removeBehavior("AIAttack");
       return;
     }
 
@@ -31,8 +31,8 @@ TANK.registerComponent("AIAttack")
     var targetVel = this.target.Velocity;
     targetPos[0] += targetVel.x * 1;
     targetPos[1] += targetVel.y * 1;
-    var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation, targetPos);
-    var targetDist = TANK.Math.pointDistancePoint([t.x, t.y], targetPos);
+    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, targetPos);
+    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
 
     // Target is to the left
     var aimingAtTarget = false;
@@ -56,7 +56,7 @@ TANK.registerComponent("AIAttack")
       v.r *= 0.95;
     }
 
-    this.parent.Weapons.aimAt(targetPos);
+    this._entity.Weapons.aimAt(targetPos);
 
     if (targetDist > this.optimalDistance)
     {
@@ -68,13 +68,13 @@ TANK.registerComponent("AIAttack")
     }
 
     // Shoot randomly
-    if (Math.random() < 0.05 && this.parent.Weapons.aimingAtTarget && targetDist < 1500)
+    if (Math.random() < 0.05 && this._entity.Weapons.aimingAtTarget && targetDist < 1500)
     {
-      this.parent.Weapons.shoot();
+      this._entity.Weapons.shoot();
     }
 
     // Cap movement
     if (Math.abs(v.r) > this.maxTurnSpeed)
       v.r *= 0.95;
-  });
+  };
 });

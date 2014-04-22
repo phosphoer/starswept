@@ -1,6 +1,6 @@
 TANK.registerComponent("ControlPoint")
 
-.requires("Planet")
+.includes("Planet")
 
 .construct(function()
 {
@@ -12,7 +12,7 @@ TANK.registerComponent("ControlPoint")
 
 .initialize(function()
 {
-  var t = this.parent.Pos2D;
+  var t = this._entity.Pos2D;
 
   this.buyShip = function()
   {
@@ -24,11 +24,11 @@ TANK.registerComponent("ControlPoint")
       e.Ship.team = this.faction.team;
       e.Pos2D.x = t.x - 400 + Math.random() * 800;
       e.Pos2D.y = t.y - 400 + Math.random() * 800;
-      TANK.addEntity(e);
+      TANK.main.addChild(e);
     }
   };
 
-  this.addEventListener("OnEnterFrame", function(dt)
+  this.update = function(dt)
   {
     this.moneyTimer += dt;
     if (this.moneyTimer >= this.moneyTime)
@@ -38,5 +38,5 @@ TANK.registerComponent("ControlPoint")
       if (this.faction)
         this.faction.money += this.value;
     }
-  });
+  };
 });

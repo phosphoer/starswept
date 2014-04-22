@@ -1,7 +1,5 @@
 TANK.registerComponent("StarField")
 
-.interfaces("Drawable")
-
 .construct(function()
 {
   this.zdepth = -10;
@@ -13,7 +11,10 @@ TANK.registerComponent("StarField")
   this.pixelBuffer = new PixelBuffer();
   this.pixelBuffer.createBuffer(window.innerWidth, window.innerHeight);
 
-  for (var i = 0; i < 100; ++i)
+  TANK.main.Renderer2D.add(this);
+
+  var i;
+  for (i = 0; i < 100; ++i)
   {
     var r =
     this.stars.push(
@@ -29,7 +30,7 @@ TANK.registerComponent("StarField")
     });
   }
 
-  for (var i = 0; i < this.stars.length; ++i)
+  for (i = 0; i < this.stars.length; ++i)
   {
     var x = (this.stars[i].x);
     var y = (this.stars[i].y);

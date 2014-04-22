@@ -9,38 +9,9 @@
     <script src="lib/jquery.min.js"></script>
     <script src="lib/lowLag.js"></script>
     <script src="lib/perlin.js"></script>
-    <script src="lib/Tank.min.js"></script>
-
-    <script src="src/Util.js"></script>
-    <script src="src/InputManager.js"></script>
-    <script src="src/Intersection.js"></script>
-    <script src="src/Collider.js"></script>
-    <script src="src/CollisionManager.js"></script>
-    <script src="src/Pos2D.js"></script>
-    <script src="src/Velocity.js"></script>
-    <script src="src/RenderManager.js"></script>
-
-    <script src="src/PixelBuffer.js"></script>
-    <script src="src/Planet.js"></script>
-    <script src="src/Game.js"></script>
-    <script src="src/StarField.js"></script>
-    <script src="src/Ship.js"></script>
-    <script src="src/Lights.js"></script>
-    <script src="src/Glow.js"></script>
-    <script src="src/Player.js"></script>
-    <script src="src/Bullet.js"></script>
-    <script src="src/AIShip.js"></script>
-    <script src="src/AIAttack.js"></script>
-    <script src="src/Life.js"></script>
-    <script src="src/AIFaction.js"></script>
-    <script src="src/Faction.js"></script>
-    <script src="src/ControlPoint.js"></script>
-    <script src="src/Selectable.js"></script>
-    <script src="src/Cursor.js"></script>
-    <script src="src/Weapons.js"></script>
-    <script src="src/Draggable.js"></script>
-    <script src="src/main.js"></script>
-
+    <script src="lib/tank.js"></script>
+    <script src="lib/components.js"></script>
+    <script src="bin/game.js"></script>
   </head>
   <body>
     <style>
@@ -54,7 +25,7 @@
     }
     </style>
 
-    <div id="stage" class="fullscreen">
+    <div id="stage" class="fullscreen" tabIndex="0">
       <canvas id="canvas" class="fullscreen"></canvas>
     </div>
 

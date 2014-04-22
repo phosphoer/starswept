@@ -1,8 +1,6 @@
 TANK.registerComponent("Ship")
 
-.interfaces("Drawable")
-
-.requires("Pos2D, Velocity, Lights, Collider, Weapons")
+.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons"])
 
 .construct(function()
 {
@@ -54,22 +52,24 @@ TANK.registerComponent("Ship")
 
 .initialize(function()
 {
-  var t = this.parent.Pos2D;
-  var v = this.parent.Velocity;
+  var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
 
-  this.parent.Collider.collisionLayer = "Ships";
-  this.parent.Collider.collidesWith = ["Bullets"];
+  TANK.main.Renderer2D.add(this);
+
+  // this._entity.Collider.collisionLayer = "Ships";
+  // this._entity.Collider.collidesWith = ["Bullets"];
 
   var that = this;
   this.image.addEventListener("load", function()
   {
-    that.parent.Lights.lights = that.lights;
-    that.parent.Lights.width = that.image.width;
-    that.parent.Lights.height = that.image.height;
-    that.parent.Lights.redrawLights();
+    that._entity.Lights.lights = that.lights;
+    that._entity.Lights.width = that.image.width;
+    that._entity.Lights.height = that.image.height;
+    that._entity.Lights.redrawLights();
 
-    that.parent.Collider.width = that.image.width * TANK.Game.scaleFactor;
-    that.parent.Collider.height = that.image.height * TANK.Game.scaleFactor;
+    that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
+    that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
   });
 
   // Movement functions
@@ -81,7 +81,7 @@ TANK.registerComponent("Ship")
     for (var i = 0; i < this.lights.length; ++i)
       if (this.lights[i].isEngine)
         this.lights[i].state = "on";
-    this.parent.Lights.redrawLights();
+    this._entity.Lights.redrawLights();
   };
   this.stopUp = function()
   {
@@ -91,7 +91,7 @@ TANK.registerComponent("Ship")
     for (var i = 0; i < this.lights.length; ++i)
       if (this.lights[i].isEngine)
         this.lights[i].state = "off";
-    this.parent.Lights.redrawLights();
+    this._entity.Lights.redrawLights();
   };
   this.startLeft = function() {this.left = true;};
   this.stopLeft = function() {this.left = false;};
@@ -103,7 +103,7 @@ TANK.registerComponent("Ship")
   // Move towards a given point
   this.moveTowards = function(pos)
   {
-    var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation, pos);
+    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, pos);
     if (dir < -0.1)
     {
       this.startLeft();
@@ -127,7 +127,7 @@ TANK.registerComponent("Ship")
   this.explode = function()
   {
     // Remove object and spawn particles
-    TANK.removeEntity(this.parent);
+    TANK.main.removeChild(this._entity);
     for (var i = 0; i < 150; ++i)
     {
       var e = TANK.createEntity("Glow");
@@ -145,33 +145,28 @@ TANK.registerComponent("Ship")
       e.Glow.colorB = "rgba(255, 255, 150, 0.3)";
       e.Glow.colorC = "rgba(180, 20, 20, 0.0)";
       e.Life.life = 5;
-      TANK.addEntity(e);
+      TANK.main.addChild(e);
     }
 
     // Shake screen if on camera
-    var camera = TANK.RenderManager.camera;
-    var dist = TANK.Math.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+    var camera = TANK.main.Renderer2D.camera;
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < window.innerWidth / 2)
-      TANK.dispatchEvent("OnCameraShake", 0.5);
+      TANK.main.dispatch("camerashake", 0.5);
   };
 
   // Damage response
-  this.OnDamaged = function(damage, dir, owner)
+  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
   {
     v.x += dir[0] * 0.02;
     v.y += dir[1] * 0.02;
-    var dir = Math.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
+    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
     v.r += dir * 0.5;
     this.health -= damage;
-  };
-
-  // Collision response
-  this.OnCollide = function(obj)
-  {
-  };
+  });
 
   // Update loop
-  this.addEventListener("OnEnterFrame", function(dt)
+  this.update = function(dt)
   {
     // Check if dead
     if (this.health < 0 && !this.dead)
@@ -235,8 +230,8 @@ TANK.registerComponent("Ship")
         if (light.isEngine && light.state === "on")
         {
           var e = TANK.createEntity("Glow");
-          var x = (light.x - this.image.width / 2) * TANK.Game.scaleFactor;
-          var y = (light.y - this.image.height / 2) * TANK.Game.scaleFactor;
+          var x = (light.x - this.image.width / 2) * TANK.main.Game.scaleFactor;
+          var y = (light.y - this.image.height / 2) * TANK.main.Game.scaleFactor;
           e.Pos2D.x = x * Math.cos(t.rotation) - y * Math.sin(t.rotation);
           e.Pos2D.y = y * Math.cos(t.rotation) + x * Math.sin(t.rotation);
           e.Pos2D.x += t.x;
@@ -245,12 +240,12 @@ TANK.registerComponent("Ship")
           e.Velocity.y = Math.sin(t.rotation) * -120;
           e.Glow.alphaDecay = 0.8;
           e.Life.life = 3;
-          TANK.addEntity(e);
+          TANK.main.addChild(e);
         }
       }
       this.trailTimer = 0.03;
     }
-  });
+  };
 
   this.draw = function(ctx, camera)
   {
@@ -258,7 +253,7 @@ TANK.registerComponent("Ship")
 
     // Draw ship
     ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.Game.scaleFactor, TANK.Game.scaleFactor);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
     ctx.translate(this.image.width / -2, this.image.height / -2);
     ctx.drawImage(this.image, 0, 0);

@@ -1,8 +1,6 @@
 TANK.registerComponent("AIShip")
 
-.interfaces("Draggable, Droppable")
-
-.requires("Ship, Draggable")
+.includes(["Ship", "Draggable", "Droppable"])
 
 .construct(function()
 {
@@ -12,46 +10,46 @@ TANK.registerComponent("AIShip")
 
 .initialize(function()
 {
-  var t = this.parent.Pos2D;
-  var v = this.parent.Velocity;
-  var ship = this.parent.Ship;
+  var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
+  var ship = this._entity.Ship;
 
   // Damage response
-  this.OnDamaged = function(damage, dir, owner)
+  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
   {
     if (owner && owner.Ship && owner.Ship.team != ship.team)
     {
       this.addBehavior("AIAttack");
-      this.parent.AIAttack.target = owner;
+      this._entity.AIAttack.target = owner;
     }
-  };
+  });
 
-  this.OnDragEnd = function(dest)
+  this.listenTo(this._entity, "dragend", function(dest)
   {
     if (dest && dest.Ship)
     {
       if (dest.Ship.team != ship.team)
       {
         this.addBehavior("AIAttack");
-        this.parent.AIAttack.target = dest;
+        this._entity.AIAttack.target = dest;
       }
     }
-  };
+  });
 
   this.addBehavior = function(name)
   {
-    if (this.parent[name])
+    if (this._entity[name])
       return;
-    this.parent.addComponent(name);
+    this._entity.addComponent(name);
     this.behaviors[name] = true;
     ++this.numBehaviors;
   };
 
   this.removeBehavior = function(name)
   {
-    if (!this.parent[name])
+    if (!this._entity[name])
       return;
-    this.parent.removeComponent(name);
+    this._entity.removeComponent(name);
     delete this.behaviors[name];
     --this.numBehaviors;
   };
@@ -61,12 +59,4 @@ TANK.registerComponent("AIShip")
     for (var i in this.behaviors)
       this.removeBehavior(i);
   };
-
-  this.addEventListener("OnEnterFrame", function(dt)
-  {
-  });
-})
-
-.destruct(function()
-{
 });
