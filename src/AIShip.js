@@ -20,6 +20,9 @@ TANK.registerComponent("AIShip")
     this._entity.addComponent("Draggable");
   }
 
+  // Always watch for enemies
+  this._entity.addComponent("AIWatch");
+
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, owner)
   {
@@ -30,16 +33,19 @@ TANK.registerComponent("AIShip")
     }
   });
 
+  // Reponse to being dragged onto something
   this.listenTo(this._entity, "dragend", function(dest)
   {
     if (!dest)
       return;
 
+    // Attack an enemy ship
     if (dest.Ship && dest.Ship.team != ship.team)
     {
       this.addBehavior("AIAttack");
       this._entity.AIAttack.target = dest;
     }
+    // Go to a control point
     else if (dest.ControlPoint)
     {
       this.addBehavior("AIApproach");
