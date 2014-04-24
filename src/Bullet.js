@@ -12,8 +12,8 @@ TANK.registerComponent("Bullet")
 {
   var t = this._entity.Pos2D;
 
-  // this._entity.Collider.collisionLayer = "Bullets";
-  // this._entity.Collider.collidesWith = ["Ships"];
+  this._entity.Collider2D.collisionLayer = "bullets";
+  this._entity.Collider2D.collidesWith = ["ships"];
 
   // Make buffer
   this.pixelBuffer = new PixelBuffer();

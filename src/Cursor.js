@@ -10,6 +10,7 @@ TANK.registerComponent("Cursor")
 .initialize(function()
 {
   // TANK.main.Renderer2D.add(this);
+  this._entity.Collider2D.collisionLayer = "cursors";
 
   this.update = function(dt)
   {

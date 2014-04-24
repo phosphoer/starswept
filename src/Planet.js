@@ -32,6 +32,7 @@ TANK.registerComponent("Planet")
 
   this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
   this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.collidesWith.push("cursors");
 
   // Iterate over every pixel
   this.forEachPixel = function(func)

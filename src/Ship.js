@@ -57,8 +57,8 @@ TANK.registerComponent("Ship")
 
   TANK.main.Renderer2D.add(this);
 
-  // this._entity.Collider.collisionLayer = "Ships";
-  // this._entity.Collider.collidesWith = ["Bullets"];
+  this._entity.Collider2D.collisionLayer = "ships";
+  this._entity.Collider2D.collidesWith = ["bullets"];
 
   var that = this;
   this.image.addEventListener("load", function()
