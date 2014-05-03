@@ -17,6 +17,18 @@ html, body
   background: #222;
 }
 
+.top-bar
+{
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  min-height: 40px;
+  padding: 5px;
+  background: #222;
+}
+
 .bar-button
 {
   display: inline-block;
@@ -30,4 +42,13 @@ html, body
 .bar-button:hover
 {
   background: #666;
+}
+
+.bar-item
+{
+  color: #ddd;
+  display: inline-block;
+  min-width: 80px;
+  padding: 5px;
+  text-align: center;
 }

@@ -5,6 +5,7 @@ TANK.registerComponent("Game")
   this.scaleFactor = isMobile.any() ? 4 : 8;
   this.factions = [];
   this.barCommands = [];
+  this.topBarItems = [];
   this.mousePosWorld = [0, 0];
 })
 
@@ -19,12 +20,37 @@ TANK.registerComponent("Game")
     data: {commands: this.barCommands}
   });
 
+  this.topBarUI = new Ractive(
+  {
+    el: "topBarContainer",
+    template: "#topBarTemplate",
+    data: {items: this.topBarItems}
+  });
+
+  var that = this;
+  this.barCommands.push(
+  {
+    name: "Build Ship",
+    activate: function()
+    {
+      that.factions[0].controlPoints[0].buyShip();
+    }
+  });
+
   this.barUI.on("activate", function(e)
   {
+    e.context.activate();
   });
+
+  // Money counter
+  this.topBarItems.push({name: ""});
 
   this.update = function(dt)
   {
+    // Update faction money count
+    this.topBarUI.set("items[0].name", "Funds - " + this.factions[0].money);
+
+    // Update mouse world position
     this.mousePosWorld = [TANK.main.Input.mousePos[0], TANK.main.Input.mousePos[1]];
     this.mousePosWorld[0] -= window.innerWidth / 2;
     this.mousePosWorld[1] -= window.innerHeight / 2;
@@ -51,8 +77,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 1000;
-    e.Pos2D.y = 1000;
+    e.Pos2D.x = 5000;
+    e.Pos2D.y = 5000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
