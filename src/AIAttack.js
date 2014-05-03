@@ -1,31 +1,29 @@
-TANK.registerComponent("AIAttack")
+this.Action = this.Action || {};
 
-.includes("AIShip")
-
-.construct(function()
+Action.AIAttack = function(e, target)
 {
-  this.target = null;
+  this.target = target;
   this.maxTurnSpeed = 1;
   this.optimalDistance = 500;
   this.giveUpTimer = 5;
-})
+  this._blocking = true;
 
-.initialize(function()
-{
-  var t = this._entity.Pos2D;
-  var v = this._entity.Velocity;
-  var ship = this._entity.Ship;
-
-  this._entity.AIShip.addBehavior("AIApproach");
+  this.start = function()
+  {
+  };
 
   this.update = function(dt)
   {
-    this._entity.AIApproach.target = this.target;
+    var t = e.Pos2D;
+    var v = e.Velocity;
+    var ship = e.Ship;
+
+    // Check if target still exists
     if (!this.target || !TANK.main.getChild(this.target._id))
     {
       this.giveUpTimer -= dt;
       if (this.giveUpTimer < 0)
-        this._entity.AIShip.removeBehavior("AIAttack");
+        this._done = true;
       return;
     }
 
@@ -33,16 +31,18 @@ TANK.registerComponent("AIAttack")
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
 
+    // Approach target
+    e.Ship.moveTowards(targetPos);
+
     // Shoot randomly
-    this._entity.Weapons.aimAt(targetPos);
-    if (Math.random() < 0.05 && this._entity.Weapons.aimingAtTarget && targetDist < 1500)
+    e.Weapons.aimAt(targetPos);
+    if (Math.random() < 0.05 && e.Weapons.aimingAtTarget && targetDist < 1500)
     {
-      this._entity.Weapons.shoot();
+      e.Weapons.shoot();
     }
   };
-})
 
-.uninitialize(function()
-{
-  this._entity.AIShip.removeBehavior("AIApproach");
-});
+  this.stop = function()
+  {
+  };
+};

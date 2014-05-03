@@ -1,12 +1,13 @@
 this.Action = this.Action || {};
 
-Action.AIApproach = function(target)
+Action.AIApproach = function(e, target)
 {
   this.target = target;
   this.maxTurnSpeed = 1;
   this.optimalDistance = 300;
   this.giveUpTimer = 5;
   this.aimingAtTarget = false;
+  this._blocking = true;
 
   this.start = function()
   {
@@ -14,15 +15,15 @@ Action.AIApproach = function(target)
 
   this.update = function(dt)
   {
-    var t = this._entity.Pos2D;
-    var v = this._entity.Velocity;
-    var ship = this._entity.Ship;
+    var t = e.Pos2D;
+    var v = e.Velocity;
+    var ship = e.Ship;
 
     if (!this.target || !TANK.main.getChild(this.target._id))
     {
       this.giveUpTimer -= dt;
       if (this.giveUpTimer < 0)
-        return true;
+        e.AIShip.removeBehavior("AIApproach");
       return;
     }
 
@@ -66,11 +67,13 @@ Action.AIApproach = function(target)
     else
     {
       ship.stopUp();
+
       v.x *= 0.95;
       v.y *= 0.95;
+      v.r *= 0.95;
 
-      if (v.getSpeed() < 1 && Math.abs(v.r) < 0.1)
-        return true;
+      if (v.getSpeed() < 1 && v.r < 0.1)
+        this._done = true;
     }
 
     // Cap movement
@@ -78,36 +81,37 @@ Action.AIApproach = function(target)
       v.r *= 0.95;
   };
 
-  this.end = function()
+  this.stop = function()
   {
   };
 };
+
 this.Action = this.Action || {};
 
-Action.AIAttack = function(target)
+Action.AIAttack = function(e, target)
 {
   this.target = target;
-  this.giveUpTimer = 3;
+  this.maxTurnSpeed = 1;
+  this.optimalDistance = 500;
+  this.giveUpTimer = 5;
+  this._blocking = true;
 
   this.start = function()
   {
-    this.approachAction = new Action.AIApproach();
-    this.approachAction.target = this.target;
-    this._actionlist.prepend(this.approachAction);
   };
 
   this.update = function(dt)
   {
-    var t = this._entity.Pos2D;
-    var v = this._entity.Velocity;
-    var ship = this._entity.Ship;
+    var t = e.Pos2D;
+    var v = e.Velocity;
+    var ship = e.Ship;
 
-    this.approachAction.target = this.target;
+    // Check if target still exists
     if (!this.target || !TANK.main.getChild(this.target._id))
     {
       this.giveUpTimer -= dt;
       if (this.giveUpTimer < 0)
-        return true;
+        this._done = true;
       return;
     }
 
@@ -115,17 +119,19 @@ Action.AIAttack = function(target)
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
 
+    // Approach target
+    e.Ship.moveTowards(targetPos);
+
     // Shoot randomly
-    this._entity.Weapons.aimAt(targetPos);
-    if (Math.random() < 0.05 && this._entity.Weapons.aimingAtTarget && targetDist < 1500)
+    e.Weapons.aimAt(targetPos);
+    if (Math.random() < 0.05 && e.Weapons.aimingAtTarget && targetDist < 1500)
     {
-      this._entity.Weapons.shoot();
+      e.Weapons.shoot();
     }
   };
 
-  this.end = function()
+  this.stop = function()
   {
-    this.approachAction._done = true;
   };
 };
 TANK.registerComponent("AIFaction")
@@ -150,14 +156,46 @@ TANK.registerComponent("AIFaction")
     }
   };
 });
+this.Action = this.Action || {};
+
+Action.AIIdle = function(e)
+{
+  this._blocking = true;
+
+  this.start = function()
+  {
+  };
+
+  this.update = function(dt)
+  {
+    var v = e.Velocity;
+    var ship = e.Ship;
+
+    // Stop moving
+    ship.stopUp();
+    ship.stopLeft();
+    ship.stopRight();
+    ship.stopDown();
+
+    // Decelarate
+    v.x *= 0.95;
+    v.y *= 0.95;
+    v.r *= 0.95;
+  };
+
+  this.stop = function()
+  {
+  };
+};
+
 TANK.registerComponent("AIShip")
 
-.includes(["Ship", "Droppable", "ActionList"])
+.includes(["Ship", "Droppable"])
 
 .construct(function()
 {
-  this.behaviors = {};
-  this.numBehaviors = 0;
+  this.actions = [];
+  this.removedActions = [];
 })
 
 .initialize(function()
@@ -166,10 +204,13 @@ TANK.registerComponent("AIShip")
   var v = this._entity.Velocity;
   var ship = this._entity.Ship;
 
+  this._entity.Droppable.selectDepth = 1;
+
   // Only draggable if on the player team
   if (ship.team === 0)
   {
     this._entity.addComponent("Draggable");
+    this._entity.Draggable.selectDepth = 1;
   }
 
   // Always watch for enemies
@@ -178,10 +219,9 @@ TANK.registerComponent("AIShip")
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, owner)
   {
-    if (owner && owner.Ship && owner.Ship.team != ship.team)
+    if (owner && owner.Ship && owner.Ship.team != ship.team && !(this.actions[0] instanceof Action.AIAttack))
     {
-      // this.addBehavior("AIAttack");
-      // this._entity.AIAttack.target = owner;
+      this.prependAction(new Action.AIAttack(this._entity, owner));
     }
   });
 
@@ -194,16 +234,52 @@ TANK.registerComponent("AIShip")
     // Attack an enemy ship
     if (dest.Ship && dest.Ship.team != ship.team)
     {
-      this._entity.ActionList.clear();
-      this._entity.ActionList.append(new Action.AIAttack(dest));
+      this.prependAction(new Action.AIAttack(this._entity, dest));
     }
     // Go to a control point
     else if (dest.ControlPoint)
     {
-      this._entity.ActionList.clear();
-      this._entity.ActionList.append(new Action.AIApproach(dest));
+      this.prependAction(new Action.AIApproach(this._entity, dest));
     }
   });
+
+  this.prependAction = function(action, blocking)
+  {
+    if (blocking !== undefined)
+      action._blocking = blocking;
+    this.actions.splice(0, 0, action);
+    action.start();
+  };
+
+  this.appendAction = function(action, blocking)
+  {
+    if (blocking !== undefined)
+      action._blocking = blocking;
+    this.actions.push(action);
+    action.start();
+  };
+
+  this.update = function(dt)
+  {
+    for (var i = 0; i < this.actions.length; ++i)
+    {
+      var action = this.actions[i];
+      if (action.update)
+        action.update(dt);
+
+      if (action._done)
+        this.removedActions.push(i);
+
+      if (action._blocking)
+        break;
+    };
+
+    for (var i = 0; i < this.removedActions.length; ++i)
+      this.actions.splice(this.removedActions[i], 1);
+    this.removedActions = [];
+  };
+
+  this.appendAction(new Action.AIIdle(this._entity));
 });
 TANK.registerComponent("AIWatch")
 
@@ -226,21 +302,14 @@ TANK.registerComponent("AIWatch")
 
     var targetPos = [e.Pos2D.x, e.Pos2D.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-    if (targetDist < this.watchRange)
+    if (targetDist < this.watchRange && !(this._entity.AIShip.actions[0] instanceof Action.AIAttack))
     {
-      this.action = new Action.AIAttack(e);
-      this.action._blocking = true;
-      this._entity.ActionList.prepend(this.action);
+      this._entity.AIShip.prependAction(new Action.AIAttack(this._entity, e));
     }
   };
 
   this.update = function(dt)
   {
-    if (this.action && this.action._done)
-      this.action = null;
-    if (this.action)
-      return;
-
     // Iterate over ships and see if any enemies are nearby
     var ships = TANK.main.getChildrenWithComponent("Ship");
     for (var i in ships)
@@ -249,96 +318,6 @@ TANK.registerComponent("AIWatch")
     }
   };
 });
-(function()
-{
-  "use strict";
-
-  TANK.registerComponent("ActionList")
-
-  .construct(function()
-  {
-    this.actions = [];
-    this.removedActions = [];
-  })
-
-  .initialize(function()
-  {
-    this.append = function(action)
-    {
-      this.actions.push(action);
-      action._entity = this._entity;
-      action._started = false;
-      action._done = false;
-      action._actionlist = this;
-    };
-
-    this.prepend = function(action)
-    {
-      this.actions.splice(0, 1, action);
-      action._entity = this._entity;
-      action._started = false;
-      action._done = false;
-      action._actionlist = this;
-    };
-
-    this.clear = function()
-    {
-      for (var i = 0; i < this.actions.length; ++i)
-        this.actions[i]._done = true;
-    };
-
-    this.update = function(dt)
-    {
-      for (var i = 0; i < this.actions.length; ++i)
-      {
-        var a = this.actions[i];
-
-        // Start event
-        if (!a._started)
-        {
-          a._started = true;
-          if (a.start)
-            a.start();
-        }
-
-        // Handle life
-        if (!isNaN(a._life))
-        {
-          a._life -= dt;
-          if (a._life <= 0)
-          {
-            this.removedActions.push(i);
-            continue;
-          }
-        }
-
-        // Update the action
-        var done = false;
-        if (a.update)
-          done = a.update(dt);
-        done = done || a._done;
-        if (done)
-          this.removedActions.push(i);
-
-        // Stop if action is blocking
-        if (a._blocking)
-          i = this.actions.length;
-      };
-
-      // Remove finished actoins
-      for (var j = 0; j < this.removedActions.length; ++j)
-      {
-        var a = this.actions[this.removedActions[j]];
-        a._done = true;
-        if (a.end)
-          a.end();
-        this.actions.splice(this.removedActions[j], 1);
-      }
-      this.removedActions = [];
-    };
-  });
-
-})();
 TANK.registerComponent("Bullet")
 
 .includes(["Pos2D", "Velocity", "Collider2D", "Life"])
@@ -1078,18 +1057,22 @@ TANK.registerComponent("Player")
     e.Cursor.updatePos();
 
     var selected = null;
+    var selectionList = [];
     for (var i in selectables)
     {
       var selectable = selectables[i];
       if (e.Collider2D.collide(selectable.Collider2D))
-      {
-        selected = selectable;
-        break;
-      }
+        selectionList.push(selectable);
     }
-    TANK.main.removeChild(e);
+    selectionList.sort(function(a, b)
+    {
+      var depthA = a[componentName].selectDepth || 0;
+      var depthB = b[componentName].selectDepth || 0;
+      return depthA - depthB;
+    });
 
-    return selected;
+    TANK.main.removeChild(e);
+    return selectionList[selectionList.length - 1];
   };
 
   this.shakeCamera = function(duration)

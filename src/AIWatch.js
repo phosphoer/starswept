@@ -19,10 +19,9 @@ TANK.registerComponent("AIWatch")
 
     var targetPos = [e.Pos2D.x, e.Pos2D.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-    if (targetDist < this.watchRange && !this._entity.AIAttack)
+    if (targetDist < this.watchRange && !(this._entity.AIShip.actions[0] instanceof Action.AIAttack))
     {
-      this._entity.AIShip.addBehavior("AIAttack");
-      this._entity.AIAttack.target = e;
+      this._entity.AIShip.prependAction(new Action.AIAttack(this._entity, e));
     }
   };
 

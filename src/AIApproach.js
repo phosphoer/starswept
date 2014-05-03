@@ -1,29 +1,29 @@
-TANK.registerComponent("AIApproach")
+this.Action = this.Action || {};
 
-.includes("AIShip")
-
-.construct(function()
+Action.AIApproach = function(e, target)
 {
-  this.target = null;
+  this.target = target;
   this.maxTurnSpeed = 1;
   this.optimalDistance = 300;
   this.giveUpTimer = 5;
   this.aimingAtTarget = false;
-})
+  this._blocking = true;
 
-.initialize(function()
-{
-  var t = this._entity.Pos2D;
-  var v = this._entity.Velocity;
-  var ship = this._entity.Ship;
+  this.start = function()
+  {
+  };
 
   this.update = function(dt)
   {
+    var t = e.Pos2D;
+    var v = e.Velocity;
+    var ship = e.Ship;
+
     if (!this.target || !TANK.main.getChild(this.target._id))
     {
       this.giveUpTimer -= dt;
       if (this.giveUpTimer < 0)
-        this._entity.AIShip.removeBehavior("AIApproach");
+        e.AIShip.removeBehavior("AIApproach");
       return;
     }
 
@@ -67,10 +67,21 @@ TANK.registerComponent("AIApproach")
     else
     {
       ship.stopUp();
+
+      v.x *= 0.95;
+      v.y *= 0.95;
+      v.r *= 0.95;
+
+      if (v.getSpeed() < 1 && v.r < 0.1)
+        this._done = true;
     }
 
     // Cap movement
     if (Math.abs(v.r) > this.maxTurnSpeed)
       v.r *= 0.95;
   };
-});
+
+  this.stop = function()
+  {
+  };
+};

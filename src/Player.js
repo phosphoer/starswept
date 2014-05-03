@@ -28,18 +28,22 @@ TANK.registerComponent("Player")
     e.Cursor.updatePos();
 
     var selected = null;
+    var selectionList = [];
     for (var i in selectables)
     {
       var selectable = selectables[i];
       if (e.Collider2D.collide(selectable.Collider2D))
-      {
-        selected = selectable;
-        break;
-      }
+        selectionList.push(selectable);
     }
-    TANK.main.removeChild(e);
+    selectionList.sort(function(a, b)
+    {
+      var depthA = a[componentName].selectDepth || 0;
+      var depthB = b[componentName].selectDepth || 0;
+      return depthA - depthB;
+    });
 
-    return selected;
+    TANK.main.removeChild(e);
+    return selectionList[selectionList.length - 1];
   };
 
   this.shakeCamera = function(duration)

@@ -4,8 +4,8 @@ TANK.registerComponent("AIShip")
 
 .construct(function()
 {
-  this.behaviors = {};
-  this.numBehaviors = 0;
+  this.actions = [];
+  this.removedActions = [];
 })
 
 .initialize(function()
@@ -14,10 +14,13 @@ TANK.registerComponent("AIShip")
   var v = this._entity.Velocity;
   var ship = this._entity.Ship;
 
+  this._entity.Droppable.selectDepth = 1;
+
   // Only draggable if on the player team
   if (ship.team === 0)
   {
     this._entity.addComponent("Draggable");
+    this._entity.Draggable.selectDepth = 1;
   }
 
   // Always watch for enemies
@@ -26,10 +29,9 @@ TANK.registerComponent("AIShip")
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, owner)
   {
-    if (owner && owner.Ship && owner.Ship.team != ship.team)
+    if (owner && owner.Ship && owner.Ship.team != ship.team && !(this.actions[0] instanceof Action.AIAttack))
     {
-      this.addBehavior("AIAttack");
-      this._entity.AIAttack.target = owner;
+      this.prependAction(new Action.AIAttack(this._entity, owner));
     }
   });
 
@@ -42,38 +44,50 @@ TANK.registerComponent("AIShip")
     // Attack an enemy ship
     if (dest.Ship && dest.Ship.team != ship.team)
     {
-      this.addBehavior("AIAttack");
-      this._entity.AIAttack.target = dest;
+      this.prependAction(new Action.AIAttack(this._entity, dest));
     }
     // Go to a control point
     else if (dest.ControlPoint)
     {
-      this.addBehavior("AIApproach");
-      this._entity.AIApproach.target = dest;
+      this.prependAction(new Action.AIApproach(this._entity, dest));
     }
   });
 
-  this.addBehavior = function(name)
+  this.prependAction = function(action, blocking)
   {
-    if (this._entity[name])
-      return;
-    this._entity.addComponent(name);
-    this.behaviors[name] = true;
-    ++this.numBehaviors;
+    if (blocking !== undefined)
+      action._blocking = blocking;
+    this.actions.splice(0, 0, action);
+    action.start();
   };
 
-  this.removeBehavior = function(name)
+  this.appendAction = function(action, blocking)
   {
-    if (!this._entity[name])
-      return;
-    this._entity.removeComponent(name);
-    delete this.behaviors[name];
-    --this.numBehaviors;
+    if (blocking !== undefined)
+      action._blocking = blocking;
+    this.actions.push(action);
+    action.start();
   };
 
-  this.clearBehaviors = function()
+  this.update = function(dt)
   {
-    for (var i in this.behaviors)
-      this.removeBehavior(i);
+    for (var i = 0; i < this.actions.length; ++i)
+    {
+      var action = this.actions[i];
+      if (action.update)
+        action.update(dt);
+
+      if (action._done)
+        this.removedActions.push(i);
+
+      if (action._blocking)
+        break;
+    };
+
+    for (var i = 0; i < this.removedActions.length; ++i)
+      this.actions.splice(this.removedActions[i], 1);
+    this.removedActions = [];
   };
+
+  this.appendAction(new Action.AIIdle(this._entity));
 });
