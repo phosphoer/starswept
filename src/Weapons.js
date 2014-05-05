@@ -24,6 +24,7 @@ TANK.registerComponent("Weapons")
     gun.angle = 0;
     gun.range = 800;
     this.guns.push(gun);
+    return gun;
   };
 
   this.shoot = function()
@@ -129,9 +130,4 @@ TANK.registerComponent("Weapons")
     }
     ctx.restore();
   };
-
-  this.addGun();
-  this.addGun();
-  this.guns[1].arcAngle = Math.PI / 2;
-  this.guns[1].arc = Math.PI / 4;
 });

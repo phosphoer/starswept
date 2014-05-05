@@ -1287,35 +1287,6 @@ TANK.registerComponent("Ship")
 {
   this.zdepth = 2;
   this.image = new Image();
-  this.image.src = "res/shuttle.png";
-
-  this.lights =
-  [
-    {
-      x: 0, y: 0, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
-      }
-    },
-    {
-      x: 0, y: 5, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
-      }
-    },
-    {
-      x: 7, y: 0, radius: 2, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
-  ];
 
   this.up = false;
   this.left = false;
@@ -1324,10 +1295,10 @@ TANK.registerComponent("Ship")
   this.trailTimer = 0;
   this.dead = false;
 
+  this.shipData = new Ships.transport();
+  this.image.src = this.shipData.image;
   this.team = 0;
-  this.maxTurnSpeed = 1.5;
-  this.maxSpeed = 150;
-  this.health = 1;
+  this.health = this.shipData.health;
   this.deadTimer = 0;
 })
 
@@ -1344,7 +1315,7 @@ TANK.registerComponent("Ship")
   var that = this;
   this.image.addEventListener("load", function()
   {
-    that._entity.Lights.lights = that.lights;
+    that._entity.Lights.lights = that.shipData.lights;
     that._entity.Lights.width = that.image.width;
     that._entity.Lights.height = that.image.height;
     that._entity.Lights.redrawLights();
@@ -1353,15 +1324,24 @@ TANK.registerComponent("Ship")
     that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
   });
 
+  // Add weapons
+  for (var i = 0; i < this.shipData.guns.length; ++i)
+  {
+    var gunData = this.shipData.guns[i];
+    var gun = this._entity.Weapons.addGun();
+    for (var j in gunData)
+      gun[j] = gunData[j];
+  };
+
   // Movement functions
   this.startUp = function()
   {
     if (this.up || this.dead)
       return;
     this.up = true;
-    for (var i = 0; i < this.lights.length; ++i)
-      if (this.lights[i].isEngine)
-        this.lights[i].state = "on";
+    for (var i = 0; i < this.shipData.lights.length; ++i)
+      if (this.shipData.lights[i].isEngine)
+        this.shipData.lights[i].state = "on";
     this._entity.Lights.redrawLights();
   };
   this.stopUp = function()
@@ -1369,9 +1349,9 @@ TANK.registerComponent("Ship")
     if (!this.up)
       return;
     this.up = false;
-    for (var i = 0; i < this.lights.length; ++i)
-      if (this.lights[i].isEngine)
-        this.lights[i].state = "off";
+    for (var i = 0; i < this.shipData.lights.length; ++i)
+      if (this.shipData.lights[i].isEngine)
+        this.shipData.lights[i].state = "off";
     this._entity.Lights.redrawLights();
   };
   this.startLeft = function() {this.left = true;};
@@ -1488,14 +1468,14 @@ TANK.registerComponent("Ship")
     }
 
     // Cap movement
-    if (Math.abs(v.r) > this.maxTurnSpeed)
+    if (Math.abs(v.r) > this.shipData.maxTurnSpeed)
       v.r *= 0.95;
     var speed = Math.sqrt(v.x * v.x + v.y * v.y);
-    if (speed > this.maxSpeed)
+    if (speed > this.shipData.maxSpeed)
     {
       var moveAngle = Math.atan2(v.y, v.x);
-      v.x = Math.cos(moveAngle) * this.maxSpeed;
-      v.y = Math.sin(moveAngle) * this.maxSpeed;
+      v.x = Math.cos(moveAngle) * this.shipData.maxSpeed;
+      v.y = Math.sin(moveAngle) * this.shipData.maxSpeed;
     }
 
     // Timers
@@ -1505,9 +1485,9 @@ TANK.registerComponent("Ship")
     // Spawn engine trail effect
     if (this.trailTimer < 0 && !isMobile.any())
     {
-      for (var i = 0; i < this.lights.length; ++i)
+      for (var i = 0; i < this.shipData.lights.length; ++i)
       {
-        var light = this.lights[i];
+        var light = this.shipData.lights[i];
         if (light.isEngine && light.state === "on")
         {
           var e = TANK.createEntity("Glow");
@@ -1542,6 +1522,103 @@ TANK.registerComponent("Ship")
     ctx.restore();
   };
 });
+var Ships = {};
+
+Ships.frigate = function()
+{
+  this.image = "res/shuttle.png";
+  this.maxTurnSpeed = 1.5;
+  this.maxSpeed = 150;
+  this.health = 1;
+  this.guns =
+  [
+    {
+      reloadTime: 0.5,
+      arcAngle: 0,
+      arc: Math.PI / 3,
+      range: 800
+    }
+  ];
+  this.lights =
+  [
+    {
+      x: 0, y: 0, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 4, alpha: 0.8},
+        off: {radius: 3, alpha: 0.5}
+      }
+    },
+    {
+      x: 0, y: 5, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 4, alpha: 0.8},
+        off: {radius: 3, alpha: 0.5}
+      }
+    },
+    {
+      x: 7, y: 0, radius: 2, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      states:
+      {
+        on: {alpha: 0.5},
+        off: {alpha: 0.2}
+      }
+    }
+  ];
+};
+
+Ships.transport = function()
+{
+  this.image = "res/transport.png";
+  this.maxTurnSpeed = 1.0;
+  this.maxSpeed = 100;
+  this.health = 1.5;
+  this.guns =
+  [
+    {
+      reloadTime: 0.5,
+      arcAngle: Math.PI,
+      arc: Math.PI / 4,
+      range: 700
+    }
+  ];
+  this.lights =
+  [
+    {
+      x: 3, y: 0, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 4, alpha: 0.8},
+        off: {radius: 3, alpha: 0.5}
+      }
+    },
+    {
+      x: 0, y: 3, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 4, alpha: 0.8},
+        off: {radius: 3, alpha: 0.5}
+      }
+    },
+    {
+      x: 3, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 4, alpha: 0.8},
+        off: {radius: 3, alpha: 0.5}
+      }
+    },
+    {
+      x: 7, y: 5, radius: 2, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.25,
+      states:
+      {
+        on: {alpha: 0.5},
+        off: {alpha: 0.2}
+      }
+    }
+  ];
+};
 TANK.registerComponent("StarField")
 
 .construct(function()
@@ -1649,6 +1726,7 @@ TANK.registerComponent("Weapons")
     gun.angle = 0;
     gun.range = 800;
     this.guns.push(gun);
+    return gun;
   };
 
   this.shoot = function()
@@ -1754,11 +1832,6 @@ TANK.registerComponent("Weapons")
     }
     ctx.restore();
   };
-
-  this.addGun();
-  this.addGun();
-  this.guns[1].arcAngle = Math.PI / 2;
-  this.guns[1].arc = Math.PI / 4;
 });
 function main()
 {
