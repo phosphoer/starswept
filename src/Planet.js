@@ -3,17 +3,15 @@
 
 TANK.registerComponent("Planet")
 
-.interfaces("Drawable")
-
-.requires("Pos2D")
+.includes(["Pos2D", "Collider2D"])
 
 .construct(function()
 {
   this.zdepth = 0;
   this.radius = 48;
-  this.atmosColor = [140, 140, 255, 0.8]; 
+  this.atmosColor = [140, 140, 255, 0.8];
   this.heights = [0, 0.3, 0.5, 0.6, 1];
-  this.colors = 
+  this.colors =
   [
     [0, 0, 90, 255],
     [30, 30, 255, 255],
@@ -30,6 +28,12 @@ TANK.registerComponent("Planet")
 
 .initialize(function()
 {
+  TANK.main.Renderer2D.add(this);
+
+  this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.collidesWith.push("cursors");
+
   // Iterate over every pixel
   this.forEachPixel = function(func)
   {
@@ -37,7 +41,7 @@ TANK.registerComponent("Planet")
     {
       for (var j = 0; j < this.size; ++j)
       {
-        if (TANK.Math.pointDistancePoint([i, j], [this.radius, this.radius]) < this.radius)
+        if (TANK.Math2D.pointDistancePoint([i, j], [this.radius, this.radius]) < this.radius)
           func.apply(this, [i, j]);
       }
     }
@@ -71,7 +75,7 @@ TANK.registerComponent("Planet")
     return color;
   };
 
-  var t = this.parent.Pos2D;
+  var t = this._entity.Pos2D;
 
   // Create buffer
   this.size = this.radius * 2;
@@ -160,7 +164,7 @@ TANK.registerComponent("Planet")
   grad.addColorStop(0.8, "rgba(0, 0, 0, .8)");
   grad.addColorStop(1, "rgba(0, 0, 0, .8)");
 
-  
+
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
   this.lightBuffer.context.arc(0, 0, this.radius + 1, 2 * Math.PI, false);
@@ -173,7 +177,7 @@ TANK.registerComponent("Planet")
 
     // Draw planet
     ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.Game.scaleFactor, TANK.Game.scaleFactor);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.translate(this.size / -2, this.size / -2);
     ctx.drawImage(this.pixelBuffer.canvas, 0, 0);
 
@@ -187,7 +191,7 @@ TANK.registerComponent("Planet")
   };
 });
 
-var PlanetColors = 
+var PlanetColors =
 [
   // Deep water
   [

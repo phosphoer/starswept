@@ -1,8 +1,6 @@
 TANK.registerComponent("Lights")
 
-.interfaces("Drawable")
-
-.requires("Pos2D")
+.includes("Pos2D")
 
 .construct(function()
 {
@@ -14,7 +12,9 @@ TANK.registerComponent("Lights")
 
 .initialize(function()
 {
-  var t = this.parent.Pos2D;
+  var t = this._entity.Pos2D;
+
+  TANK.main.Renderer2D.add(this);
 
   // Refresh lights function
   this.redrawLights = function()
@@ -44,7 +44,7 @@ TANK.registerComponent("Lights")
     }
   };
 
-  this.addEventListener("OnEnterFrame", function(dt)
+  this.update = function(dt)
   {
     for (var i = 0; i < this.lights.length; ++i)
     {
@@ -65,13 +65,13 @@ TANK.registerComponent("Lights")
         }
       }
     }
-  });
+  };
 
   this.draw = function(ctx, camera)
   {
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.Game.scaleFactor, TANK.Game.scaleFactor);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
     ctx.translate(this.width / -2, this.height / -2);
 

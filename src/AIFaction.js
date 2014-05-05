@@ -1,6 +1,6 @@
 TANK.registerComponent("AIFaction")
 
-.requires("Faction")
+.includes("Faction")
 
 .construct(function()
 {
@@ -8,9 +8,9 @@ TANK.registerComponent("AIFaction")
 
 .initialize(function()
 {
-  var faction = this.parent.Faction;
+  var faction = this._entity.Faction;
 
-  this.addEventListener("OnEnterFrame", function(dt)
+  this.update = function(dt)
   {
     if (faction.money > 30)
     {
@@ -18,5 +18,5 @@ TANK.registerComponent("AIFaction")
       var controlPoint = faction.controlPoints[Math.floor(Math.random() * faction.controlPoints.length)];
       controlPoint.buyShip();
     }
-  });
+  };
 });

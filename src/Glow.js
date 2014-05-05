@@ -1,8 +1,6 @@
 TANK.registerComponent("Glow")
 
-.interfaces("Drawable")
-
-.requires("Pos2D, Velocity, Life")
+.includes(["Pos2D", "Velocity", "Life"])
 
 .construct(function()
 {
@@ -19,12 +17,14 @@ TANK.registerComponent("Glow")
 
 .initialize(function()
 {
-  var t = this.parent.Pos2D;
-  var v = this.parent.Velocity;
+  var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
 
   // Make buffer
   this.pixelBuffer = new PixelBuffer();
   this.pixelBuffer.createBuffer(this.radius * 2, this.radius * 2);
+
+  TANK.main.Renderer2D.add(this);
 
   // Draw glow
   this.redraw = function()
@@ -56,7 +56,7 @@ TANK.registerComponent("Glow")
     ctx.save();
     ctx.globalAlpha = this.alpha;
     ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.Game.scaleFactor, TANK.Game.scaleFactor);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
     ctx.translate(-this.radius, -this.radius);
     ctx.drawImage(this.pixelBuffer.canvas, 0, 0);

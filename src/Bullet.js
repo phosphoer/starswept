@@ -1,20 +1,19 @@
 TANK.registerComponent("Bullet")
 
-.interfaces("Drawable")
-
-.requires("Pos2D, Velocity, Collider, Life")
+.includes(["Pos2D", "Velocity", "Collider2D", "Life"])
 
 .construct(function()
 {
   this.zdepth = 2;
+  this.owner = null;
 })
 
 .initialize(function()
 {
-  var t = this.parent.Pos2D;
+  var t = this._entity.Pos2D;
 
-  this.parent.Collider.collisionLayer = "Bullets";
-  this.parent.Collider.collidesWith = ["Ships"];
+  this._entity.Collider2D.collisionLayer = "bullets";
+  this._entity.Collider2D.collidesWith = ["ships"];
 
   // Make buffer
   this.pixelBuffer = new PixelBuffer();
@@ -24,16 +23,23 @@ TANK.registerComponent("Bullet")
   this.pixelBuffer.context.fillStyle = "#fff";
   this.pixelBuffer.context.fillRect(0, 0, 1, 1);
 
-  this.OnCollide = function(obj)
+  TANK.main.Renderer2D.add(this);
+
+  this.listenTo(this._entity, "collide", function(obj)
   {
-    TANK.removeEntity(this.parent);
-  };
+    if (this.owner === this.obj)
+      return;
+
+    obj.dispatch("damaged", 0.2, [this._entity.Velocity.x, this._entity.Velocity.y], this.owner);
+    TANK.main.removeChild(this._entity);
+    this.stopListeningTo(this._entity, "collide");
+  });
 
   this.draw = function(ctx, camera)
   {
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.Game.scaleFactor, TANK.Game.scaleFactor);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.drawImage(this.pixelBuffer.canvas, 0, 0);
     ctx.restore();
   };

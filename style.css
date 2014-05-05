@@ -5,82 +5,50 @@ html, body
   font-family: sans-serif;
 }
 
-#curtain
-{
-  background-color: #000;
-}
-
 .bar
 {
+  box-sizing: border-box;
   position: absolute;
   left: 0px;
-  top: 0px;
+  bottom: 0px;
   width: 100%;
-  min-height: 20px;
+  min-height: 40px;
   padding: 5px;
   background: #222;
 }
 
-.tutorial
+.top-bar
 {
-  color: #ddd;
-  font-size: 72pt;
-  display: none;
+  box-sizing: border-box;
   position: absolute;
-  left: 50px;
-  top: 50px;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  min-height: 40px;
+  padding: 5px;
+  background: #222;
 }
 
-.health-indicator, .score-indicator, .collected-indicator, .max-indicator, .kills-indicator
+.bar-button
 {
   display: inline-block;
-  font-size: 14pt;
-  margin-right: 10px;
-}
-
-.max-indicator
-{
-  position: absolute;;
-  right: 5px;
-}
-
-.health-indicator-label, .score-indicator-label, .collected-indicator-label, .max-indicator-label, .kills-indicator-label
-{
-  margin-right: 5px;
+  min-width: 80px;
+  padding: 5px;
+  background: #444;
   color: #ddd;
+  text-align: center;
 }
 
-.score-sep
+.bar-button:hover
+{
+  background: #666;
+}
+
+.bar-item
 {
   color: #ddd;
-}
-
-.score-indicator-value
-{
-  color: #5f5;
-}
-
-.kills-indicator-value
-{
-  color: #f55;
-}
-
-.collected-indicator-value
-{
-  color: #55f;
-}
-
-.health-indicator-value.good
-{
-  color: #5f5;
-}
-
-.health-indicator-value.damaged
-{
-  color: #ff5;
-}
-
-.health-indicator-value.critical
-{
-  color: #f55;
+  display: inline-block;
+  min-width: 80px;
+  padding: 5px;
+  text-align: center;
 }

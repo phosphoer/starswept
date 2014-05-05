@@ -1,8 +1,6 @@
 TANK.registerComponent("Cursor")
 
-// .interfaces("Drawable")
-
-.requires("Pos2D, Collider")
+.includes(["Pos2D", "Collider2D"])
 
 .construct(function()
 {
@@ -11,22 +9,25 @@ TANK.registerComponent("Cursor")
 
 .initialize(function()
 {
-  this.addEventListener("OnEnterFrame", function(dt)
+  // TANK.main.Renderer2D.add(this);
+  this._entity.Collider2D.collisionLayer = "cursors";
+
+  this.update = function(dt)
   {
     this.updatePos();
-  });
+  };
 
   this.updatePos = function()
   {
-    var t = this.parent.Pos2D;
+    var t = this._entity.Pos2D;
 
-    t.x = TANK.InputManager.mousePosWorld[0];
-    t.y = TANK.InputManager.mousePosWorld[1];
+    t.x = TANK.main.Game.mousePosWorld[0];
+    t.y = TANK.main.Game.mousePosWorld[1];
   };
 
   this.draw = function(ctx, camera)
   {
-    var t = this.parent.Pos2D;
+    var t = this._entity.Pos2D;
     ctx.save();
 
     ctx.fillStyle = "#fff";

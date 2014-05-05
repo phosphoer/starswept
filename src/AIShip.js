@@ -1,41 +1,93 @@
 TANK.registerComponent("AIShip")
 
-.requires("Ship")
+.includes(["Ship", "Droppable"])
 
 .construct(function()
 {
-  this.team = 0;
-  this.behaviors = {};
-  this.numBehaviors = 0;
+  this.actions = [];
+  this.removedActions = [];
 })
 
 .initialize(function()
 {
-  var t = this.parent.Pos2D;
-  var v = this.parent.Velocity;
-  var ship = this.parent.Ship;
+  var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
+  var ship = this._entity.Ship;
 
-  this.target = TANK.getEntity("Player");
+  this._entity.Droppable.selectDepth = 1;
 
-  this.addBehavior = function(name)
+  // Only draggable if on the player team
+  if (ship.team === 0)
   {
-    if (this.parent[name])
-      return;
-    this.parent.addComponent(name);
-    this.behaviors[name] = true;
-    ++this.numBehaviors;
-  };
+    this._entity.addComponent("Draggable");
+    this._entity.Draggable.selectDepth = 1;
+  }
 
-  this.removeBehavior = function(name)
-  {
-    if (!this.parent[name])
-      return;
-    this.parent.removeComponent(name);
-    delete this.behaviors[name];
-    --this.numBehaviors;
-  };
+  // Always watch for enemies
+  this._entity.addComponent("AIWatch");
 
-  this.addEventListener("OnEnterFrame", function(dt)
+  // Damage response
+  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
   {
+    if (owner && owner.Ship && owner.Ship.team != ship.team && !(this.actions[0] instanceof Action.AIAttack))
+    {
+      this.prependAction(new Action.AIAttack(this._entity, owner));
+    }
   });
+
+  // Reponse to being dragged onto something
+  this.listenTo(this._entity, "dragend", function(dest)
+  {
+    if (!dest)
+      return;
+
+    // Attack an enemy ship
+    if (dest.Ship && dest.Ship.team != ship.team)
+    {
+      this.prependAction(new Action.AIAttack(this._entity, dest));
+    }
+    // Go to a control point
+    else if (dest.ControlPoint)
+    {
+      this.prependAction(new Action.AIApproach(this._entity, dest));
+    }
+  });
+
+  this.prependAction = function(action, blocking)
+  {
+    if (blocking !== undefined)
+      action._blocking = blocking;
+    this.actions.splice(0, 0, action);
+    action.start();
+  };
+
+  this.appendAction = function(action, blocking)
+  {
+    if (blocking !== undefined)
+      action._blocking = blocking;
+    this.actions.push(action);
+    action.start();
+  };
+
+  this.update = function(dt)
+  {
+    for (var i = 0; i < this.actions.length; ++i)
+    {
+      var action = this.actions[i];
+      if (action.update)
+        action.update(dt);
+
+      if (action._done)
+        this.removedActions.push(i);
+
+      if (action._blocking)
+        break;
+    };
+
+    for (var i = 0; i < this.removedActions.length; ++i)
+      this.actions.splice(this.removedActions[i], 1);
+    this.removedActions = [];
+  };
+
+  this.appendAction(new Action.AIIdle(this._entity));
 });
