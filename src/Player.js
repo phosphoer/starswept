@@ -77,11 +77,6 @@ TANK.registerComponent("Player")
 
     if (e.scale)
     {
-<<<<<<< HEAD
-      TANK.RenderManager.camera.z = e.scale;
-      if (TANK.RenderManager.camera.z < 1)
-        TANK.RenderManager.camera.z = 1;
-=======
       var scale = 1 / e.scale;
       scale = Math.min(scale, 1.1);
       scale = Math.max(scale, 0.9);
@@ -90,7 +85,6 @@ TANK.registerComponent("Player")
         TANK.main.Renderer2D.camera.z = 1;
       if (TANK.main.Renderer2D.camera.z > 100)
         TANK.main.Renderer2D.camera.z = 100;
->>>>>>> gh-pages
     }
   });
 
