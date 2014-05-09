@@ -23,6 +23,9 @@ TANK.registerComponent("Weapons")
     gun.arc = Math.PI / 3;
     gun.angle = 0;
     gun.range = 800;
+    gun.trackSpeed = 0.5;
+    gun.damage = 0.1;
+    gun.bulletSpeed = 800;
     this.guns.push(gun);
     return gun;
   };
@@ -39,10 +42,8 @@ TANK.registerComponent("Weapons")
     {
       var gun = this.guns[i];
 
-      // Don't shoot if gun is aiming outside arc
-      var dirLeft = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation + gun.arcAngle - gun.arc / 2, this.targetPos);
-      var dirRight = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation + gun.arcAngle + gun.arc / 2, this.targetPos);
-      if (dirLeft < 0 || dirRight > 0)
+      // Don't shoot if gun isn't aiming at target
+      if (!gun.aimingAtTarget)
         continue;
 
       if (gun.reloadTimer < 0)
@@ -51,10 +52,11 @@ TANK.registerComponent("Weapons")
         var e = TANK.createEntity("Bullet");
         e.Pos2D.x = t.x + Math.cos(t.rotation + gun.angle + gun.arcAngle) * 75;
         e.Pos2D.y = t.y + Math.sin(t.rotation + gun.angle + gun.arcAngle) * 75;
-        e.Velocity.x = Math.cos(t.rotation + gun.angle + gun.arcAngle) * 800;
-        e.Velocity.y = Math.sin(t.rotation + gun.angle + gun.arcAngle) * 800;
-        e.Life.life = 5;
+        e.Velocity.x = Math.cos(t.rotation + gun.angle + gun.arcAngle) * gun.bulletSpeed;
+        e.Velocity.y = Math.sin(t.rotation + gun.angle + gun.arcAngle) * gun.bulletSpeed;
+        e.Life.life = gun.range / gun.bulletSpeed;
         e.Bullet.owner = this._entity;
+        e.Bullet.damage = gun.damage;
         TANK.main.addChild(e);
       }
     }
@@ -80,19 +82,28 @@ TANK.registerComponent("Weapons")
       {
         gun.aimingAtTarget = false;
         var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation + gun.angle + gun.arcAngle, this.targetPos);
-        if (dir < -0.01)
+        if (dir < -0.03)
         {
-          gun.angle -= dt * 0.5;
+          gun.angle -= dt * gun.trackSpeed;
         }
-        else if (dir > 0.01)
+        else if (dir > 0.03)
         {
-          gun.angle += dt * 0.5;
+          gun.angle += dt * gun.trackSpeed;
         }
         else
         {
           gun.aimingAtTarget = true;
           this.aimingAtTarget = true;
         }
+      }
+
+      // Special case for circular arcs
+      if (gun.arc >= Math.PI * 2)
+      {
+        if (gun.angle < gun.arc / -2)
+          gun.angle = gun.arc / 2;
+        if (gun.angle > gun.arc / 2)
+          gun.angle = gun.arc / -2;
       }
 
       if (gun.angle < gun.arc / -2)
@@ -114,13 +125,17 @@ TANK.registerComponent("Weapons")
     for (var i = 0; i < this.guns.length; ++i)
     {
       var gun = this.guns[i];
+
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(Math.cos(gun.arcAngle + gun.angle) * gun.range, Math.sin(gun.arcAngle + gun.angle) * gun.range);
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(gun.arcAngle - gun.arc / 2) * gun.range, Math.sin(gun.arcAngle - gun.arc / 2) * gun.range);
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(gun.arcAngle + gun.arc / 2) * gun.range, Math.sin(gun.arcAngle + gun.arc / 2) * gun.range);
+      if (gun.arc < Math.PI * 2)
+      {
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(gun.arcAngle - gun.arc / 2) * gun.range, Math.sin(gun.arcAngle - gun.arc / 2) * gun.range);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(gun.arcAngle + gun.arc / 2) * gun.range, Math.sin(gun.arcAngle + gun.arc / 2) * gun.range);
+      }
       ctx.stroke();
       ctx.closePath();
       ctx.beginPath();

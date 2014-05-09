@@ -119,8 +119,9 @@ Action.AIAttack = function(e, target)
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
 
-    // Approach target
-    e.Ship.moveTowards(targetPos);
+    // Approach target if we are aggressive
+    if (e.AIShip.aggressive)
+      e.Ship.moveTowards(targetPos);
 
     // Shoot randomly
     e.Weapons.aimAt(targetPos);
@@ -140,6 +141,7 @@ TANK.registerComponent("AIFaction")
 
 .construct(function()
 {
+  this.numShips = 0;
 })
 
 .initialize(function()
@@ -148,11 +150,12 @@ TANK.registerComponent("AIFaction")
 
   this.update = function(dt)
   {
-    if (faction.money > 30)
+    if (faction.money > 30 && this.numShips < 3)
     {
       // Pick a control point to buy a ship at
       var controlPoint = faction.controlPoints[Math.floor(Math.random() * faction.controlPoints.length)];
-      controlPoint.buyShip();
+      controlPoint.buyShip("frigate");
+      ++this.numShips;
     }
   };
 });
@@ -196,6 +199,7 @@ TANK.registerComponent("AIShip")
 {
   this.actions = [];
   this.removedActions = [];
+  this.aggressive = true;
 })
 
 .initialize(function()
@@ -205,6 +209,9 @@ TANK.registerComponent("AIShip")
   var ship = this._entity.Ship;
 
   this._entity.Droppable.selectDepth = 1;
+
+  // Get AI behaviors from ship
+  this.aggressive = ship.shipData.aggressive;
 
   // Only draggable if on the player team
   if (ship.team === 0)
@@ -326,6 +333,7 @@ TANK.registerComponent("Bullet")
 {
   this.zdepth = 2;
   this.owner = null;
+  this.damage = 0.2;
 })
 
 .initialize(function()
@@ -350,7 +358,7 @@ TANK.registerComponent("Bullet")
     if (this.owner === this.obj)
       return;
 
-    obj.dispatch("damaged", 0.2, [this._entity.Velocity.x, this._entity.Velocity.y], this.owner);
+    obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], this.owner);
     TANK.main.removeChild(this._entity);
     this.stopListeningTo(this._entity, "collide");
   });
@@ -380,14 +388,17 @@ TANK.registerComponent("ControlPoint")
 {
   var t = this._entity.Pos2D;
 
-  this.buyShip = function()
+  this.buyShip = function(shipType)
   {
-    if (this.faction.money > 30)
+    var shipData = new Ships[shipType]();
+
+    if (this.faction.money >= shipData.cost)
     {
-      this.faction.money -= 30;
+      this.faction.money -= shipData.cost;
 
       var e = TANK.createEntity("AIShip");
       e.Ship.team = this.faction.team;
+      e.Ship.shipData = shipData;
       e.Pos2D.x = t.x - 400 + Math.random() * 800;
       e.Pos2D.y = t.y - 400 + Math.random() * 800;
       TANK.main.addChild(e);
@@ -551,10 +562,18 @@ TANK.registerComponent("Game")
   var that = this;
   this.barCommands.push(
   {
-    name: "Build Ship",
+    name: "Build Frigate",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip();
+      that.factions[0].controlPoints[0].buyShip("frigate");
+    }
+  });
+  this.barCommands.push(
+  {
+    name: "Build Cruiser",
+    activate: function()
+    {
+      that.factions[0].controlPoints[0].buyShip("cruiser");
     }
   });
 
@@ -598,17 +617,18 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 5000;
-    e.Pos2D.y = 5000;
+    e.Pos2D.x = 3000;
+    e.Pos2D.y = 3000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
     e = TANK.createEntity("Player");
     e.Pos2D.x = 0;
     e.Pos2D.y = 0;
+    e.Ship.shipData = new Ships.cruiser();
     TANK.main.addChild(e, "Player");
 
-    this.factions[0].controlPoints[0].buyShip();
+    this.factions[0].controlPoints[0].buyShip("frigate");
   });
 });
 TANK.registerComponent("Glow")
@@ -1295,10 +1315,8 @@ TANK.registerComponent("Ship")
   this.trailTimer = 0;
   this.dead = false;
 
-  this.shipData = new Ships.transport();
-  this.image.src = this.shipData.image;
+  this.shipData = null;
   this.team = 0;
-  this.health = this.shipData.health;
   this.deadTimer = 0;
 })
 
@@ -1311,6 +1329,9 @@ TANK.registerComponent("Ship")
 
   this._entity.Collider2D.collisionLayer = "ships";
   this._entity.Collider2D.collidesWith = ["bullets"];
+
+  this.image.src = this.shipData.image;
+  this.health = this.shipData.health;
 
   var that = this;
   this.image.addEventListener("load", function()
@@ -1530,13 +1551,17 @@ Ships.frigate = function()
   this.maxTurnSpeed = 1.5;
   this.maxSpeed = 150;
   this.health = 1;
+  this.cost = 30;
+  this.aggressive = true;
   this.guns =
   [
     {
       reloadTime: 0.5,
       arcAngle: 0,
       arc: Math.PI / 3,
-      range: 800
+      range: 800,
+      bulletSpeed: 800,
+      damage: 0.1
     }
   ];
   this.lights =
@@ -1568,19 +1593,33 @@ Ships.frigate = function()
   ];
 };
 
-Ships.transport = function()
+Ships.cruiser = function()
 {
   this.image = "res/transport.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 100;
   this.health = 1.5;
+  this.cost = 50;
+  this.aggressive = false;
   this.guns =
   [
     {
-      reloadTime: 0.5,
-      arcAngle: Math.PI,
-      arc: Math.PI / 4,
-      range: 700
+      reloadTime: 0.1,
+      arcAngle: 0,
+      arc: Math.PI * 2,
+      trackSpeed: 2,
+      range: 700,
+      bulletSpeed: 800,
+      damage: 0.005
+    },
+    {
+      reloadTime: 1.5,
+      arcAngle: 0,
+      arc: Math.PI / 3,
+      trackSpeed: 0.5,
+      range: 900,
+      bulletSpeed: 700,
+      damage: 0.4
     }
   ];
   this.lights =
@@ -1725,6 +1764,9 @@ TANK.registerComponent("Weapons")
     gun.arc = Math.PI / 3;
     gun.angle = 0;
     gun.range = 800;
+    gun.trackSpeed = 0.5;
+    gun.damage = 0.1;
+    gun.bulletSpeed = 800;
     this.guns.push(gun);
     return gun;
   };
@@ -1741,10 +1783,8 @@ TANK.registerComponent("Weapons")
     {
       var gun = this.guns[i];
 
-      // Don't shoot if gun is aiming outside arc
-      var dirLeft = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation + gun.arcAngle - gun.arc / 2, this.targetPos);
-      var dirRight = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation + gun.arcAngle + gun.arc / 2, this.targetPos);
-      if (dirLeft < 0 || dirRight > 0)
+      // Don't shoot if gun isn't aiming at target
+      if (!gun.aimingAtTarget)
         continue;
 
       if (gun.reloadTimer < 0)
@@ -1753,10 +1793,11 @@ TANK.registerComponent("Weapons")
         var e = TANK.createEntity("Bullet");
         e.Pos2D.x = t.x + Math.cos(t.rotation + gun.angle + gun.arcAngle) * 75;
         e.Pos2D.y = t.y + Math.sin(t.rotation + gun.angle + gun.arcAngle) * 75;
-        e.Velocity.x = Math.cos(t.rotation + gun.angle + gun.arcAngle) * 800;
-        e.Velocity.y = Math.sin(t.rotation + gun.angle + gun.arcAngle) * 800;
-        e.Life.life = 5;
+        e.Velocity.x = Math.cos(t.rotation + gun.angle + gun.arcAngle) * gun.bulletSpeed;
+        e.Velocity.y = Math.sin(t.rotation + gun.angle + gun.arcAngle) * gun.bulletSpeed;
+        e.Life.life = gun.range / gun.bulletSpeed;
         e.Bullet.owner = this._entity;
+        e.Bullet.damage = gun.damage;
         TANK.main.addChild(e);
       }
     }
@@ -1782,19 +1823,28 @@ TANK.registerComponent("Weapons")
       {
         gun.aimingAtTarget = false;
         var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation + gun.angle + gun.arcAngle, this.targetPos);
-        if (dir < -0.01)
+        if (dir < -0.03)
         {
-          gun.angle -= dt * 0.5;
+          gun.angle -= dt * gun.trackSpeed;
         }
-        else if (dir > 0.01)
+        else if (dir > 0.03)
         {
-          gun.angle += dt * 0.5;
+          gun.angle += dt * gun.trackSpeed;
         }
         else
         {
           gun.aimingAtTarget = true;
           this.aimingAtTarget = true;
         }
+      }
+
+      // Special case for circular arcs
+      if (gun.arc >= Math.PI * 2)
+      {
+        if (gun.angle < gun.arc / -2)
+          gun.angle = gun.arc / 2;
+        if (gun.angle > gun.arc / 2)
+          gun.angle = gun.arc / -2;
       }
 
       if (gun.angle < gun.arc / -2)
@@ -1816,13 +1866,17 @@ TANK.registerComponent("Weapons")
     for (var i = 0; i < this.guns.length; ++i)
     {
       var gun = this.guns[i];
+
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(Math.cos(gun.arcAngle + gun.angle) * gun.range, Math.sin(gun.arcAngle + gun.angle) * gun.range);
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(gun.arcAngle - gun.arc / 2) * gun.range, Math.sin(gun.arcAngle - gun.arc / 2) * gun.range);
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(gun.arcAngle + gun.arc / 2) * gun.range, Math.sin(gun.arcAngle + gun.arc / 2) * gun.range);
+      if (gun.arc < Math.PI * 2)
+      {
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(gun.arcAngle - gun.arc / 2) * gun.range, Math.sin(gun.arcAngle - gun.arc / 2) * gun.range);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(gun.arcAngle + gun.arc / 2) * gun.range, Math.sin(gun.arcAngle + gun.arc / 2) * gun.range);
+      }
       ctx.stroke();
       ctx.closePath();
       ctx.beginPath();

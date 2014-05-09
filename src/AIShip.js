@@ -6,6 +6,7 @@ TANK.registerComponent("AIShip")
 {
   this.actions = [];
   this.removedActions = [];
+  this.aggressive = true;
 })
 
 .initialize(function()
@@ -15,6 +16,9 @@ TANK.registerComponent("AIShip")
   var ship = this._entity.Ship;
 
   this._entity.Droppable.selectDepth = 1;
+
+  // Get AI behaviors from ship
+  this.aggressive = ship.shipData.aggressive;
 
   // Only draggable if on the player team
   if (ship.team === 0)

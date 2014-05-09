@@ -6,13 +6,17 @@ Ships.frigate = function()
   this.maxTurnSpeed = 1.5;
   this.maxSpeed = 150;
   this.health = 1;
+  this.cost = 30;
+  this.aggressive = true;
   this.guns =
   [
     {
       reloadTime: 0.5,
       arcAngle: 0,
       arc: Math.PI / 3,
-      range: 800
+      range: 800,
+      bulletSpeed: 800,
+      damage: 0.1
     }
   ];
   this.lights =
@@ -44,19 +48,33 @@ Ships.frigate = function()
   ];
 };
 
-Ships.transport = function()
+Ships.cruiser = function()
 {
   this.image = "res/transport.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 100;
   this.health = 1.5;
+  this.cost = 50;
+  this.aggressive = false;
   this.guns =
   [
     {
-      reloadTime: 0.5,
-      arcAngle: Math.PI,
-      arc: Math.PI / 4,
-      range: 700
+      reloadTime: 0.1,
+      arcAngle: 0,
+      arc: Math.PI * 2,
+      trackSpeed: 2,
+      range: 700,
+      bulletSpeed: 800,
+      damage: 0.005
+    },
+    {
+      reloadTime: 1.5,
+      arcAngle: 0,
+      arc: Math.PI / 3,
+      trackSpeed: 0.5,
+      range: 900,
+      bulletSpeed: 700,
+      damage: 0.4
     }
   ];
   this.lights =

@@ -14,10 +14,8 @@ TANK.registerComponent("Ship")
   this.trailTimer = 0;
   this.dead = false;
 
-  this.shipData = new Ships.transport();
-  this.image.src = this.shipData.image;
+  this.shipData = null;
   this.team = 0;
-  this.health = this.shipData.health;
   this.deadTimer = 0;
 })
 
@@ -30,6 +28,9 @@ TANK.registerComponent("Ship")
 
   this._entity.Collider2D.collisionLayer = "ships";
   this._entity.Collider2D.collidesWith = ["bullets"];
+
+  this.image.src = this.shipData.image;
+  this.health = this.shipData.health;
 
   var that = this;
   this.image.addEventListener("load", function()

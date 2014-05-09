@@ -14,14 +14,17 @@ TANK.registerComponent("ControlPoint")
 {
   var t = this._entity.Pos2D;
 
-  this.buyShip = function()
+  this.buyShip = function(shipType)
   {
-    if (this.faction.money > 30)
+    var shipData = new Ships[shipType]();
+
+    if (this.faction.money >= shipData.cost)
     {
-      this.faction.money -= 30;
+      this.faction.money -= shipData.cost;
 
       var e = TANK.createEntity("AIShip");
       e.Ship.team = this.faction.team;
+      e.Ship.shipData = shipData;
       e.Pos2D.x = t.x - 400 + Math.random() * 800;
       e.Pos2D.y = t.y - 400 + Math.random() * 800;
       TANK.main.addChild(e);

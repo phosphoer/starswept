@@ -6,6 +6,7 @@ TANK.registerComponent("Bullet")
 {
   this.zdepth = 2;
   this.owner = null;
+  this.damage = 0.2;
 })
 
 .initialize(function()
@@ -30,7 +31,7 @@ TANK.registerComponent("Bullet")
     if (this.owner === this.obj)
       return;
 
-    obj.dispatch("damaged", 0.2, [this._entity.Velocity.x, this._entity.Velocity.y], this.owner);
+    obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], this.owner);
     TANK.main.removeChild(this._entity);
     this.stopListeningTo(this._entity, "collide");
   });

@@ -30,10 +30,18 @@ TANK.registerComponent("Game")
   var that = this;
   this.barCommands.push(
   {
-    name: "Build Ship",
+    name: "Build Frigate",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip();
+      that.factions[0].controlPoints[0].buyShip("frigate");
+    }
+  });
+  this.barCommands.push(
+  {
+    name: "Build Cruiser",
+    activate: function()
+    {
+      that.factions[0].controlPoints[0].buyShip("cruiser");
     }
   });
 
@@ -77,16 +85,17 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 5000;
-    e.Pos2D.y = 5000;
+    e.Pos2D.x = 3000;
+    e.Pos2D.y = 3000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
     e = TANK.createEntity("Player");
     e.Pos2D.x = 0;
     e.Pos2D.y = 0;
+    e.Ship.shipData = new Ships.cruiser();
     TANK.main.addChild(e, "Player");
 
-    this.factions[0].controlPoints[0].buyShip();
+    this.factions[0].controlPoints[0].buyShip("frigate");
   });
 });
