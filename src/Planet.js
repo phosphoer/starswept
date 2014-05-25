@@ -173,6 +173,9 @@ TANK.registerComponent("Planet")
 
   this.draw = function(ctx, camera, dt)
   {
+    if (camera.z >= 8)
+      return;
+
     ctx.save();
 
     // Draw planet

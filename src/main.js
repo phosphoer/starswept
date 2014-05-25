@@ -2,7 +2,8 @@ function main()
 {
   TANK.createEngine(["Input", "Renderer2D", "Game", "StarField"]);
 
-  TANK.main.Renderer2D.context = document.getElementById("canvas").getContext("2d");
+  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
+  TANK.main.Input.context = document.querySelector("#stage");
 
   TANK.start();
 }

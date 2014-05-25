@@ -15,7 +15,7 @@ TANK.registerComponent("Ship")
   this.dead = false;
 
   this.shipData = null;
-  this.team = 0;
+  this.faction = null;
   this.deadTimer = 0;
 })
 
@@ -156,11 +156,9 @@ TANK.registerComponent("Ship")
       this.dead = true;
     }
 
+    // Explode after a bit of time
     if (this.deadTimer < 0)
-    {
       this.explode();
-    }
-
     if (this.dead)
     {
       this.deadTimer -= dt;
@@ -226,6 +224,25 @@ TANK.registerComponent("Ship")
       }
       this.trailTimer = 0.03;
     }
+
+    // Capture nearby control points
+    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+    for (var i in controlPoints)
+    {
+      var e = controlPoints[i];
+
+      // Skip control points that belong to us and aren't contested
+      if (e.ControlPoint.faction && e.ControlPoint.faction.team === this.faction.team && !e.ControlPoint.pendingFaction)
+        continue;
+
+      // Try to capture or restore control point if it is within range
+      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [e.Pos2D.x, e.Pos2D.y]);
+      if (dist < e.ControlPoint.captureDistance)
+      {
+        e.ControlPoint.tryCapture(this.faction, 0.1 * dt);
+        break;
+      }
+    };
   };
 
   this.draw = function(ctx, camera)

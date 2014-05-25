@@ -13,7 +13,7 @@ TANK.registerComponent("AIFaction")
 
   this.update = function(dt)
   {
-    if (faction.money > 30 && this.numShips < 3)
+    if (faction.money > 30 && this.numShips < 3 && 0)
     {
       // Pick a control point to buy a ship at
       var controlPoint = faction.controlPoints[Math.floor(Math.random() * faction.controlPoints.length)];

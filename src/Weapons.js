@@ -4,7 +4,7 @@ TANK.registerComponent("Weapons")
 
 .construct(function()
 {
-  this.zdepth = 10;
+  this.zdepth = 1;
   this.guns = [];
 })
 

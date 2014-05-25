@@ -72,11 +72,13 @@ TANK.registerComponent("Game")
   {
     var e = TANK.createEntity("Faction");
     e.Faction.team = 0;
+    e.Faction.color = "#5d5";
     this.factions.push(e.Faction);
     TANK.main.addChild(e);
 
     e = TANK.createEntity("AIFaction");
     e.Faction.team = 1;
+    e.Faction.color = "#d55";
     this.factions.push(e.Faction);
     TANK.main.addChild(e);
 
@@ -85,8 +87,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 3000;
-    e.Pos2D.y = 3000;
+    e.Pos2D.x = 2000;
+    e.Pos2D.y = 2000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
@@ -94,6 +96,7 @@ TANK.registerComponent("Game")
     e.Pos2D.x = 0;
     e.Pos2D.y = 0;
     e.Ship.shipData = new Ships.cruiser();
+    e.Ship.faction = this.factions[0];
     TANK.main.addChild(e, "Player");
 
     this.factions[0].controlPoints[0].buyShip("frigate");

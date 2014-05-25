@@ -150,7 +150,7 @@ TANK.registerComponent("AIFaction")
 
   this.update = function(dt)
   {
-    if (faction.money > 30 && this.numShips < 3)
+    if (faction.money > 30 && this.numShips < 3 && 0)
     {
       // Pick a control point to buy a ship at
       var controlPoint = faction.controlPoints[Math.floor(Math.random() * faction.controlPoints.length)];
@@ -214,7 +214,7 @@ TANK.registerComponent("AIShip")
   this.aggressive = ship.shipData.aggressive;
 
   // Only draggable if on the player team
-  if (ship.team === 0)
+  if (ship.faction.team === 0)
   {
     this._entity.addComponent("Draggable");
     this._entity.Draggable.selectDepth = 1;
@@ -226,7 +226,7 @@ TANK.registerComponent("AIShip")
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, owner)
   {
-    if (owner && owner.Ship && owner.Ship.team != ship.team && !(this.actions[0] instanceof Action.AIAttack))
+    if (owner && owner.Ship && owner.Ship.faction.team != ship.faction.team && !(this.actions[0] instanceof Action.AIAttack))
     {
       this.prependAction(new Action.AIAttack(this._entity, owner));
     }
@@ -239,7 +239,7 @@ TANK.registerComponent("AIShip")
       return;
 
     // Attack an enemy ship
-    if (dest.Ship && dest.Ship.team != ship.team)
+    if (dest.Ship && dest.Ship.faction.team != ship.faction.team)
     {
       this.prependAction(new Action.AIAttack(this._entity, dest));
     }
@@ -304,7 +304,7 @@ TANK.registerComponent("AIWatch")
 
   this.evaluateTarget = function(e)
   {
-    if (e.Ship.team === ship.team)
+    if (e.Ship.faction.team === ship.faction.team)
       return;
 
     var targetPos = [e.Pos2D.x, e.Pos2D.y];
@@ -378,15 +378,66 @@ TANK.registerComponent("ControlPoint")
 
 .construct(function()
 {
+  this.zdepth = 10;
   this.faction = null;
   this.value = 10;
   this.moneyTime = 5;
   this.moneyTimer = 0;
+  this.pendingFaction = null;
+  this.capturePercent = 0;
+  this.captureDistance = 500;
+  this.passiveCapture = 0.05
 })
 
 .initialize(function()
 {
   var t = this._entity.Pos2D;
+
+  TANK.main.Renderer2D.add(this);
+
+  this.tryCapture = function(faction, amount)
+  {
+    // If no one is trying to capture us currently, start being captured by them
+    if (!this.pendingFaction)
+      this.pendingFaction = faction;
+
+    // If the faction is currently trying to capture us, then increase their capture percent
+    if (this.pendingFaction === faction)
+      this.capturePercent += amount;
+
+    // If the faction is trying to restore us, then decrease the capture percent
+    if (this.pendingFaction && this.pendingFaction.team !== faction.team)
+      this.capturePercent -= amount;
+
+    // If our capture percent reaches 1, transition ownerships
+    if (this.capturePercent >= 1)
+    {
+      this.capturePercent = 0;
+
+      var oldFaction = this.faction;
+
+      // If we are currently owned, move to neutral state
+      // Otherwise, we are now owned by pending faction
+      if (this.faction)
+        this.faction = null;
+      else
+        this.faction = this.pendingFaction;
+
+      this.pendingFaction = null;
+
+      if (!this.faction)
+        console.log("Team " + oldFaction.team + " lost its control point");
+      else
+        console.log("Team " + this.faction.team + " gained a control point");
+    }
+
+    // If our capture percent reaches 0, lose the pending faction
+    if (this.capturePercent <= 0 && this.pendingFaction)
+    {
+      this.capturePercent = 0;
+      this.pendingFaction = null;
+    }
+  };
 
   this.buyShip = function(shipType)
   {
@@ -397,7 +448,7 @@ TANK.registerComponent("ControlPoint")
       this.faction.money -= shipData.cost;
 
       var e = TANK.createEntity("AIShip");
-      e.Ship.team = this.faction.team;
+      e.Ship.faction = this.faction;
       e.Ship.shipData = shipData;
       e.Pos2D.x = t.x - 400 + Math.random() * 800;
       e.Pos2D.y = t.y - 400 + Math.random() * 800;
@@ -405,8 +456,31 @@ TANK.registerComponent("ControlPoint")
     }
   };
 
+  this.draw = function(ctx, camera)
+  {
+    if (camera.z < 8)
+      return;
+
+    ctx.save();
+    ctx.fillStyle = this.faction ? this.faction.color : "#555";
+    ctx.lineWidth = 2;
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, 300, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  };
+
   this.update = function(dt)
   {
+    // Passively re-capture self
+    if (this.capturePercent > 0 && this.faction)
+      this.tryCapture(this.faction, this.passiveCapture * dt);
+
+    // Earn money
     this.moneyTimer += dt;
     if (this.moneyTimer >= this.moneyTime)
     {
@@ -506,6 +580,7 @@ TANK.registerComponent("Faction")
 .construct(function()
 {
   this.team = 0;
+  this.color = "#666";
   this.money = 50;
   this.controlPoints = [];
 })
@@ -604,11 +679,13 @@ TANK.registerComponent("Game")
   {
     var e = TANK.createEntity("Faction");
     e.Faction.team = 0;
+    e.Faction.color = "#5d5";
     this.factions.push(e.Faction);
     TANK.main.addChild(e);
 
     e = TANK.createEntity("AIFaction");
     e.Faction.team = 1;
+    e.Faction.color = "#d55";
     this.factions.push(e.Faction);
     TANK.main.addChild(e);
 
@@ -617,8 +694,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 3000;
-    e.Pos2D.y = 3000;
+    e.Pos2D.x = 2000;
+    e.Pos2D.y = 2000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
@@ -626,6 +703,7 @@ TANK.registerComponent("Game")
     e.Pos2D.x = 0;
     e.Pos2D.y = 0;
     e.Ship.shipData = new Ships.cruiser();
+    e.Ship.faction = this.factions[0];
     TANK.main.addChild(e, "Player");
 
     this.factions[0].controlPoints[0].buyShip("frigate");
@@ -1014,6 +1092,9 @@ TANK.registerComponent("Planet")
 
   this.draw = function(ctx, camera, dt)
   {
+    if (camera.z >= 8)
+      return;
+
     ctx.save();
 
     // Draw planet
@@ -1316,7 +1397,7 @@ TANK.registerComponent("Ship")
   this.dead = false;
 
   this.shipData = null;
-  this.team = 0;
+  this.faction = null;
   this.deadTimer = 0;
 })
 
@@ -1457,11 +1538,9 @@ TANK.registerComponent("Ship")
       this.dead = true;
     }
 
+    // Explode after a bit of time
     if (this.deadTimer < 0)
-    {
       this.explode();
-    }
-
     if (this.dead)
     {
       this.deadTimer -= dt;
@@ -1527,6 +1606,25 @@ TANK.registerComponent("Ship")
       }
       this.trailTimer = 0.03;
     }
+
+    // Capture nearby control points
+    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+    for (var i in controlPoints)
+    {
+      var e = controlPoints[i];
+
+      // Skip control points that belong to us and aren't contested
+      if (e.ControlPoint.faction && e.ControlPoint.faction.team === this.faction.team && !e.ControlPoint.pendingFaction)
+        continue;
+
+      // Try to capture or restore control point if it is within range
+      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [e.Pos2D.x, e.Pos2D.y]);
+      if (dist < e.ControlPoint.captureDistance)
+      {
+        e.ControlPoint.tryCapture(this.faction, 0.1 * dt);
+        break;
+      }
+    };
   };
 
   this.draw = function(ctx, camera)
@@ -1745,7 +1843,7 @@ TANK.registerComponent("Weapons")
 
 .construct(function()
 {
-  this.zdepth = 10;
+  this.zdepth = 1;
   this.guns = [];
 })
 
@@ -1891,7 +1989,8 @@ function main()
 {
   TANK.createEngine(["Input", "Renderer2D", "Game", "StarField"]);
 
-  TANK.main.Renderer2D.context = document.getElementById("canvas").getContext("2d");
+  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
+  TANK.main.Input.context = document.querySelector("#stage");
 
   TANK.start();
 }
