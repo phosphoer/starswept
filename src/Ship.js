@@ -11,6 +11,7 @@ TANK.registerComponent("Ship")
   this.left = false;
   this.right = false;
   this.down = false;
+  this.heading = 0;
   this.trailTimer = 0;
   this.dead = false;
 
@@ -167,6 +168,16 @@ TANK.registerComponent("Ship")
       return;
     }
 
+    // Apply heading logic
+    var headingVec = [Math.cos(this.heading), Math.sin(this.heading)];
+    var dir = TANK.Math2D.getDirectionToPoint([0, 0], t.rotation, headingVec);
+    if (dir < -0.1)
+      v.r -= dt * 2;
+    else if (dir > 0.1)
+      v.r += dt * 2;
+    else
+      v.r *= 0.95;
+
     // Apply movement
     if (this.up)
     {
@@ -177,14 +188,6 @@ TANK.registerComponent("Ship")
     {
       v.x += Math.cos(t.rotation) * dt * -50;
       v.y += Math.sin(t.rotation) * dt * -50;
-    }
-    if (this.left)
-    {
-      v.r -= dt * 2;
-    }
-    if (this.right)
-    {
-      v.r += dt * 2;
     }
 
     // Cap movement

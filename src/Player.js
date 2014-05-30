@@ -6,9 +6,9 @@ TANK.registerComponent("Player")
 {
   this.zdepth = 5;
   this.shakeTime = 0;
-  this.shootButtonAlpha = 0;
-  this.draggingShootButton = false;
-  this.dragSource = null;
+
+  this.headingLeft = false;
+  this.headingRight = false;
 })
 
 .initialize(function()
@@ -72,9 +72,6 @@ TANK.registerComponent("Player")
 
   this.listenTo(TANK.main, "gesturechange", function(e)
   {
-    if (this.draggingShootButton)
-      return;
-
     if (e.scale)
     {
       var scale = 1 / e.scale;
@@ -90,27 +87,10 @@ TANK.registerComponent("Player")
 
   this.listenTo(TANK.main, "mousedown", function(e)
   {
-    this.dragSource = this.checkForSelection("Draggable");
-    if (this.dragSource)
-    {
-      this.dragSource.dispatch("dragstart");
-      return;
-    }
   });
 
   this.listenTo(TANK.main, "mouseup", function(e)
   {
-    if (this.dragSource)
-    {
-      this.dragDest = this.checkForSelection("Droppable");
-      this.dragSource.dispatch("dragend", this.dragDest);
-    }
-
-    this.dragSource = null;
-    this.dragDest = null;
-    ship.stopUp();
-    ship.stopLeft();
-    ship.stopRight();
   });
 
   this.listenTo(TANK.main, "keydown", function(e)
@@ -120,9 +100,9 @@ TANK.registerComponent("Player")
     if (e.keyCode === TANK.Key.S)
       ship.startDown();
     if (e.keyCode === TANK.Key.A)
-      ship.startLeft();
+      this.headingLeft = true;
     if (e.keyCode === TANK.Key.D)
-      ship.startRight();
+      this.headingRight = true;
 
     if (e.keyCode === TANK.Key.LEFT_ARROW)
       this._entity.Weapons.fireGuns("left");
@@ -141,9 +121,9 @@ TANK.registerComponent("Player")
     if (e.keyCode === TANK.Key.S)
       ship.stopDown();
     if (e.keyCode === TANK.Key.A)
-      ship.stopLeft();
+      this.headingLeft = false;
     if (e.keyCode === TANK.Key.D)
-      ship.stopRight();
+      this.headingRight = false;
   });
 
   this.update = function(dt)
@@ -151,11 +131,19 @@ TANK.registerComponent("Player")
     // Handle mouse being held down
     if (TANK.main.Input.isDown(TANK.Key.LEFT_MOUSE))
     {
-      if (this.dragSource)
-        return;
-
-      ship.moveTowards(TANK.main.Game.mousePosWorld);
+      var mousePos = TANK.main.Game.mousePosWorld;
+      if (TANK.Math2D.pointDistancePoint([t.x, t.y], TANK.main.Game.mousePosWorld) < 200)
+      {
+        var newHeading = Math.atan2(mousePos[1] - t.y, mousePos[0] - t.x);
+        ship.heading = newHeading;
+      }
     }
+
+    // Heading controls
+    if (this.headingLeft)
+      ship.heading -= dt * 3;
+    if (this.headingRight)
+      ship.heading += dt * 3;
 
     // Camera follow
     TANK.main.Renderer2D.camera.x = t.x;
@@ -173,5 +161,25 @@ TANK.registerComponent("Player")
   this.draw = function(ctx, camera)
   {
     var pos = TANK.main.Game.mousePosWorld;
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+
+    ctx.strokeStyle = "rgba(200, 200, 200, 0.3)";
+    ctx.lineWidth = 5;
+
+    // Outer circle
+    ctx.beginPath();
+    ctx.arc(0, 0, 200, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Heading line
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(ship.heading) * 200, Math.sin(ship.heading) * 200);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.restore();
   };
 });
