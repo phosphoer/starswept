@@ -51,7 +51,6 @@
 
     <div id="barContainer"></div>
     <div id="topBarContainer"></div>
-    <div id="shipHUDContainer"></div>
 
     <script id="barTemplate" type="text/ractive">
       <div class="bar">
@@ -66,14 +65,6 @@
         {{#items}}
           <div class='bar-item'>{{name}}</div>
         {{/items}}
-      </div>
-    </script>
-
-    <script id="shipHUDTemplate" type="text/ractive">
-      <div class="ship-hud">
-        {{#fireButtons}}
-          <div class="fire-button {{side}}" on-click="activate"></div>
-        {{/fireButtons}}
       </div>
     </script>
 

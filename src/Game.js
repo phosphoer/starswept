@@ -6,13 +6,6 @@ TANK.registerComponent("Game")
   this.factions = [];
   this.barCommands = [];
   this.topBarItems = [];
-  this.fireButtons =
-  [
-    {side: "front"},
-    {side: "back"},
-    {side: "left"},
-    {side: "right"},
-  ];
   this.mousePosWorld = [0, 0];
 })
 
@@ -32,13 +25,6 @@ TANK.registerComponent("Game")
     el: "topBarContainer",
     template: "#topBarTemplate",
     data: {items: this.topBarItems}
-  });
-
-  this.shipUI = new Ractive(
-  {
-    el: "shipHUDContainer",
-    template: "#shipHUDTemplate",
-    data: {fireButtons: this.fireButtons}
   });
 
   var that = this;
@@ -66,16 +52,6 @@ TANK.registerComponent("Game")
 
   // Money counter
   this.topBarItems.push({name: ""});
-
-  // Shooting buttons
-  this.shipUI.on("activate", function(e)
-  {
-    var p = TANK.main.getChild("Player");
-    if (!p)
-      return;
-
-    p.Weapons.fireGuns(e.context.side);
-  });
 
   this.update = function(dt)
   {

@@ -578,13 +578,6 @@ TANK.registerComponent("Game")
   this.factions = [];
   this.barCommands = [];
   this.topBarItems = [];
-  this.fireButtons =
-  [
-    {side: "front"},
-    {side: "back"},
-    {side: "left"},
-    {side: "right"},
-  ];
   this.mousePosWorld = [0, 0];
 })
 
@@ -604,13 +597,6 @@ TANK.registerComponent("Game")
     el: "topBarContainer",
     template: "#topBarTemplate",
     data: {items: this.topBarItems}
-  });
-
-  this.shipUI = new Ractive(
-  {
-    el: "shipHUDContainer",
-    template: "#shipHUDTemplate",
-    data: {fireButtons: this.fireButtons}
   });
 
   var that = this;
@@ -638,16 +624,6 @@ TANK.registerComponent("Game")
 
   // Money counter
   this.topBarItems.push({name: ""});
-
-  // Shooting buttons
-  this.shipUI.on("activate", function(e)
-  {
-    var p = TANK.main.getChild("Player");
-    if (!p)
-      return;
-
-    p.Weapons.fireGuns(e.context.side);
-  });
 
   this.update = function(dt)
   {
@@ -1156,6 +1132,14 @@ TANK.registerComponent("Player")
   this.headingRight = false;
   this.speedUp = false;
   this.speedDown = false;
+
+  this.fireButtons =
+  [
+    {side: "left", pos: [0, -60]},
+    {side: "right", pos: [0, 60]},
+    {side: "front", pos: [100, 0]},
+    {side: "back", pos: [-100, 0]},
+  ];
 })
 
 .initialize(function()
@@ -1234,10 +1218,25 @@ TANK.registerComponent("Player")
 
   this.listenTo(TANK.main, "mousedown", function(e)
   {
+    var mousePos = TANK.main.Game.mousePosWorld;
+    for (var i = 0; i < this.fireButtons.length; ++i)
+    {
+      var pos = TANK.Math2D.rotate(this.fireButtons[i].pos, t.rotation);
+      pos[0] += t.x;
+      pos[1] += t.y;
+      var dist = TANK.Math2D.pointDistancePoint(pos, mousePos);
+      if (dist < 15)
+      {
+        this.fireButtonDown = true;
+        this._entity.Weapons.fireGuns(this.fireButtons[i].side);
+        return;
+      }
+    }
   });
 
   this.listenTo(TANK.main, "mouseup", function(e)
   {
+    this.fireButtonDown = false;
   });
 
   this.listenTo(TANK.main, "keydown", function(e)
@@ -1276,7 +1275,7 @@ TANK.registerComponent("Player")
   this.update = function(dt)
   {
     // Handle mouse being held down
-    if (TANK.main.Input.isDown(TANK.Key.LEFT_MOUSE))
+    if (TANK.main.Input.isDown(TANK.Key.LEFT_MOUSE) && !this.fireButtonDown)
     {
       var mousePos = TANK.main.Game.mousePosWorld;
 
@@ -1320,14 +1319,17 @@ TANK.registerComponent("Player")
 
   this.draw = function(ctx, camera)
   {
+    if (camera.z > 5)
+      return;
+
     var pos = TANK.main.Game.mousePosWorld;
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
 
+    // Draw compass
+    // Outer circle
     ctx.strokeStyle = "rgba(200, 200, 200, 0.3)";
     ctx.lineWidth = 5;
-
-    // Outer circle
     ctx.beginPath();
     ctx.arc(0, 0, 200, Math.PI * 2, false);
     ctx.closePath();
@@ -1350,6 +1352,23 @@ TANK.registerComponent("Player")
     ctx.lineTo(startPos[0] + Math.cos(ship.heading) * 150 * speedPercent, startPos[1] + Math.sin(ship.heading) * 150 * speedPercent);
     ctx.closePath();
     ctx.stroke();
+
+    // Draw weapon buttons
+    // Front Back
+    ctx.rotate(t.rotation);
+    ctx.fillStyle = "rgba(255, 80, 80, 0.5)";
+    ctx.beginPath();
+    ctx.arc(-100, 0, 15, Math.PI * 2, false);
+    ctx.arc(100, 0, 15, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.fill();
+
+    // Left Right
+    ctx.beginPath();
+    ctx.arc(0, -60, 15, Math.PI * 2, false);
+    ctx.arc(0, 60, 15, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.fill();
 
     ctx.restore();
   };
