@@ -3,10 +3,8 @@ this.Action = this.Action || {};
 Action.AIApproach = function(e, target)
 {
   this.target = target;
-  this.maxTurnSpeed = 1;
   this.optimalDistance = 300;
   this.giveUpTimer = 5;
-  this.aimingAtTarget = false;
   this._blocking = true;
 
   this.start = function()
@@ -35,50 +33,19 @@ Action.AIApproach = function(e, target)
       targetPos[0] += targetVel.x * 1;
       targetPos[1] += targetVel.y * 1;
     }
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, targetPos);
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-
-    // Target is to the left
-    this.aimingAtTarget = false;
-    if (dir < -0.1)
-    {
-      ship.startLeft();
-      ship.stopRight();
-    }
-    // Target is to the right
-    else if (dir > 0.1)
-    {
-      ship.startRight();
-      ship.stopLeft();
-    }
-    // Aiming at target
-    else
-    {
-      this.aimingAtTarget = true;
-      ship.stopRight();
-      ship.stopLeft();
-      v.r *= 0.95;
-    }
 
     if (targetDist > this.optimalDistance)
     {
-      ship.startUp();
+      ship.moveTowards(targetPos);
     }
     else
     {
-      ship.stopUp();
-
-      v.x *= 0.95;
-      v.y *= 0.95;
-      v.r *= 0.95;
+      ship.desiredSpeed = 0;
 
       if (v.getSpeed() < 1 && v.r < 0.1)
         this._done = true;
     }
-
-    // Cap movement
-    if (Math.abs(v.r) > this.maxTurnSpeed)
-      v.r *= 0.95;
   };
 
   this.stop = function()
@@ -172,16 +139,8 @@ Action.AIIdle = function(e)
     var v = e.Velocity;
     var ship = e.Ship;
 
-    // Stop moving
-    ship.stopUp();
-    ship.stopLeft();
-    ship.stopRight();
-    ship.stopDown();
-
     // Decelarate
-    v.x *= 0.95;
-    v.y *= 0.95;
-    v.r *= 0.95;
+    ship.desiredSpeed = 0;
   };
 
   this.stop = function()
@@ -1195,6 +1154,8 @@ TANK.registerComponent("Player")
 
   this.headingLeft = false;
   this.headingRight = false;
+  this.speedUp = false;
+  this.speedDown = false;
 })
 
 .initialize(function()
@@ -1282,9 +1243,9 @@ TANK.registerComponent("Player")
   this.listenTo(TANK.main, "keydown", function(e)
   {
     if (e.keyCode === TANK.Key.W)
-      ship.startUp();
+      this.speedUp = true;
     if (e.keyCode === TANK.Key.S)
-      ship.startDown();
+      this.speedDown = true;
     if (e.keyCode === TANK.Key.A)
       this.headingLeft = true;
     if (e.keyCode === TANK.Key.D)
@@ -1303,9 +1264,9 @@ TANK.registerComponent("Player")
   this.listenTo(TANK.main, "keyup", function(e)
   {
     if (e.keyCode === TANK.Key.W)
-      ship.stopUp();
+      this.speedUp = false;
     if (e.keyCode === TANK.Key.S)
-      ship.stopDown();
+      this.speedDown = false;
     if (e.keyCode === TANK.Key.A)
       this.headingLeft = false;
     if (e.keyCode === TANK.Key.D)
@@ -1318,11 +1279,18 @@ TANK.registerComponent("Player")
     if (TANK.main.Input.isDown(TANK.Key.LEFT_MOUSE))
     {
       var mousePos = TANK.main.Game.mousePosWorld;
-      if (TANK.Math2D.pointDistancePoint([t.x, t.y], TANK.main.Game.mousePosWorld) < 200)
+
+      // Get heading
+      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], TANK.main.Game.mousePosWorld);
+      if (dist < 200)
       {
         var newHeading = Math.atan2(mousePos[1] - t.y, mousePos[0] - t.x);
         ship.heading = newHeading;
+
+        // Get speed
+        ship.desiredSpeed = (dist / 200) * ship.shipData.maxSpeed;
       }
+
     }
 
     // Heading controls
@@ -1330,6 +1298,12 @@ TANK.registerComponent("Player")
       ship.heading -= dt * 3;
     if (this.headingRight)
       ship.heading += dt * 3;
+
+    // Speed controls
+    if (this.speedUp)
+      ship.desiredSpeed += dt * 80;
+    if (this.speedDown)
+      ship.desiredSpeed -= dt * 80;
 
     // Camera follow
     TANK.main.Renderer2D.camera.x = t.x;
@@ -1366,6 +1340,15 @@ TANK.registerComponent("Player")
     ctx.closePath();
     ctx.stroke();
 
+    // Speed line
+    ctx.strokeStyle = "rgba(100, 100, 250, 0.8)";
+    var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(ship.heading) * 200 * speedPercent, Math.sin(ship.heading) * 200 * speedPercent);
+    ctx.closePath();
+    ctx.stroke();
+
     ctx.restore();
   };
 });
@@ -1378,11 +1361,10 @@ TANK.registerComponent("Ship")
   this.zdepth = 2;
   this.image = new Image();
 
-  this.up = false;
-  this.left = false;
-  this.right = false;
-  this.down = false;
+  this.thrustOn = false;
   this.heading = 0;
+  this.desiredSpeed = 0;
+
   this.trailTimer = 0;
   this.dead = false;
 
@@ -1427,55 +1409,11 @@ TANK.registerComponent("Ship")
       gun[j] = gunData[j];
   };
 
-  // Movement functions
-  this.startUp = function()
-  {
-    if (this.up || this.dead)
-      return;
-    this.up = true;
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "on";
-    this._entity.Lights.redrawLights();
-  };
-  this.stopUp = function()
-  {
-    if (!this.up)
-      return;
-    this.up = false;
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "off";
-    this._entity.Lights.redrawLights();
-  };
-  this.startLeft = function() {this.left = true;};
-  this.stopLeft = function() {this.left = false;};
-  this.startRight = function() {this.right = true;};
-  this.stopRight = function() {this.right = false;};
-  this.startDown = function() {this.down = true;};
-  this.stopDown = function() {this.down = false;};
-
   // Move towards a given point
   this.moveTowards = function(pos)
   {
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, pos);
-    if (dir < -0.1)
-    {
-      this.startLeft();
-      this.stopRight();
-    }
-    else if (dir > 0.1)
-    {
-      this.startRight();
-      this.stopLeft();
-    }
-    else
-    {
-      this.startUp();
-      this.stopLeft();
-      this.stopRight();
-      v.r *= 0.95;
-    }
+    this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
+    this.desiredSpeed = this.shipData.maxSpeed;
   };
 
   // Explode the ship
@@ -1520,6 +1458,22 @@ TANK.registerComponent("Ship")
     this.health -= damage;
   });
 
+  this.listenTo(this._entity, "thrustOn", function()
+  {
+    for (var i = 0; i < this.shipData.lights.length; ++i)
+      if (this.shipData.lights[i].isEngine)
+        this.shipData.lights[i].state = "on";
+    this._entity.Lights.redrawLights();
+  });
+
+  this.listenTo(this._entity, "thrustOff", function()
+  {
+    for (var i = 0; i < this.shipData.lights.length; ++i)
+      if (this.shipData.lights[i].isEngine)
+        this.shipData.lights[i].state = "off";
+    this._entity.Lights.redrawLights();
+  });
+
   // Update loop
   this.update = function(dt)
   {
@@ -1549,17 +1503,38 @@ TANK.registerComponent("Ship")
     else
       v.r *= 0.95;
 
-    // Apply movement
-    if (this.up)
+    // Apply speed logic
+    this.desiredSpeed = Math.min(this.desiredSpeed, this.shipData.maxSpeed);
+    this.desiredSpeed = Math.max(this.desiredSpeed, 0);
+    var currentSpeed = Math.sqrt(v.x * v.x + v.y * v.y);
+    var moveVec = [v.x, v.y];
+    var directionalSpeedV = TANK.Math2D.project(moveVec, headingVec);
+    var directionalSpeed = TANK.Math2D.length(directionalSpeedV);
+    var correctionVec = TANK.Math2D.subtract(headingVec, moveVec);
+    if (directionalSpeed < this.desiredSpeed - 1)
     {
       v.x += Math.cos(t.rotation) * dt * 50;
       v.y += Math.sin(t.rotation) * dt * 50;
+      if (!this.thrustOn)
+        this._entity.dispatch("ThrustOn");
+      this.thrustOn = true;
     }
-    if (this.down)
+    else if (currentSpeed > this.desiredSpeed + 1)
     {
-      v.x += Math.cos(t.rotation) * dt * -50;
-      v.y += Math.sin(t.rotation) * dt * -50;
+      v.x *= 0.99;
+      v.y *= 0.99;
     }
+    else
+    {
+      if (this.thrustOn)
+        this._entity.dispatch("ThrustOff");
+      this.thrustOn = false;
+      var moveAngle = Math.atan2(v.y, v.x);
+      v.x = Math.cos(moveAngle) * this.desiredSpeed;
+      v.y = Math.sin(moveAngle) * this.desiredSpeed;
+    }
+    v.x += correctionVec[0] * dt * 0.05;
+    v.y += correctionVec[1] * dt * 0.05;
 
     // Cap movement
     if (Math.abs(v.r) > this.shipData.maxTurnSpeed)

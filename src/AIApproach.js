@@ -3,10 +3,8 @@ this.Action = this.Action || {};
 Action.AIApproach = function(e, target)
 {
   this.target = target;
-  this.maxTurnSpeed = 1;
   this.optimalDistance = 300;
   this.giveUpTimer = 5;
-  this.aimingAtTarget = false;
   this._blocking = true;
 
   this.start = function()
@@ -35,50 +33,19 @@ Action.AIApproach = function(e, target)
       targetPos[0] += targetVel.x * 1;
       targetPos[1] += targetVel.y * 1;
     }
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, targetPos);
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-
-    // Target is to the left
-    this.aimingAtTarget = false;
-    if (dir < -0.1)
-    {
-      ship.startLeft();
-      ship.stopRight();
-    }
-    // Target is to the right
-    else if (dir > 0.1)
-    {
-      ship.startRight();
-      ship.stopLeft();
-    }
-    // Aiming at target
-    else
-    {
-      this.aimingAtTarget = true;
-      ship.stopRight();
-      ship.stopLeft();
-      v.r *= 0.95;
-    }
 
     if (targetDist > this.optimalDistance)
     {
-      ship.startUp();
+      ship.moveTowards(targetPos);
     }
     else
     {
-      ship.stopUp();
-
-      v.x *= 0.95;
-      v.y *= 0.95;
-      v.r *= 0.95;
+      ship.desiredSpeed = 0;
 
       if (v.getSpeed() < 1 && v.r < 0.1)
         this._done = true;
     }
-
-    // Cap movement
-    if (Math.abs(v.r) > this.maxTurnSpeed)
-      v.r *= 0.95;
   };
 
   this.stop = function()

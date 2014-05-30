@@ -9,6 +9,8 @@ TANK.registerComponent("Player")
 
   this.headingLeft = false;
   this.headingRight = false;
+  this.speedUp = false;
+  this.speedDown = false;
 })
 
 .initialize(function()
@@ -96,9 +98,9 @@ TANK.registerComponent("Player")
   this.listenTo(TANK.main, "keydown", function(e)
   {
     if (e.keyCode === TANK.Key.W)
-      ship.startUp();
+      this.speedUp = true;
     if (e.keyCode === TANK.Key.S)
-      ship.startDown();
+      this.speedDown = true;
     if (e.keyCode === TANK.Key.A)
       this.headingLeft = true;
     if (e.keyCode === TANK.Key.D)
@@ -117,9 +119,9 @@ TANK.registerComponent("Player")
   this.listenTo(TANK.main, "keyup", function(e)
   {
     if (e.keyCode === TANK.Key.W)
-      ship.stopUp();
+      this.speedUp = false;
     if (e.keyCode === TANK.Key.S)
-      ship.stopDown();
+      this.speedDown = false;
     if (e.keyCode === TANK.Key.A)
       this.headingLeft = false;
     if (e.keyCode === TANK.Key.D)
@@ -132,11 +134,18 @@ TANK.registerComponent("Player")
     if (TANK.main.Input.isDown(TANK.Key.LEFT_MOUSE))
     {
       var mousePos = TANK.main.Game.mousePosWorld;
-      if (TANK.Math2D.pointDistancePoint([t.x, t.y], TANK.main.Game.mousePosWorld) < 200)
+
+      // Get heading
+      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], TANK.main.Game.mousePosWorld);
+      if (dist < 200)
       {
         var newHeading = Math.atan2(mousePos[1] - t.y, mousePos[0] - t.x);
         ship.heading = newHeading;
+
+        // Get speed
+        ship.desiredSpeed = (dist / 200) * ship.shipData.maxSpeed;
       }
+
     }
 
     // Heading controls
@@ -144,6 +153,12 @@ TANK.registerComponent("Player")
       ship.heading -= dt * 3;
     if (this.headingRight)
       ship.heading += dt * 3;
+
+    // Speed controls
+    if (this.speedUp)
+      ship.desiredSpeed += dt * 80;
+    if (this.speedDown)
+      ship.desiredSpeed -= dt * 80;
 
     // Camera follow
     TANK.main.Renderer2D.camera.x = t.x;
@@ -177,6 +192,15 @@ TANK.registerComponent("Player")
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(Math.cos(ship.heading) * 200, Math.sin(ship.heading) * 200);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Speed line
+    ctx.strokeStyle = "rgba(100, 100, 250, 0.8)";
+    var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(ship.heading) * 200 * speedPercent, Math.sin(ship.heading) * 200 * speedPercent);
     ctx.closePath();
     ctx.stroke();
 
