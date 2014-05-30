@@ -42,13 +42,15 @@ TANK.registerComponent("Ship")
 
     that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
     that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
+    that._entity.Weapons.width = that.image.width * TANK.main.Game.scaleFactor;
+    that._entity.Weapons.height = that.image.height * TANK.main.Game.scaleFactor;
   });
 
   // Add weapons
-  for (var i = 0; i < this.shipData.guns.length; ++i)
+  for (var i in this.shipData.guns)
   {
     var gunData = this.shipData.guns[i];
-    var gun = this._entity.Weapons.addGun();
+    var gun = this._entity.Weapons.guns[i];
     for (var j in gunData)
       gun[j] = gunData[j];
   };

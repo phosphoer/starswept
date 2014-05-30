@@ -5,113 +5,108 @@ TANK.registerComponent("Weapons")
 .construct(function()
 {
   this.zdepth = 1;
-  this.guns = [];
+  this.bulletSpeed = 800;
+  this.guns =
+  {
+    left: {
+      count: 2,
+      damage: 0.1,
+      range: 800,
+      timer: 0,
+      time: 5,
+      angle: Math.PI * -0.5
+    },
+    right: {
+      count: 2,
+      damage: 0.1,
+      range: 800,
+      timer: 0,
+      time: 5,
+      angle: Math.PI * 0.5
+    },
+    front: {
+      count: 1,
+      damage: 0.1,
+      range: 600,
+      timer: 0,
+      time: 3,
+      angle: 0
+    },
+    back: {
+      count: 1,
+      damage: 0.1,
+      range: 600,
+      timer: 0,
+      time: 5,
+      angle: Math.PI
+    }
+  };
+  this.height = 10;
+  this.width = 5;
 })
 
 .initialize(function()
 {
   var t = this._entity.Pos2D;
 
-  TANK.main.Renderer2D.add(this);
+  // TANK.main.Renderer2D.add(this);
 
-  this.addGun = function()
+  this.fireGun = function(gunIndex, gunSide)
   {
-    var gun = {};
-    gun.reloadTime = 0.5;
-    gun.reloadTimer = 0;
-    gun.arcAngle = 0;
-    gun.arc = Math.PI / 3;
-    gun.angle = 0;
-    gun.range = 800;
-    gun.trackSpeed = 0.5;
-    gun.damage = 0.1;
-    gun.bulletSpeed = 800;
-    this.guns.push(gun);
-    return gun;
+    var e = TANK.createEntity("Bullet");
+    var gun = this.guns[gunSide];
+    var pos = [0, 0];
+    gunIndex += (1 / gun.count) / 2;
+    if (gunSide === "front")
+      pos = [this.width / 2, (gunIndex / gun.count) * this.height - this.height / 2];
+    else if (gunSide === "back")
+      pos = [-this.width / 2, (gunIndex / gun.count) * this.height - this.height / 2];
+    else if (gunSide === "left")
+      pos = [(gunIndex / gun.count) * this.width - this.width / 2, -this.height / 2];
+    else if (gunSide === "right")
+      pos = [(gunIndex / gun.count) * this.width - this.width / 2, this.height / 2];
+
+    pos = TANK.Math2D.rotate(pos, t.rotation);
+    pos = TANK.Math2D.add(pos, [t.x, t.y]);
+
+    e.Pos2D.x = pos[0];
+    e.Pos2D.y = pos[1];
+    e.Velocity.x = Math.cos(t.rotation + gun.angle) * this.bulletSpeed;
+    e.Velocity.y = Math.sin(t.rotation + gun.angle) * this.bulletSpeed;
+    e.Life.life = gun.range / this.bulletSpeed;
+    e.Bullet.owner = this._entity;
+    e.Bullet.damage = gun.damage;
+    TANK.main.addChild(e);
   };
 
-  this.shoot = function()
+  this.fireGuns = function(gunSide)
   {
-    if (!this.targetPos)
-    {
-      console.warn("Tried to shoot with no target!");
+    var gun = this.guns[gunSide];
+    if (gun.timer >= 0)
       return;
-    }
 
-    for (var i = 0; i < this.guns.length; ++i)
+    gun.timer = gun.time;
+    for (var i = 0; i < this.guns[gunSide].count; ++i)
     {
-      var gun = this.guns[i];
-
-      // Don't shoot if gun isn't aiming at target
-      if (!gun.aimingAtTarget)
-        continue;
-
-      if (gun.reloadTimer < 0)
-      {
-        gun.reloadTimer = gun.reloadTime;
-        var e = TANK.createEntity("Bullet");
-        e.Pos2D.x = t.x + Math.cos(t.rotation + gun.angle + gun.arcAngle) * 75;
-        e.Pos2D.y = t.y + Math.sin(t.rotation + gun.angle + gun.arcAngle) * 75;
-        e.Velocity.x = Math.cos(t.rotation + gun.angle + gun.arcAngle) * gun.bulletSpeed;
-        e.Velocity.y = Math.sin(t.rotation + gun.angle + gun.arcAngle) * gun.bulletSpeed;
-        e.Life.life = gun.range / gun.bulletSpeed;
-        e.Bullet.owner = this._entity;
-        e.Bullet.damage = gun.damage;
-        TANK.main.addChild(e);
-      }
+      this.fireGun(i, gunSide);
     }
-  };
 
-  this.aimAt = function(pos)
-  {
-    if (pos)
-      this.targetPos = [pos[0], pos[1]];
-    else
-      this.targetPos = null;
+    // Shake screen if on camera
+    var camera = TANK.main.Renderer2D.camera;
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+    if (dist < 1) dist = 1;
+    if (dist < window.innerWidth / 2)
+      TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
   };
 
   this.update = function(dt)
   {
-    this.aimingAtTarget = false;
-    for (var i = 0; i < this.guns.length; ++i)
+    for (var i in this.guns)
     {
       var gun = this.guns[i];
-      gun.reloadTimer -= dt;
-
-      if (this.targetPos)
-      {
-        gun.aimingAtTarget = false;
-        var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation + gun.angle + gun.arcAngle, this.targetPos);
-        if (dir < -0.03)
-        {
-          gun.angle -= dt * gun.trackSpeed;
-        }
-        else if (dir > 0.03)
-        {
-          gun.angle += dt * gun.trackSpeed;
-        }
-        else
-        {
-          gun.aimingAtTarget = true;
-          this.aimingAtTarget = true;
-        }
-      }
-
-      // Special case for circular arcs
-      if (gun.arc >= Math.PI * 2)
-      {
-        if (gun.angle < gun.arc / -2)
-          gun.angle = gun.arc / 2;
-        if (gun.angle > gun.arc / 2)
-          gun.angle = gun.arc / -2;
-      }
-
-      if (gun.angle < gun.arc / -2)
-        gun.angle = gun.arc / -2;
-      if (gun.angle > gun.arc / 2)
-        gun.angle = gun.arc / 2;
+      if (gun.timer >= 0)
+        gun.timer -= dt;
     }
-
   };
 
   this.draw = function(ctx, camera)
@@ -122,27 +117,8 @@ TANK.registerComponent("Weapons")
     ctx.strokeStyle = "rgba(100, 255, 100, 0.25)";
     ctx.lineWidth = 2;
 
-    for (var i = 0; i < this.guns.length; ++i)
-    {
-      var gun = this.guns[i];
+    ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
 
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(gun.arcAngle + gun.angle) * gun.range, Math.sin(gun.arcAngle + gun.angle) * gun.range);
-      if (gun.arc < Math.PI * 2)
-      {
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(gun.arcAngle - gun.arc / 2) * gun.range, Math.sin(gun.arcAngle - gun.arc / 2) * gun.range);
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(gun.arcAngle + gun.arc / 2) * gun.range, Math.sin(gun.arcAngle + gun.arc / 2) * gun.range);
-      }
-      ctx.stroke();
-      ctx.closePath();
-      ctx.beginPath();
-      ctx.arc(0, 0, gun.range, gun.arcAngle - gun.arc / 2, gun.arcAngle + gun.arc / 2);
-      ctx.stroke();
-      ctx.closePath();
-    }
     ctx.restore();
   };
 });

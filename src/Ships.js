@@ -9,16 +9,36 @@ Ships.frigate = function()
   this.cost = 30;
   this.aggressive = true;
   this.guns =
-  [
+  {
+    left:
     {
-      reloadTime: 0.5,
-      arcAngle: 0,
-      arc: Math.PI / 3,
+      count: 3,
+      damage: 0.1,
       range: 800,
-      bulletSpeed: 800,
-      damage: 0.1
+      time: 5
+    },
+    right:
+    {
+      count: 3,
+      damage: 0.1,
+      range: 800,
+      time: 5
+    },
+    front:
+    {
+      count: 2,
+      damage: 0.1,
+      range: 600,
+      time: 3
+    },
+    back:
+    {
+      count: 1,
+      damage: 0.1,
+      range: 600,
+      time: 3
     }
-  ];
+  },
   this.lights =
   [
     {
@@ -57,26 +77,36 @@ Ships.cruiser = function()
   this.cost = 50;
   this.aggressive = false;
   this.guns =
-  [
+  {
+    left:
     {
-      reloadTime: 0.1,
-      arcAngle: 0,
-      arc: Math.PI * 2,
-      trackSpeed: 2,
-      range: 700,
-      bulletSpeed: 800,
-      damage: 0.005
+      count: 3,
+      damage: 0.1,
+      range: 800,
+      time: 5
     },
+    right:
     {
-      reloadTime: 1.5,
-      arcAngle: 0,
-      arc: Math.PI / 3,
-      trackSpeed: 0.5,
-      range: 900,
-      bulletSpeed: 700,
-      damage: 0.4
+      count: 3,
+      damage: 0.1,
+      range: 800,
+      time: 5
+    },
+    front:
+    {
+      count: 2,
+      damage: 0.1,
+      range: 600,
+      time: 3
+    },
+    back:
+    {
+      count: 1,
+      damage: 0.1,
+      range: 600,
+      time: 3
     }
-  ];
+  },
   this.lights =
   [
     {

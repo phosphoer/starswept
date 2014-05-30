@@ -36,10 +36,8 @@ Action.AIAttack = function(e, target)
       e.Ship.moveTowards(targetPos);
 
     // Shoot randomly
-    e.Weapons.aimAt(targetPos);
     if (Math.random() < 0.05 && e.Weapons.aimingAtTarget && targetDist < 1500)
     {
-      e.Weapons.shoot();
     }
   };
 
