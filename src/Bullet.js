@@ -6,6 +6,7 @@ TANK.registerComponent("Bullet")
 {
   this.zdepth = 2;
   this.owner = null;
+  this.damage = 0.2;
 })
 
 .initialize(function()
@@ -27,10 +28,18 @@ TANK.registerComponent("Bullet")
 
   this.listenTo(this._entity, "collide", function(obj)
   {
-    if (this.owner === this.obj)
+    if (this.owner === obj)
       return;
 
-    obj.dispatch("damaged", 0.2, [this._entity.Velocity.x, this._entity.Velocity.y], this.owner);
+    // Shake screen if on camera
+    var camera = TANK.main.Renderer2D.camera;
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+    if (dist < 1) dist = 1;
+    if (dist < window.innerWidth / 2)
+      TANK.main.dispatch("camerashake", 0.1 / dist);
+
+    // Do damage
+    obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], this.owner);
     TANK.main.removeChild(this._entity);
     this.stopListeningTo(this._entity, "collide");
   });

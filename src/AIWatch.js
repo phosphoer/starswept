@@ -14,7 +14,7 @@ TANK.registerComponent("AIWatch")
 
   this.evaluateTarget = function(e)
   {
-    if (e.Ship.team === ship.team)
+    if (e.Ship.faction.team === ship.faction.team)
       return;
 
     var targetPos = [e.Pos2D.x, e.Pos2D.y];

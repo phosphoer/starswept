@@ -6,6 +6,7 @@ TANK.registerComponent("AIShip")
 {
   this.actions = [];
   this.removedActions = [];
+  this.aggressive = true;
 })
 
 .initialize(function()
@@ -16,8 +17,11 @@ TANK.registerComponent("AIShip")
 
   this._entity.Droppable.selectDepth = 1;
 
+  // Get AI behaviors from ship
+  this.aggressive = ship.shipData.aggressive;
+
   // Only draggable if on the player team
-  if (ship.team === 0)
+  if (ship.faction.team === 0)
   {
     this._entity.addComponent("Draggable");
     this._entity.Draggable.selectDepth = 1;
@@ -29,7 +33,7 @@ TANK.registerComponent("AIShip")
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, owner)
   {
-    if (owner && owner.Ship && owner.Ship.team != ship.team && !(this.actions[0] instanceof Action.AIAttack))
+    if (owner && owner.Ship && owner.Ship.faction.team != ship.faction.team && !(this.actions[0] instanceof Action.AIAttack))
     {
       this.prependAction(new Action.AIAttack(this._entity, owner));
     }
@@ -42,7 +46,7 @@ TANK.registerComponent("AIShip")
       return;
 
     // Attack an enemy ship
-    if (dest.Ship && dest.Ship.team != ship.team)
+    if (dest.Ship && dest.Ship.faction.team != ship.faction.team)
     {
       this.prependAction(new Action.AIAttack(this._entity, dest));
     }

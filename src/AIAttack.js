@@ -31,14 +31,13 @@ Action.AIAttack = function(e, target)
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
 
-    // Approach target
-    e.Ship.moveTowards(targetPos);
+    // Approach target if we are aggressive
+    if (e.AIShip.aggressive)
+      e.Ship.moveTowards(targetPos);
 
     // Shoot randomly
-    e.Weapons.aimAt(targetPos);
     if (Math.random() < 0.05 && e.Weapons.aimingAtTarget && targetDist < 1500)
     {
-      e.Weapons.shoot();
     }
   };
 

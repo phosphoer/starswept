@@ -14,10 +14,8 @@ TANK.registerComponent("Ship")
   this.trailTimer = 0;
   this.dead = false;
 
-  this.shipData = new Ships.transport();
-  this.image.src = this.shipData.image;
-  this.team = 0;
-  this.health = this.shipData.health;
+  this.shipData = null;
+  this.faction = null;
   this.deadTimer = 0;
 })
 
@@ -31,6 +29,9 @@ TANK.registerComponent("Ship")
   this._entity.Collider2D.collisionLayer = "ships";
   this._entity.Collider2D.collidesWith = ["bullets"];
 
+  this.image.src = this.shipData.image;
+  this.health = this.shipData.health;
+
   var that = this;
   this.image.addEventListener("load", function()
   {
@@ -41,13 +42,15 @@ TANK.registerComponent("Ship")
 
     that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
     that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
+    that._entity.Weapons.width = that.image.width * TANK.main.Game.scaleFactor;
+    that._entity.Weapons.height = that.image.height * TANK.main.Game.scaleFactor;
   });
 
   // Add weapons
-  for (var i = 0; i < this.shipData.guns.length; ++i)
+  for (var i in this.shipData.guns)
   {
     var gunData = this.shipData.guns[i];
-    var gun = this._entity.Weapons.addGun();
+    var gun = this._entity.Weapons.guns[i];
     for (var j in gunData)
       gun[j] = gunData[j];
   };
@@ -155,11 +158,9 @@ TANK.registerComponent("Ship")
       this.dead = true;
     }
 
+    // Explode after a bit of time
     if (this.deadTimer < 0)
-    {
       this.explode();
-    }
-
     if (this.dead)
     {
       this.deadTimer -= dt;
@@ -225,6 +226,25 @@ TANK.registerComponent("Ship")
       }
       this.trailTimer = 0.03;
     }
+
+    // Capture nearby control points
+    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+    for (var i in controlPoints)
+    {
+      var e = controlPoints[i];
+
+      // Skip control points that belong to us and aren't contested
+      if (e.ControlPoint.faction && e.ControlPoint.faction.team === this.faction.team && !e.ControlPoint.pendingFaction)
+        continue;
+
+      // Try to capture or restore control point if it is within range
+      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [e.Pos2D.x, e.Pos2D.y]);
+      if (dist < e.ControlPoint.captureDistance)
+      {
+        e.ControlPoint.tryCapture(this.faction, 0.1 * dt);
+        break;
+      }
+    };
   };
 
   this.draw = function(ctx, camera)

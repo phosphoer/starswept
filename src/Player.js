@@ -96,12 +96,6 @@ TANK.registerComponent("Player")
       this.dragSource.dispatch("dragstart");
       return;
     }
-
-    var dist = TANK.Math2D.pointDistancePoint(TANK.main.Game.mousePosWorld, [t.x, t.y]);
-    if (dist < 50)
-    {
-      this.draggingShootButton = true;
-    }
   });
 
   this.listenTo(TANK.main, "mouseup", function(e)
@@ -114,8 +108,6 @@ TANK.registerComponent("Player")
 
     this.dragSource = null;
     this.dragDest = null;
-    this.draggingShootButton = false;
-    this._entity.Weapons.aimAt(null);
     ship.stopUp();
     ship.stopLeft();
     ship.stopRight();
@@ -131,6 +123,15 @@ TANK.registerComponent("Player")
       ship.startLeft();
     if (e.keyCode === TANK.Key.D)
       ship.startRight();
+
+    if (e.keyCode === TANK.Key.LEFT_ARROW)
+      this._entity.Weapons.fireGuns("left");
+    if (e.keyCode === TANK.Key.RIGHT_ARROW)
+      this._entity.Weapons.fireGuns("right");
+    if (e.keyCode === TANK.Key.UP_ARROW)
+      this._entity.Weapons.fireGuns("front");
+    if (e.keyCode === TANK.Key.DOWN_ARROW)
+      this._entity.Weapons.fireGuns("back");
   });
 
   this.listenTo(TANK.main, "keyup", function(e)
@@ -153,30 +154,7 @@ TANK.registerComponent("Player")
       if (this.dragSource)
         return;
 
-      if (this.draggingShootButton)
-      {
-        this._entity.Weapons.aimAt(TANK.main.Game.mousePosWorld);
-        this._entity.Weapons.shoot();
-      }
-      else
-      {
-        ship.moveTowards(TANK.main.Game.mousePosWorld);
-      }
-    }
-
-    // Show shoot button
-    var mouseDist = TANK.Math2D.pointDistancePoint(TANK.main.Game.mousePosWorld, [t.x, t.y]);
-    if (mouseDist < 75)
-    {
-      this.shootButtonAlpha += dt * 2;
-      if (this.shootButtonAlpha > 0.5)
-        this.shootButtonAlpha = 0.5;
-    }
-    else if (!this.draggingShootButton)
-    {
-      this.shootButtonAlpha -= dt * 3;
-      if (this.shootButtonAlpha < 0)
-        this.shootButtonAlpha = 0;
+      ship.moveTowards(TANK.main.Game.mousePosWorld);
     }
 
     // Camera follow
@@ -195,32 +173,5 @@ TANK.registerComponent("Player")
   this.draw = function(ctx, camera)
   {
     var pos = TANK.main.Game.mousePosWorld;
-
-    // Draw shoot button
-    ctx.save();
-    ctx.translate(t.x - camera.x, t.y - camera.y);
-    if (this.draggingShootButton)
-      ctx.translate(pos[0] - camera.x, pos[1] - camera.y);
-    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
-    ctx.fillStyle = "rgba(255, 50, 50, " + this.shootButtonAlpha + ")";
-    ctx.beginPath();
-    ctx.arc(0, 0, 2, Math.PI * 2, false);
-    ctx.fill();
-    ctx.closePath();
-    ctx.restore();
-
-    // Draw line to shoot button
-    if (this.draggingShootButton)
-    {
-      ctx.save();
-      ctx.strokeStyle = "rgba(255, 50, 50, 0.5)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(t.x - camera.x, t.y - camera.y);
-      ctx.lineTo(pos[0] - camera.x, pos[1] - camera.y);
-      ctx.stroke();
-      ctx.closePath();
-      ctx.restore();
-    }
   };
 });
