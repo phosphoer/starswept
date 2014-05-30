@@ -1288,7 +1288,7 @@ TANK.registerComponent("Player")
         ship.heading = newHeading;
 
         // Get speed
-        ship.desiredSpeed = (dist / 200) * ship.shipData.maxSpeed;
+        ship.desiredSpeed = ((dist - 50) / 150) * ship.shipData.maxSpeed;
       }
 
     }
@@ -1342,10 +1342,12 @@ TANK.registerComponent("Player")
 
     // Speed line
     ctx.strokeStyle = "rgba(100, 100, 250, 0.8)";
+    ctx.lineWidth = 10;
     var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
+    var startPos = [Math.cos(ship.heading) * 50, Math.sin(ship.heading) * 50];
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(ship.heading) * 200 * speedPercent, Math.sin(ship.heading) * 200 * speedPercent);
+    ctx.moveTo(startPos[0], startPos[1]);
+    ctx.lineTo(startPos[0] + Math.cos(ship.heading) * 150 * speedPercent, startPos[1] + Math.sin(ship.heading) * 150 * speedPercent);
     ctx.closePath();
     ctx.stroke();
 
