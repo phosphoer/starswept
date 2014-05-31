@@ -1524,15 +1524,19 @@ TANK.registerComponent("Ship")
     else
       v.r *= 0.95;
 
-    // Apply speed logic
+    // Calculate some values for speed logic
     this.desiredSpeed = Math.min(this.desiredSpeed, this.shipData.maxSpeed);
     this.desiredSpeed = Math.max(this.desiredSpeed, 0);
-    var currentSpeed = Math.sqrt(v.x * v.x + v.y * v.y);
+    var currentSpeed = v.getSpeed();
     var moveVec = [v.x, v.y];
-    var directionalSpeedV = TANK.Math2D.project(moveVec, headingVec);
-    var directionalSpeed = TANK.Math2D.length(directionalSpeedV);
-    var correctionVec = TANK.Math2D.subtract(headingVec, moveVec);
-    if (directionalSpeed < this.desiredSpeed - 1)
+    var moveAngle = Math.atan2(v.y, v.x);
+    var dirToHeading = TANK.Math2D.getDirectionToPoint([0, 0], moveAngle, headingVec);
+    var headingSpeedVec = TANK.Math2D.scale(headingVec, this.desiredSpeed);
+    var correctionVec = TANK.Math2D.subtract(headingSpeedVec, moveVec);
+
+    // If we are moving significantly in the wrong direction, or not fast enough,
+    // then we should apply thrust
+    if (this.desiredSpeed > 0 && (Math.abs(dirToHeading) > 0.1 || currentSpeed < this.desiredSpeed - 1))
     {
       v.x += Math.cos(t.rotation) * dt * 50;
       v.y += Math.sin(t.rotation) * dt * 50;
@@ -1540,28 +1544,27 @@ TANK.registerComponent("Ship")
         this._entity.dispatch("ThrustOn");
       this.thrustOn = true;
     }
-    else if (currentSpeed > this.desiredSpeed + 1)
-    {
-      v.x *= 0.99;
-      v.y *= 0.99;
-    }
+    // Otherwise, turn off the thrusters
     else
     {
       if (this.thrustOn)
         this._entity.dispatch("ThrustOff");
       this.thrustOn = false;
-      var moveAngle = Math.atan2(v.y, v.x);
-      v.x = Math.cos(moveAngle) * this.desiredSpeed;
-      v.y = Math.sin(moveAngle) * this.desiredSpeed;
     }
+    // Slow down if moving faster than we want
+    if (currentSpeed > this.desiredSpeed + 1)
+    {
+      v.x *= 0.99;
+      v.y *= 0.99;
+    }
+    // Correct trajectory
     v.x += correctionVec[0] * dt * 0.05;
     v.y += correctionVec[1] * dt * 0.05;
 
     // Cap movement
     if (Math.abs(v.r) > this.shipData.maxTurnSpeed)
       v.r *= 0.95;
-    var speed = Math.sqrt(v.x * v.x + v.y * v.y);
-    if (speed > this.shipData.maxSpeed)
+    if (currentSpeed > this.shipData.maxSpeed)
     {
       var moveAngle = Math.atan2(v.y, v.x);
       v.x = Math.cos(moveAngle) * this.shipData.maxSpeed;
