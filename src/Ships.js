@@ -46,7 +46,7 @@ Ships.frigate = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -54,7 +54,7 @@ Ships.frigate = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -114,7 +114,7 @@ Ships.cruiser = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -122,7 +122,7 @@ Ships.cruiser = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -130,7 +130,7 @@ Ships.cruiser = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {

@@ -3,10 +3,8 @@ this.Action = this.Action || {};
 Action.AIApproach = function(e, target)
 {
   this.target = target;
-  this.maxTurnSpeed = 1;
   this.optimalDistance = 300;
   this.giveUpTimer = 5;
-  this.aimingAtTarget = false;
   this._blocking = true;
 
   this.start = function()
@@ -35,50 +33,19 @@ Action.AIApproach = function(e, target)
       targetPos[0] += targetVel.x * 1;
       targetPos[1] += targetVel.y * 1;
     }
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, targetPos);
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-
-    // Target is to the left
-    this.aimingAtTarget = false;
-    if (dir < -0.1)
-    {
-      ship.startLeft();
-      ship.stopRight();
-    }
-    // Target is to the right
-    else if (dir > 0.1)
-    {
-      ship.startRight();
-      ship.stopLeft();
-    }
-    // Aiming at target
-    else
-    {
-      this.aimingAtTarget = true;
-      ship.stopRight();
-      ship.stopLeft();
-      v.r *= 0.95;
-    }
 
     if (targetDist > this.optimalDistance)
     {
-      ship.startUp();
+      ship.moveTowards(targetPos);
     }
     else
     {
-      ship.stopUp();
-
-      v.x *= 0.95;
-      v.y *= 0.95;
-      v.r *= 0.95;
+      ship.desiredSpeed = 0;
 
       if (v.getSpeed() < 1 && v.r < 0.1)
         this._done = true;
     }
-
-    // Cap movement
-    if (Math.abs(v.r) > this.maxTurnSpeed)
-      v.r *= 0.95;
   };
 
   this.stop = function()
@@ -172,16 +139,8 @@ Action.AIIdle = function(e)
     var v = e.Velocity;
     var ship = e.Ship;
 
-    // Stop moving
-    ship.stopUp();
-    ship.stopLeft();
-    ship.stopRight();
-    ship.stopDown();
-
     // Decelarate
-    v.x *= 0.95;
-    v.y *= 0.95;
-    v.r *= 0.95;
+    ship.desiredSpeed = 0;
   };
 
   this.stop = function()
@@ -615,17 +574,10 @@ TANK.registerComponent("Game")
 
 .construct(function()
 {
-  this.scaleFactor = isMobile.any() ? 4 : 8;
+  this.scaleFactor = 8;
   this.factions = [];
   this.barCommands = [];
   this.topBarItems = [];
-  this.fireButtons =
-  [
-    {side: "front"},
-    {side: "back"},
-    {side: "left"},
-    {side: "right"},
-  ];
   this.mousePosWorld = [0, 0];
 })
 
@@ -645,13 +597,6 @@ TANK.registerComponent("Game")
     el: "topBarContainer",
     template: "#topBarTemplate",
     data: {items: this.topBarItems}
-  });
-
-  this.shipUI = new Ractive(
-  {
-    el: "shipHUDContainer",
-    template: "#shipHUDTemplate",
-    data: {fireButtons: this.fireButtons}
   });
 
   var that = this;
@@ -680,23 +625,9 @@ TANK.registerComponent("Game")
   // Money counter
   this.topBarItems.push({name: ""});
 
-  // Shooting buttons
-  this.shipUI.on("activate", function(e)
+  this.updateMousePos = function(pos)
   {
-    var p = TANK.main.getChild("Player");
-    if (!p)
-      return;
-
-    p.Weapons.fireGuns(e.context.side);
-  });
-
-  this.update = function(dt)
-  {
-    // Update faction money count
-    this.topBarUI.set("items[0].name", "Funds - " + this.factions[0].money);
-
-    // Update mouse world position
-    this.mousePosWorld = [TANK.main.Input.mousePos[0], TANK.main.Input.mousePos[1]];
+    this.mousePosWorld = pos;
     this.mousePosWorld[0] -= window.innerWidth / 2;
     this.mousePosWorld[1] -= window.innerHeight / 2;
     this.mousePosWorld[0] *= TANK.main.Renderer2D.camera.z;
@@ -704,6 +635,26 @@ TANK.registerComponent("Game")
     this.mousePosWorld[0] += TANK.main.Renderer2D.camera.x;
     this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
   };
+
+  this.update = function(dt)
+  {
+    // Update faction money count
+    this.topBarUI.set("items[0].name", "Funds - " + this.factions[0].money);
+  };
+
+  this.listenTo(TANK.main, "mousemove", function(e)
+  {
+    this.updateMousePos([e.x, e.y]);
+  });
+
+  this.listenTo(TANK.main, "touchmove", function(e)
+  {
+    this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
+  });
+  this.listenTo(TANK.main, "touchstart", function(e)
+  {
+    this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
+  });
 
   this.listenTo(TANK.main, "start", function()
   {
@@ -1192,9 +1143,23 @@ TANK.registerComponent("Player")
 {
   this.zdepth = 5;
   this.shakeTime = 0;
-  this.shootButtonAlpha = 0;
-  this.draggingShootButton = false;
-  this.dragSource = null;
+
+  this.headingLeft = false;
+  this.headingRight = false;
+  this.speedUp = false;
+  this.speedDown = false;
+
+  this.headingRadius = 25;
+  this.speedStart = 5;
+  this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
+  this.speedStartScaled = this.speedStart * TANK.main.Game.scaleFactor;
+  this.fireButtons =
+  [
+    {side: "left", pos: [0, -8], radius: 2},
+    {side: "right", pos: [0, 8], radius: 2},
+    {side: "front", pos: [12, 0], radius: 2},
+    {side: "back", pos: [-12, 0], radius: 2},
+  ];
 })
 
 .initialize(function()
@@ -1237,6 +1202,46 @@ TANK.registerComponent("Player")
     this.shakeTime = duration;
   };
 
+  this.mouseDownHandler = function()
+  {
+    this.mouseDown = true;
+    var mousePos = TANK.main.Game.mousePosWorld;
+    for (var i = 0; i < this.fireButtons.length; ++i)
+    {
+      var pos = TANK.Math2D.rotate(this.fireButtons[i].pos, t.rotation);
+      pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
+      pos[0] += t.x;
+      pos[1] += t.y;
+      var dist = TANK.Math2D.pointDistancePoint(pos, mousePos);
+      if (dist < this.fireButtons[i].radius * TANK.main.Game.scaleFactor)
+      {
+        this.fireButtonDown = true;
+        this._entity.Weapons.fireGuns(this.fireButtons[i].side);
+        return;
+      }
+    }
+  };
+
+  this.mouseMoveHandler = function(e)
+  {
+    if (this.mouseDown && !this.fireButtonDown)
+    {
+      var mousePos = TANK.main.Game.mousePosWorld;
+
+      // Get heading
+      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], TANK.main.Game.mousePosWorld);
+      if (dist < this.headingRadiusScaled)
+      {
+        var newHeading = Math.atan2(mousePos[1] - t.y, mousePos[0] - t.x);
+        ship.heading = newHeading;
+
+        // Get speed
+        ship.desiredSpeed = ((dist - this.speedStartScaled) /
+                            (this.headingRadiusScaled - this.speedStartScaled)) * ship.shipData.maxSpeed;
+      }
+    }
+  };
+
   this.listenTo(this._entity, "collide", function(obj)
   {
     if (obj.Bullet && obj.owner !== this._entity)
@@ -1258,9 +1263,6 @@ TANK.registerComponent("Player")
 
   this.listenTo(TANK.main, "gesturechange", function(e)
   {
-    if (this.draggingShootButton)
-      return;
-
     if (e.scale)
     {
       var scale = 1 / e.scale;
@@ -1274,41 +1276,33 @@ TANK.registerComponent("Player")
     }
   });
 
-  this.listenTo(TANK.main, "mousedown", function(e)
-  {
-    this.dragSource = this.checkForSelection("Draggable");
-    if (this.dragSource)
-    {
-      this.dragSource.dispatch("dragstart");
-      return;
-    }
-  });
+  this.listenTo(TANK.main, "mousedown", this.mouseDownHandler);
+  this.listenTo(TANK.main, "touchstart", this.mouseDownHandler);
+  this.listenTo(TANK.main, "mousemove", this.mouseMoveHandler);
+  this.listenTo(TANK.main, "touchmove", this.mouseMoveHandler);
 
   this.listenTo(TANK.main, "mouseup", function(e)
   {
-    if (this.dragSource)
-    {
-      this.dragDest = this.checkForSelection("Droppable");
-      this.dragSource.dispatch("dragend", this.dragDest);
-    }
+    this.mouseDown = false;
+    this.fireButtonDown = false;
+  });
 
-    this.dragSource = null;
-    this.dragDest = null;
-    ship.stopUp();
-    ship.stopLeft();
-    ship.stopRight();
+  this.listenTo(TANK.main, "touchend", function(e)
+  {
+    this.mouseDown = false;
+    this.fireButtonDown = false;
   });
 
   this.listenTo(TANK.main, "keydown", function(e)
   {
     if (e.keyCode === TANK.Key.W)
-      ship.startUp();
+      this.speedUp = true;
     if (e.keyCode === TANK.Key.S)
-      ship.startDown();
+      this.speedDown = true;
     if (e.keyCode === TANK.Key.A)
-      ship.startLeft();
+      this.headingLeft = true;
     if (e.keyCode === TANK.Key.D)
-      ship.startRight();
+      this.headingRight = true;
 
     if (e.keyCode === TANK.Key.LEFT_ARROW)
       this._entity.Weapons.fireGuns("left");
@@ -1323,25 +1317,28 @@ TANK.registerComponent("Player")
   this.listenTo(TANK.main, "keyup", function(e)
   {
     if (e.keyCode === TANK.Key.W)
-      ship.stopUp();
+      this.speedUp = false;
     if (e.keyCode === TANK.Key.S)
-      ship.stopDown();
+      this.speedDown = false;
     if (e.keyCode === TANK.Key.A)
-      ship.stopLeft();
+      this.headingLeft = false;
     if (e.keyCode === TANK.Key.D)
-      ship.stopRight();
+      this.headingRight = false;
   });
 
   this.update = function(dt)
   {
-    // Handle mouse being held down
-    if (TANK.main.Input.isDown(TANK.Key.LEFT_MOUSE))
-    {
-      if (this.dragSource)
-        return;
+    // Heading controls
+    if (this.headingLeft)
+      ship.heading -= dt * 3;
+    if (this.headingRight)
+      ship.heading += dt * 3;
 
-      ship.moveTowards(TANK.main.Game.mousePosWorld);
-    }
+    // Speed controls
+    if (this.speedUp)
+      ship.desiredSpeed += dt * 80;
+    if (this.speedDown)
+      ship.desiredSpeed -= dt * 80;
 
     // Camera follow
     TANK.main.Renderer2D.camera.x = t.x;
@@ -1358,7 +1355,64 @@ TANK.registerComponent("Player")
 
   this.draw = function(ctx, camera)
   {
+    if (camera.z > 5)
+      return;
+
     var pos = TANK.main.Game.mousePosWorld;
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+
+    // Draw compass
+    // Outer circle
+    ctx.strokeStyle = "rgba(200, 200, 200, 0.3)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.headingRadius, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Heading line
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(ship.heading) * this.headingRadius, Math.sin(ship.heading) * this.headingRadius);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Speed line
+    ctx.strokeStyle = "rgba(100, 100, 250, 0.8)";
+    ctx.lineWidth = 1.5;
+    var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
+    var startPos = [Math.cos(ship.heading) * this.speedStart, Math.sin(ship.heading) * this.speedStart];
+    ctx.beginPath();
+    ctx.moveTo(startPos[0], startPos[1]);
+    ctx.lineTo(startPos[0] + Math.cos(ship.heading) * (this.headingRadius - this.speedStart) * speedPercent,
+               startPos[1] + Math.sin(ship.heading) * (this.headingRadius - this.speedStart) * speedPercent);
+    ctx.closePath();
+    ctx.stroke();
+
+    var that = this;
+    function drawGun(gun)
+    {
+      ctx.beginPath();
+      ctx.moveTo(gun.pos[0], gun.pos[1]);
+      ctx.arc(gun.pos[0], gun.pos[1], gun.radius, that._entity.Weapons.reloadPercent(gun.side) * Math.PI * -2, false);
+      ctx.lineTo(gun.pos[0], gun.pos[1]);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Draw weapon buttons
+    ctx.rotate(t.rotation);
+    ctx.fillStyle = "rgba(255, 80, 80, 0.5)";
+
+    // Front Back
+    for (var i = 0; i < this.fireButtons.length; ++i)
+    {
+      drawGun(this.fireButtons[i]);
+    }
+
+    ctx.restore();
   };
 });
 TANK.registerComponent("Ship")
@@ -1370,11 +1424,10 @@ TANK.registerComponent("Ship")
   this.zdepth = 2;
   this.image = new Image();
 
-  this.up = false;
-  this.left = false;
-  this.right = false;
-  this.down = false;
-  this.trailTimer = 0;
+  this.thrustOn = false;
+  this.heading = 0;
+  this.desiredSpeed = 0;
+
   this.dead = false;
 
   this.shipData = null;
@@ -1418,55 +1471,11 @@ TANK.registerComponent("Ship")
       gun[j] = gunData[j];
   };
 
-  // Movement functions
-  this.startUp = function()
-  {
-    if (this.up || this.dead)
-      return;
-    this.up = true;
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "on";
-    this._entity.Lights.redrawLights();
-  };
-  this.stopUp = function()
-  {
-    if (!this.up)
-      return;
-    this.up = false;
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "off";
-    this._entity.Lights.redrawLights();
-  };
-  this.startLeft = function() {this.left = true;};
-  this.stopLeft = function() {this.left = false;};
-  this.startRight = function() {this.right = true;};
-  this.stopRight = function() {this.right = false;};
-  this.startDown = function() {this.down = true;};
-  this.stopDown = function() {this.down = false;};
-
   // Move towards a given point
   this.moveTowards = function(pos)
   {
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, pos);
-    if (dir < -0.1)
-    {
-      this.startLeft();
-      this.stopRight();
-    }
-    else if (dir > 0.1)
-    {
-      this.startRight();
-      this.stopLeft();
-    }
-    else
-    {
-      this.startUp();
-      this.stopLeft();
-      this.stopRight();
-      v.r *= 0.95;
-    }
+    this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
+    this.desiredSpeed = this.shipData.maxSpeed;
   };
 
   // Explode the ship
@@ -1511,6 +1520,22 @@ TANK.registerComponent("Ship")
     this.health -= damage;
   });
 
+  this.listenTo(this._entity, "thrustOn", function()
+  {
+    for (var i = 0; i < this.shipData.lights.length; ++i)
+      if (this.shipData.lights[i].isEngine)
+        this.shipData.lights[i].state = "on";
+    this._entity.Lights.redrawLights();
+  });
+
+  this.listenTo(this._entity, "thrustOff", function()
+  {
+    for (var i = 0; i < this.shipData.lights.length; ++i)
+      if (this.shipData.lights[i].isEngine)
+        this.shipData.lights[i].state = "off";
+    this._entity.Lights.redrawLights();
+  });
+
   // Update loop
   this.update = function(dt)
   {
@@ -1530,31 +1555,57 @@ TANK.registerComponent("Ship")
       return;
     }
 
-    // Apply movement
-    if (this.up)
+    // Apply heading logic
+    var headingVec = [Math.cos(this.heading), Math.sin(this.heading)];
+    var dir = TANK.Math2D.getDirectionToPoint([0, 0], t.rotation, headingVec);
+    if (dir < -0.1)
+      v.r -= dt * 2;
+    else if (dir > 0.1)
+      v.r += dt * 2;
+    else
+      v.r *= 0.95;
+
+    // Calculate some values for speed logic
+    this.desiredSpeed = Math.min(this.desiredSpeed, this.shipData.maxSpeed);
+    this.desiredSpeed = Math.max(this.desiredSpeed, 0);
+    var currentSpeed = v.getSpeed();
+    var moveVec = [v.x, v.y];
+    var moveAngle = Math.atan2(v.y, v.x);
+    var dirToHeading = TANK.Math2D.getDirectionToPoint([0, 0], moveAngle, headingVec);
+    var headingSpeedVec = TANK.Math2D.scale(headingVec, this.desiredSpeed);
+    var correctionVec = TANK.Math2D.subtract(headingSpeedVec, moveVec);
+
+    // If we are moving significantly in the wrong direction, or not fast enough,
+    // then we should apply thrust
+    if (this.desiredSpeed > 0 && (Math.abs(dirToHeading) > 0.1 || currentSpeed < this.desiredSpeed - 1))
     {
       v.x += Math.cos(t.rotation) * dt * 50;
       v.y += Math.sin(t.rotation) * dt * 50;
+      if (!this.thrustOn)
+        this._entity.dispatch("ThrustOn");
+      this.thrustOn = true;
     }
-    if (this.down)
+    // Otherwise, turn off the thrusters
+    else
     {
-      v.x += Math.cos(t.rotation) * dt * -50;
-      v.y += Math.sin(t.rotation) * dt * -50;
+      if (this.thrustOn)
+        this._entity.dispatch("ThrustOff");
+      this.thrustOn = false;
     }
-    if (this.left)
+    // Slow down if moving faster than we want
+    if (currentSpeed > this.desiredSpeed + 1)
     {
-      v.r -= dt * 2;
+      v.x *= 0.99;
+      v.y *= 0.99;
     }
-    if (this.right)
-    {
-      v.r += dt * 2;
-    }
+    // Correct trajectory
+    v.x += correctionVec[0] * dt * 0.05;
+    v.y += correctionVec[1] * dt * 0.05;
 
     // Cap movement
     if (Math.abs(v.r) > this.shipData.maxTurnSpeed)
       v.r *= 0.95;
-    var speed = Math.sqrt(v.x * v.x + v.y * v.y);
-    if (speed > this.shipData.maxSpeed)
+    if (currentSpeed > this.shipData.maxSpeed)
     {
       var moveAngle = Math.atan2(v.y, v.x);
       v.x = Math.cos(moveAngle) * this.shipData.maxSpeed;
@@ -1563,32 +1614,6 @@ TANK.registerComponent("Ship")
 
     // Timers
     this.reloadTimer -= dt;
-    this.trailTimer -= dt;
-
-    // Spawn engine trail effect
-    if (this.trailTimer < 0 && !isMobile.any())
-    {
-      for (var i = 0; i < this.shipData.lights.length; ++i)
-      {
-        var light = this.shipData.lights[i];
-        if (light.isEngine && light.state === "on")
-        {
-          var e = TANK.createEntity("Glow");
-          var x = (light.x - this.image.width / 2) * TANK.main.Game.scaleFactor;
-          var y = (light.y - this.image.height / 2) * TANK.main.Game.scaleFactor;
-          e.Pos2D.x = x * Math.cos(t.rotation) - y * Math.sin(t.rotation);
-          e.Pos2D.y = y * Math.cos(t.rotation) + x * Math.sin(t.rotation);
-          e.Pos2D.x += t.x;
-          e.Pos2D.y += t.y;
-          e.Velocity.x = Math.cos(t.rotation) * -120;
-          e.Velocity.y = Math.sin(t.rotation) * -120;
-          e.Glow.alphaDecay = 0.8;
-          e.Life.life = 3;
-          TANK.main.addChild(e);
-        }
-      }
-      this.trailTimer = 0.03;
-    }
 
     // Capture nearby control points
     var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
@@ -1672,7 +1697,7 @@ Ships.frigate = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -1680,7 +1705,7 @@ Ships.frigate = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -1740,7 +1765,7 @@ Ships.cruiser = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -1748,7 +1773,7 @@ Ships.cruiser = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -1756,7 +1781,7 @@ Ships.cruiser = function()
       states:
       {
         on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.5}
+        off: {radius: 3, alpha: 0.3}
       }
     },
     {
@@ -1903,6 +1928,12 @@ TANK.registerComponent("Weapons")
 
   // TANK.main.Renderer2D.add(this);
 
+  this.reloadPercent = function(gunSide)
+  {
+    var gun = this.guns[gunSide];
+    return 1 - gun.timer / gun.time;
+  };
+
   this.fireGun = function(gunIndex, gunSide)
   {
     var e = TANK.createEntity("Bullet");
@@ -1934,7 +1965,7 @@ TANK.registerComponent("Weapons")
   this.fireGuns = function(gunSide)
   {
     var gun = this.guns[gunSide];
-    if (gun.timer >= 0)
+    if (gun.timer > 0)
       return;
 
     gun.timer = gun.time;
@@ -1956,8 +1987,9 @@ TANK.registerComponent("Weapons")
     for (var i in this.guns)
     {
       var gun = this.guns[i];
-      if (gun.timer >= 0)
-        gun.timer -= dt;
+      gun.timer -= dt;
+      if (gun.timer < 0)
+        gun.timer = 0;
     }
   };
 

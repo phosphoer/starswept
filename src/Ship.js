@@ -7,11 +7,10 @@ TANK.registerComponent("Ship")
   this.zdepth = 2;
   this.image = new Image();
 
-  this.up = false;
-  this.left = false;
-  this.right = false;
-  this.down = false;
-  this.trailTimer = 0;
+  this.thrustOn = false;
+  this.heading = 0;
+  this.desiredSpeed = 0;
+
   this.dead = false;
 
   this.shipData = null;
@@ -55,55 +54,11 @@ TANK.registerComponent("Ship")
       gun[j] = gunData[j];
   };
 
-  // Movement functions
-  this.startUp = function()
-  {
-    if (this.up || this.dead)
-      return;
-    this.up = true;
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "on";
-    this._entity.Lights.redrawLights();
-  };
-  this.stopUp = function()
-  {
-    if (!this.up)
-      return;
-    this.up = false;
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "off";
-    this._entity.Lights.redrawLights();
-  };
-  this.startLeft = function() {this.left = true;};
-  this.stopLeft = function() {this.left = false;};
-  this.startRight = function() {this.right = true;};
-  this.stopRight = function() {this.right = false;};
-  this.startDown = function() {this.down = true;};
-  this.stopDown = function() {this.down = false;};
-
   // Move towards a given point
   this.moveTowards = function(pos)
   {
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, pos);
-    if (dir < -0.1)
-    {
-      this.startLeft();
-      this.stopRight();
-    }
-    else if (dir > 0.1)
-    {
-      this.startRight();
-      this.stopLeft();
-    }
-    else
-    {
-      this.startUp();
-      this.stopLeft();
-      this.stopRight();
-      v.r *= 0.95;
-    }
+    this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
+    this.desiredSpeed = this.shipData.maxSpeed;
   };
 
   // Explode the ship
@@ -148,6 +103,22 @@ TANK.registerComponent("Ship")
     this.health -= damage;
   });
 
+  this.listenTo(this._entity, "thrustOn", function()
+  {
+    for (var i = 0; i < this.shipData.lights.length; ++i)
+      if (this.shipData.lights[i].isEngine)
+        this.shipData.lights[i].state = "on";
+    this._entity.Lights.redrawLights();
+  });
+
+  this.listenTo(this._entity, "thrustOff", function()
+  {
+    for (var i = 0; i < this.shipData.lights.length; ++i)
+      if (this.shipData.lights[i].isEngine)
+        this.shipData.lights[i].state = "off";
+    this._entity.Lights.redrawLights();
+  });
+
   // Update loop
   this.update = function(dt)
   {
@@ -167,31 +138,57 @@ TANK.registerComponent("Ship")
       return;
     }
 
-    // Apply movement
-    if (this.up)
+    // Apply heading logic
+    var headingVec = [Math.cos(this.heading), Math.sin(this.heading)];
+    var dir = TANK.Math2D.getDirectionToPoint([0, 0], t.rotation, headingVec);
+    if (dir < -0.1)
+      v.r -= dt * 2;
+    else if (dir > 0.1)
+      v.r += dt * 2;
+    else
+      v.r *= 0.95;
+
+    // Calculate some values for speed logic
+    this.desiredSpeed = Math.min(this.desiredSpeed, this.shipData.maxSpeed);
+    this.desiredSpeed = Math.max(this.desiredSpeed, 0);
+    var currentSpeed = v.getSpeed();
+    var moveVec = [v.x, v.y];
+    var moveAngle = Math.atan2(v.y, v.x);
+    var dirToHeading = TANK.Math2D.getDirectionToPoint([0, 0], moveAngle, headingVec);
+    var headingSpeedVec = TANK.Math2D.scale(headingVec, this.desiredSpeed);
+    var correctionVec = TANK.Math2D.subtract(headingSpeedVec, moveVec);
+
+    // If we are moving significantly in the wrong direction, or not fast enough,
+    // then we should apply thrust
+    if (this.desiredSpeed > 0 && (Math.abs(dirToHeading) > 0.1 || currentSpeed < this.desiredSpeed - 1))
     {
       v.x += Math.cos(t.rotation) * dt * 50;
       v.y += Math.sin(t.rotation) * dt * 50;
+      if (!this.thrustOn)
+        this._entity.dispatch("ThrustOn");
+      this.thrustOn = true;
     }
-    if (this.down)
+    // Otherwise, turn off the thrusters
+    else
     {
-      v.x += Math.cos(t.rotation) * dt * -50;
-      v.y += Math.sin(t.rotation) * dt * -50;
+      if (this.thrustOn)
+        this._entity.dispatch("ThrustOff");
+      this.thrustOn = false;
     }
-    if (this.left)
+    // Slow down if moving faster than we want
+    if (currentSpeed > this.desiredSpeed + 1)
     {
-      v.r -= dt * 2;
+      v.x *= 0.99;
+      v.y *= 0.99;
     }
-    if (this.right)
-    {
-      v.r += dt * 2;
-    }
+    // Correct trajectory
+    v.x += correctionVec[0] * dt * 0.05;
+    v.y += correctionVec[1] * dt * 0.05;
 
     // Cap movement
     if (Math.abs(v.r) > this.shipData.maxTurnSpeed)
       v.r *= 0.95;
-    var speed = Math.sqrt(v.x * v.x + v.y * v.y);
-    if (speed > this.shipData.maxSpeed)
+    if (currentSpeed > this.shipData.maxSpeed)
     {
       var moveAngle = Math.atan2(v.y, v.x);
       v.x = Math.cos(moveAngle) * this.shipData.maxSpeed;
@@ -200,32 +197,6 @@ TANK.registerComponent("Ship")
 
     // Timers
     this.reloadTimer -= dt;
-    this.trailTimer -= dt;
-
-    // Spawn engine trail effect
-    if (this.trailTimer < 0 && !isMobile.any())
-    {
-      for (var i = 0; i < this.shipData.lights.length; ++i)
-      {
-        var light = this.shipData.lights[i];
-        if (light.isEngine && light.state === "on")
-        {
-          var e = TANK.createEntity("Glow");
-          var x = (light.x - this.image.width / 2) * TANK.main.Game.scaleFactor;
-          var y = (light.y - this.image.height / 2) * TANK.main.Game.scaleFactor;
-          e.Pos2D.x = x * Math.cos(t.rotation) - y * Math.sin(t.rotation);
-          e.Pos2D.y = y * Math.cos(t.rotation) + x * Math.sin(t.rotation);
-          e.Pos2D.x += t.x;
-          e.Pos2D.y += t.y;
-          e.Velocity.x = Math.cos(t.rotation) * -120;
-          e.Velocity.y = Math.sin(t.rotation) * -120;
-          e.Glow.alphaDecay = 0.8;
-          e.Life.life = 3;
-          TANK.main.addChild(e);
-        }
-      }
-      this.trailTimer = 0.03;
-    }
 
     // Capture nearby control points
     var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
