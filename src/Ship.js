@@ -11,7 +11,6 @@ TANK.registerComponent("Ship")
   this.heading = 0;
   this.desiredSpeed = 0;
 
-  this.trailTimer = 0;
   this.dead = false;
 
   this.shipData = null;
@@ -198,32 +197,6 @@ TANK.registerComponent("Ship")
 
     // Timers
     this.reloadTimer -= dt;
-    this.trailTimer -= dt;
-
-    // Spawn engine trail effect
-    if (this.trailTimer < 0 && !isMobile.any())
-    {
-      for (var i = 0; i < this.shipData.lights.length; ++i)
-      {
-        var light = this.shipData.lights[i];
-        if (light.isEngine && light.state === "on")
-        {
-          var e = TANK.createEntity("Glow");
-          var x = (light.x - this.image.width / 2) * TANK.main.Game.scaleFactor;
-          var y = (light.y - this.image.height / 2) * TANK.main.Game.scaleFactor;
-          e.Pos2D.x = x * Math.cos(t.rotation) - y * Math.sin(t.rotation);
-          e.Pos2D.y = y * Math.cos(t.rotation) + x * Math.sin(t.rotation);
-          e.Pos2D.x += t.x;
-          e.Pos2D.y += t.y;
-          e.Velocity.x = Math.cos(t.rotation) * -120;
-          e.Velocity.y = Math.sin(t.rotation) * -120;
-          e.Glow.alphaDecay = 0.8;
-          e.Life.life = 3;
-          TANK.main.addChild(e);
-        }
-      }
-      this.trailTimer = 0.03;
-    }
 
     // Capture nearby control points
     var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");

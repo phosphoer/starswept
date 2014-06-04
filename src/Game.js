@@ -2,7 +2,7 @@ TANK.registerComponent("Game")
 
 .construct(function()
 {
-  this.scaleFactor = isMobile.any() ? 4 : 8;
+  this.scaleFactor = 8;
   this.factions = [];
   this.barCommands = [];
   this.topBarItems = [];
@@ -53,13 +53,9 @@ TANK.registerComponent("Game")
   // Money counter
   this.topBarItems.push({name: ""});
 
-  this.update = function(dt)
+  this.updateMousePos = function(pos)
   {
-    // Update faction money count
-    this.topBarUI.set("items[0].name", "Funds - " + this.factions[0].money);
-
-    // Update mouse world position
-    this.mousePosWorld = [TANK.main.Input.mousePos[0], TANK.main.Input.mousePos[1]];
+    this.mousePosWorld = pos;
     this.mousePosWorld[0] -= window.innerWidth / 2;
     this.mousePosWorld[1] -= window.innerHeight / 2;
     this.mousePosWorld[0] *= TANK.main.Renderer2D.camera.z;
@@ -67,6 +63,26 @@ TANK.registerComponent("Game")
     this.mousePosWorld[0] += TANK.main.Renderer2D.camera.x;
     this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
   };
+
+  this.update = function(dt)
+  {
+    // Update faction money count
+    this.topBarUI.set("items[0].name", "Funds - " + this.factions[0].money);
+  };
+
+  this.listenTo(TANK.main, "mousemove", function(e)
+  {
+    this.updateMousePos([e.x, e.y]);
+  });
+
+  this.listenTo(TANK.main, "touchmove", function(e)
+  {
+    this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
+  });
+  this.listenTo(TANK.main, "touchstart", function(e)
+  {
+    this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
+  });
 
   this.listenTo(TANK.main, "start", function()
   {
