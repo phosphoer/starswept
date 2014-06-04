@@ -51,6 +51,12 @@ TANK.registerComponent("Weapons")
 
   // TANK.main.Renderer2D.add(this);
 
+  this.reloadPercent = function(gunSide)
+  {
+    var gun = this.guns[gunSide];
+    return 1 - gun.timer / gun.time;
+  };
+
   this.fireGun = function(gunIndex, gunSide)
   {
     var e = TANK.createEntity("Bullet");
@@ -82,7 +88,7 @@ TANK.registerComponent("Weapons")
   this.fireGuns = function(gunSide)
   {
     var gun = this.guns[gunSide];
-    if (gun.timer >= 0)
+    if (gun.timer > 0)
       return;
 
     gun.timer = gun.time;
@@ -104,8 +110,9 @@ TANK.registerComponent("Weapons")
     for (var i in this.guns)
     {
       var gun = this.guns[i];
-      if (gun.timer >= 0)
-        gun.timer -= dt;
+      gun.timer -= dt;
+      if (gun.timer < 0)
+        gun.timer = 0;
     }
   };
 

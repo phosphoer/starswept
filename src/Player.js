@@ -232,22 +232,28 @@ TANK.registerComponent("Player")
     ctx.closePath();
     ctx.stroke();
 
+    var that = this;
+    function drawGun(pos, side)
+    {
+      ctx.beginPath();
+      ctx.moveTo(pos[0], pos[1]);
+      ctx.arc(pos[0], pos[1], 15, that._entity.Weapons.reloadPercent(side) * Math.PI * -2, false);
+      ctx.lineTo(pos[0], pos[1]);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     // Draw weapon buttons
-    // Front Back
     ctx.rotate(t.rotation);
     ctx.fillStyle = "rgba(255, 80, 80, 0.5)";
-    ctx.beginPath();
-    ctx.arc(-100, 0, 15, Math.PI * 2, false);
-    ctx.arc(100, 0, 15, Math.PI * 2, false);
-    ctx.closePath();
-    ctx.fill();
+
+    // Front Back
+    drawGun([-100, 0], "back");
+    drawGun([100, 0], "front");
 
     // Left Right
-    ctx.beginPath();
-    ctx.arc(0, -60, 15, Math.PI * 2, false);
-    ctx.arc(0, 60, 15, Math.PI * 2, false);
-    ctx.closePath();
-    ctx.fill();
+    drawGun([0, -60], "left");
+    drawGun([0, 60], "right");
 
     ctx.restore();
   };
