@@ -8,7 +8,7 @@ TANK.registerComponent("Planet")
 .construct(function()
 {
   this.zdepth = 0;
-  this.radius = 48;
+  this.radius = 128;
   this.atmosColor = [140, 140, 255, 0.8];
   this.heights = [0, 0.3, 0.5, 0.6, 1];
   this.colors =
@@ -79,7 +79,7 @@ TANK.registerComponent("Planet")
 
   // Create buffer
   this.size = this.radius * 2;
-  this.lightSize = this.size + 8;
+  this.lightSize = Math.floor(this.size * 1.25);
   this.pixelBuffer = new PixelBuffer();
   this.pixelBuffer.createBuffer(this.size, this.size);
   this.lightBuffer = new PixelBuffer();
@@ -154,20 +154,15 @@ TANK.registerComponent("Planet")
   // Draw lighting
   var x = -this.radius;
   var y = 0;
-  grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.5, x, y, this.radius * 2.1);
+  grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.5, x, y, this.radius * 2.0);
   grad.addColorStop(0, "rgba(0, 0, 0, 0.0)");
-  grad.addColorStop(0.25, "rgba(0, 0, 0, 0.0)");
-  grad.addColorStop(0.25, "rgba(0, 0, 0, 0.3)");
-  grad.addColorStop(0.6, "rgba(0, 0, 0, 0.3)");
   grad.addColorStop(0.6, "rgba(0, 0, 0, 0.6)");
-  grad.addColorStop(0.8, "rgba(0, 0, 0, 0.6)");
-  grad.addColorStop(0.8, "rgba(0, 0, 0, .8)");
-  grad.addColorStop(1, "rgba(0, 0, 0, .8)");
-
+  grad.addColorStop(0.8, "rgba(0, 0, 0, 0.7)");
+  grad.addColorStop(1, "rgba(0, 0, 0, 1.0)");
 
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
-  this.lightBuffer.context.arc(0, 0, this.radius + 1, 2 * Math.PI, false);
+  this.lightBuffer.context.arc(0, 0, this.radius, 2 * Math.PI, false);
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
@@ -185,8 +180,9 @@ TANK.registerComponent("Planet")
     ctx.drawImage(this.pixelBuffer.canvas, 0, 0);
 
     // Draw lighting
-    ctx.translate((this.lightSize) / 2 - 4, (this.lightSize) / 2 - 4);
-    // ctx.rotate(this.time);
+    var sizeDiff = (this.lightSize - this.size) / 2;
+    ctx.translate((this.lightSize) / 2 - sizeDiff, (this.lightSize) / 2 - sizeDiff);
+    ctx.rotate(TANK.main.Game.lightDir + Math.PI);
     ctx.translate((this.lightSize) / -2, (this.lightSize) / -2);
     ctx.drawImage(this.lightBuffer.canvas, 0, 0);
 

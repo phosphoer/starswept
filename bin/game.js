@@ -574,11 +574,12 @@ TANK.registerComponent("Game")
 
 .construct(function()
 {
-  this.scaleFactor = 8;
+  this.scaleFactor = 3;
   this.factions = [];
   this.barCommands = [];
   this.topBarItems = [];
   this.mousePosWorld = [0, 0];
+  this.lightDir = Math.random() * Math.PI * 2;
 })
 
 .initialize(function()
@@ -683,11 +684,11 @@ TANK.registerComponent("Game")
     e = TANK.createEntity("Player");
     e.Pos2D.x = 0;
     e.Pos2D.y = 0;
-    e.Ship.shipData = new Ships.cruiser();
+    e.Ship.shipData = new Ships.frigate();
     e.Ship.faction = this.factions[0];
     TANK.main.addChild(e, "Player");
 
-    this.factions[0].controlPoints[0].buyShip("frigate");
+    // this.factions[0].controlPoints[0].buyShip("frigate");
   });
 });
 TANK.registerComponent("Glow")
@@ -908,7 +909,7 @@ TANK.registerComponent("Planet")
 .construct(function()
 {
   this.zdepth = 0;
-  this.radius = 48;
+  this.radius = 128;
   this.atmosColor = [140, 140, 255, 0.8];
   this.heights = [0, 0.3, 0.5, 0.6, 1];
   this.colors =
@@ -979,7 +980,7 @@ TANK.registerComponent("Planet")
 
   // Create buffer
   this.size = this.radius * 2;
-  this.lightSize = this.size + 8;
+  this.lightSize = Math.floor(this.size * 1.25);
   this.pixelBuffer = new PixelBuffer();
   this.pixelBuffer.createBuffer(this.size, this.size);
   this.lightBuffer = new PixelBuffer();
@@ -1054,20 +1055,15 @@ TANK.registerComponent("Planet")
   // Draw lighting
   var x = -this.radius;
   var y = 0;
-  grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.5, x, y, this.radius * 2.1);
+  grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.5, x, y, this.radius * 2.0);
   grad.addColorStop(0, "rgba(0, 0, 0, 0.0)");
-  grad.addColorStop(0.25, "rgba(0, 0, 0, 0.0)");
-  grad.addColorStop(0.25, "rgba(0, 0, 0, 0.3)");
-  grad.addColorStop(0.6, "rgba(0, 0, 0, 0.3)");
   grad.addColorStop(0.6, "rgba(0, 0, 0, 0.6)");
-  grad.addColorStop(0.8, "rgba(0, 0, 0, 0.6)");
-  grad.addColorStop(0.8, "rgba(0, 0, 0, .8)");
-  grad.addColorStop(1, "rgba(0, 0, 0, .8)");
-
+  grad.addColorStop(0.8, "rgba(0, 0, 0, 0.7)");
+  grad.addColorStop(1, "rgba(0, 0, 0, 1.0)");
 
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
-  this.lightBuffer.context.arc(0, 0, this.radius + 1, 2 * Math.PI, false);
+  this.lightBuffer.context.arc(0, 0, this.radius, 2 * Math.PI, false);
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
@@ -1085,8 +1081,9 @@ TANK.registerComponent("Planet")
     ctx.drawImage(this.pixelBuffer.canvas, 0, 0);
 
     // Draw lighting
-    ctx.translate((this.lightSize) / 2 - 4, (this.lightSize) / 2 - 4);
-    // ctx.rotate(this.time);
+    var sizeDiff = (this.lightSize - this.size) / 2;
+    ctx.translate((this.lightSize) / 2 - sizeDiff, (this.lightSize) / 2 - sizeDiff);
+    ctx.rotate(TANK.main.Game.lightDir + Math.PI);
     ctx.translate((this.lightSize) / -2, (this.lightSize) / -2);
     ctx.drawImage(this.lightBuffer.canvas, 0, 0);
 
@@ -1148,18 +1145,7 @@ TANK.registerComponent("Player")
   this.headingRight = false;
   this.speedUp = false;
   this.speedDown = false;
-
-  this.headingRadius = 25;
-  this.speedStart = 5;
-  this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
-  this.speedStartScaled = this.speedStart * TANK.main.Game.scaleFactor;
-  this.fireButtons =
-  [
-    {side: "left", pos: [0, -8], radius: 2},
-    {side: "right", pos: [0, 8], radius: 2},
-    {side: "front", pos: [12, 0], radius: 2},
-    {side: "back", pos: [-12, 0], radius: 2},
-  ];
+  this.fireButtons = [];
 })
 
 .initialize(function()
@@ -1328,6 +1314,20 @@ TANK.registerComponent("Player")
 
   this.update = function(dt)
   {
+    // Calculate HUD size
+    this.headingRadius = Math.max(ship.image.width, ship.image.height) * 0.75;
+    this.speedStart = this.headingRadius * 0.25;
+    this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
+    this.speedStartScaled = this.speedStart * TANK.main.Game.scaleFactor;
+
+    this.fireButtons =
+    [
+      {side: "left", pos: [0, -ship.image.height * 0.75], radius: 6},
+      {side: "right", pos: [0, ship.image.height * 0.75], radius: 6},
+      {side: "front", pos: [ship.image.width * 0.75, 0], radius: 6},
+      {side: "back", pos: [-ship.image.width * 0.75, 0], radius: 6},
+    ];
+
     // Heading controls
     if (this.headingLeft)
       ship.heading -= dt * 3;
@@ -1423,6 +1423,13 @@ TANK.registerComponent("Ship")
 {
   this.zdepth = 2;
   this.image = new Image();
+  this.imageLighting =
+  {
+    left: new Image(),
+    right: new Image(),
+    front: new Image(),
+    back: new Image()
+  };
 
   this.thrustOn = false;
   this.heading = 0;
@@ -1446,6 +1453,8 @@ TANK.registerComponent("Ship")
   this._entity.Collider2D.collidesWith = ["bullets"];
 
   this.image.src = this.shipData.image;
+  for (var i in this.imageLighting)
+    this.imageLighting[i].src = this.shipData.imageLighting[i];
   this.health = this.shipData.health;
 
   var that = this;
@@ -1646,6 +1655,19 @@ TANK.registerComponent("Ship")
     ctx.translate(this.image.width / -2, this.image.height / -2);
     ctx.drawImage(this.image, 0, 0);
 
+    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
+    ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI / 2), Math.sin(t.rotation + Math.PI / 2)]));
+    ctx.drawImage(this.imageLighting.right, 0, 0);
+
+    ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation - Math.PI / 2), Math.sin(t.rotation - Math.PI / 2)]));
+    ctx.drawImage(this.imageLighting.left, 0, 0);
+
+    ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation), Math.sin(t.rotation)]));
+    ctx.drawImage(this.imageLighting.front, 0, 0);
+
+    ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI), Math.sin(t.rotation + Math.PI)]));
+    ctx.drawImage(this.imageLighting.back, 0, 0);
+
     ctx.restore();
   };
 });
@@ -1653,8 +1675,15 @@ var Ships = {};
 
 Ships.frigate = function()
 {
-  this.image = "res/shuttle.png";
-  this.maxTurnSpeed = 1.5;
+  this.image = "res/frigate.png";
+  this.imageLighting =
+  {
+    left: "res/frigate-lit-left.png",
+    right: "res/frigate-lit-right.png",
+    front: "res/frigate-lit-front.png",
+    back: "res/frigate-lit-back.png"
+  };
+  this.maxTurnSpeed = 0.3;
   this.maxSpeed = 150;
   this.health = 1;
   this.cost = 30;
@@ -1665,51 +1694,51 @@ Ships.frigate = function()
     {
       count: 3,
       damage: 0.1,
-      range: 800,
+      range: 1300,
       time: 5
     },
     right:
     {
       count: 3,
       damage: 0.1,
-      range: 800,
+      range: 1300,
       time: 5
     },
     front:
     {
       count: 2,
       damage: 0.1,
-      range: 600,
+      range: 800,
       time: 3
     },
     back:
     {
       count: 1,
       damage: 0.1,
-      range: 600,
+      range: 800,
       time: 3
     }
   },
   this.lights =
   [
     {
-      x: 0, y: 0, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 6, y: 3, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.3}
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
       }
     },
     {
-      x: 0, y: 5, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 6, y: 43, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.3}
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
       }
     },
     {
-      x: 7, y: 0, radius: 2, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 49, y: 3, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -1721,7 +1750,7 @@ Ships.frigate = function()
 
 Ships.cruiser = function()
 {
-  this.image = "res/transport.png";
+  this.image = "res/cruiser.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 100;
   this.health = 1.5;

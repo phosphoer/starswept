@@ -6,6 +6,13 @@ TANK.registerComponent("Ship")
 {
   this.zdepth = 2;
   this.image = new Image();
+  this.imageLighting =
+  {
+    left: new Image(),
+    right: new Image(),
+    front: new Image(),
+    back: new Image()
+  };
 
   this.thrustOn = false;
   this.heading = 0;
@@ -29,6 +36,8 @@ TANK.registerComponent("Ship")
   this._entity.Collider2D.collidesWith = ["bullets"];
 
   this.image.src = this.shipData.image;
+  for (var i in this.imageLighting)
+    this.imageLighting[i].src = this.shipData.imageLighting[i];
   this.health = this.shipData.health;
 
   var that = this;
@@ -228,6 +237,19 @@ TANK.registerComponent("Ship")
     ctx.rotate(t.rotation);
     ctx.translate(this.image.width / -2, this.image.height / -2);
     ctx.drawImage(this.image, 0, 0);
+
+    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
+    ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI / 2), Math.sin(t.rotation + Math.PI / 2)]));
+    ctx.drawImage(this.imageLighting.right, 0, 0);
+
+    ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation - Math.PI / 2), Math.sin(t.rotation - Math.PI / 2)]));
+    ctx.drawImage(this.imageLighting.left, 0, 0);
+
+    ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation), Math.sin(t.rotation)]));
+    ctx.drawImage(this.imageLighting.front, 0, 0);
+
+    ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI), Math.sin(t.rotation + Math.PI)]));
+    ctx.drawImage(this.imageLighting.back, 0, 0);
 
     ctx.restore();
   };
