@@ -1423,6 +1423,7 @@ TANK.registerComponent("Ship")
 {
   this.zdepth = 2;
   this.image = new Image();
+  this.imageEngine = new Image();
   this.imageLighting =
   {
     left: new Image(),
@@ -1432,6 +1433,7 @@ TANK.registerComponent("Ship")
   };
 
   this.thrustOn = false;
+  this.thrustAlpha = 0;
   this.heading = 0;
   this.desiredSpeed = 0;
 
@@ -1453,6 +1455,7 @@ TANK.registerComponent("Ship")
   this._entity.Collider2D.collidesWith = ["bullets"];
 
   this.image.src = this.shipData.image;
+  this.imageEngine.src = this.shipData.imageEngine;
   for (var i in this.imageLighting)
     this.imageLighting[i].src = this.shipData.imageLighting[i];
   this.health = this.shipData.health;
@@ -1624,6 +1627,14 @@ TANK.registerComponent("Ship")
     // Timers
     this.reloadTimer -= dt;
 
+    // Handle engine alpha
+    if (this.thrustOn)
+      this.thrustAlpha += dt;
+    else
+      this.thrustAlpha -= dt;
+    this.thrustAlpha = Math.max(0, this.thrustAlpha);
+    this.thrustAlpha = Math.min(1, this.thrustAlpha);
+
     // Capture nearby control points
     var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
     for (var i in controlPoints)
@@ -1655,6 +1666,14 @@ TANK.registerComponent("Ship")
     ctx.translate(this.image.width / -2, this.image.height / -2);
     ctx.drawImage(this.image, 0, 0);
 
+    // Draw engine
+    if (this.thrustOn || this.thrustAlpha > 0)
+    {
+      ctx.globalAlpha = this.thrustAlpha;
+      ctx.drawImage(this.imageEngine, 0, 0);
+    }
+
+    // Draw lighting
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
     ctx.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI / 2), Math.sin(t.rotation + Math.PI / 2)]));
     ctx.drawImage(this.imageLighting.right, 0, 0);
@@ -1676,6 +1695,7 @@ var Ships = {};
 Ships.frigate = function()
 {
   this.image = "res/frigate.png";
+  this.imageEngine = "res/frigate-engine.png";
   this.imageLighting =
   {
     left: "res/frigate-lit-left.png",

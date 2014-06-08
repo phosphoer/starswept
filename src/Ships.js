@@ -3,6 +3,7 @@ var Ships = {};
 Ships.frigate = function()
 {
   this.image = "res/frigate.png";
+  this.imageEngine = "res/frigate-engine.png";
   this.imageLighting =
   {
     left: "res/frigate-lit-left.png",
