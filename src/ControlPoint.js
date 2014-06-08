@@ -4,7 +4,7 @@ TANK.registerComponent("ControlPoint")
 
 .construct(function()
 {
-  this.zdepth = 10;
+  this.zdepth = 0;
   this.faction = null;
   this.value = 10;
   this.moneyTime = 5;

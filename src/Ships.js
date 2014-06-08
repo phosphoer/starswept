@@ -13,6 +13,8 @@ Ships.frigate = function()
   };
   this.maxTurnSpeed = 0.3;
   this.maxSpeed = 150;
+  this.accel = 15;
+  this.turnAccel = 1;
   this.health = 1;
   this.cost = 30;
   this.aggressive = true;

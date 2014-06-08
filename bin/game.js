@@ -343,7 +343,7 @@ TANK.registerComponent("ControlPoint")
 
 .construct(function()
 {
-  this.zdepth = 10;
+  this.zdepth = 0;
   this.faction = null;
   this.value = 10;
   this.moneyTime = 5;
@@ -1571,9 +1571,9 @@ TANK.registerComponent("Ship")
     var headingVec = [Math.cos(this.heading), Math.sin(this.heading)];
     var dir = TANK.Math2D.getDirectionToPoint([0, 0], t.rotation, headingVec);
     if (dir < -0.1)
-      v.r -= dt * 2;
+      v.r -= dt * this.shipData.turnAccel;
     else if (dir > 0.1)
-      v.r += dt * 2;
+      v.r += dt * this.shipData.turnAccel;
     else
       v.r *= 0.95;
 
@@ -1591,8 +1591,8 @@ TANK.registerComponent("Ship")
     // then we should apply thrust
     if (this.desiredSpeed > 0 && (Math.abs(dirToHeading) > 0.1 || currentSpeed < this.desiredSpeed - 1))
     {
-      v.x += Math.cos(t.rotation) * dt * 50;
-      v.y += Math.sin(t.rotation) * dt * 50;
+      v.x += Math.cos(t.rotation) * dt * this.shipData.accel;
+      v.y += Math.sin(t.rotation) * dt * this.shipData.accel;
       if (!this.thrustOn)
         this._entity.dispatch("ThrustOn");
       this.thrustOn = true;
@@ -1705,6 +1705,8 @@ Ships.frigate = function()
   };
   this.maxTurnSpeed = 0.3;
   this.maxSpeed = 150;
+  this.accel = 15;
+  this.turnAccel = 1;
   this.health = 1;
   this.cost = 30;
   this.aggressive = true;
