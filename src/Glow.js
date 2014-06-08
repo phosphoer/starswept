@@ -4,7 +4,7 @@ TANK.registerComponent("Glow")
 
 .construct(function()
 {
-  this.zdepth = 1;
+  this.zdepth = 5;
   this.radius = 3;
   this.innerRadius = 1;
   this.alpha = 1;
