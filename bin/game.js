@@ -853,6 +853,7 @@ TANK.registerComponent("Lights")
     {
       var light = this.lights[i];
       ctx.save();
+      ctx.globalCompositeOperation = "lighter";
       ctx.translate(-light.radius + 0.5, -light.radius + 0.5);
       ctx.drawImage(light.buffer.canvas, light.x, light.y);
       ctx.restore();
@@ -861,6 +862,167 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
+var ParticleLibrary = {};
+
+ParticleLibrary.slowMediumFire = function()
+{
+  var e = TANK.createEntity("ParticleEmitter");
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.spawnOffsetMin = [-50, -50];
+  emitter.spawnOffsetMax = [50, 50];
+  emitter.spawnScaleMin = 1;
+  emitter.spawnScaleMax = 10;
+  emitter.spawnPerSecond = 5;
+  emitter.particleLifeMin = 4;
+  emitter.particleLifeMax = 7;
+  emitter.particleRotateSpeedMin = -1;
+  emitter.particleRotateSpeedMax = 1;
+  emitter.particleAlphaDecayMin = 0.98;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 1.001;
+  emitter.particleScaleDecayMax = 1.005;
+  return e;
+};
+
+ParticleLibrary.explosionMedium = function(x, y)
+{
+  var obj = {};
+  obj.fire = ParticleLibrary.explosionMediumFire(x, y);
+  obj.smoke = ParticleLibrary.explosionMediumSmoke(x, y);
+  obj.sparks = ParticleLibrary.explosionMediumSparks(x, y);
+  obj.fireballs = ParticleLibrary.explosionMediumFireballs(x, y);
+  TANK.main.addChild(obj.fire);
+  TANK.main.addChild(obj.smoke);
+  TANK.main.addChild(obj.sparks);
+  TANK.main.addChild(obj.fireballs);
+  return obj;
+};
+
+ParticleLibrary.explosionMediumFire = function(x, y)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 10;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.spawnOffsetMin = [-40, -40];
+  emitter.spawnOffsetMax = [40, 40];
+  emitter.spawnSpeedMin = 150;
+  emitter.spawnSpeedMax = 250;
+  emitter.spawnScaleMin = 8;
+  emitter.spawnScaleMax = 14;
+  emitter.spawnPerSecond = 200;
+  emitter.spawnDuration = 0.2;
+  emitter.spawnAlphaMin = 0.7;
+  emitter.spawnAlphaMax = 0.8;
+  emitter.particleLifeMin = 5;
+  emitter.particleLifeMax = 8;
+  emitter.particleFrictionMin = 0.95;
+  emitter.particleFrictionMax = 0.98;
+  emitter.particleRotateSpeedMin = -0.5;
+  emitter.particleRotateSpeedMax = 0.5;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 1.001;
+  emitter.particleScaleDecayMax = 1.005;
+  return e;
+};
+
+ParticleLibrary.explosionMediumFireballs = function(x, y)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 10;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.spawnOffsetMin = [-60, -60];
+  emitter.spawnOffsetMax = [60, 60];
+  emitter.spawnSpeedMin = 250;
+  emitter.spawnSpeedMax = 350;
+  emitter.spawnScaleMin = 2;
+  emitter.spawnScaleMax = 4;
+  emitter.spawnPerSecond = 700;
+  emitter.spawnDuration = 0.2;
+  emitter.particleLifeMin = 6;
+  emitter.particleLifeMax = 9;
+  emitter.particleFrictionMin = 0.95;
+  emitter.particleFrictionMax = 0.98;
+  emitter.particleRotateSpeedMin = -0.5;
+  emitter.particleRotateSpeedMax = 0.5;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  return e;
+};
+
+ParticleLibrary.explosionMediumSparks = function(x, y)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 10;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.alignRotationToSpawnAngle = true;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnOffsetMin = [-60, -60];
+  emitter.spawnOffsetMax = [60, 60];
+  emitter.spawnSpeedMin = 350;
+  emitter.spawnSpeedMax = 550;
+  emitter.spawnScaleMin = 1;
+  emitter.spawnScaleMax = 2;
+  emitter.spawnPerSecond = 700;
+  emitter.spawnDuration = 0.2;
+  emitter.particleLifeMin = 6;
+  emitter.particleLifeMax = 9;
+  emitter.particleFrictionMin = 0.95;
+  emitter.particleFrictionMax = 0.98;
+  emitter.particleRotateSpeedMin = -0.5;
+  emitter.particleRotateSpeedMax = 0.5;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  return e;
+};
+
+ParticleLibrary.explosionMediumSmoke = function(x, y)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 10;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.blendMode = "source-over";
+  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.spawnOffsetMin = [-70, -70];
+  emitter.spawnOffsetMax = [70, 70];
+  emitter.spawnSpeedMin = 50;
+  emitter.spawnSpeedMax = 100;
+  emitter.spawnScaleMin = 15;
+  emitter.spawnScaleMax = 25;
+  emitter.spawnPerSecond = 25;
+  emitter.spawnDuration = 0.2;
+  emitter.particleLifeMin = 6;
+  emitter.particleLifeMax = 9;
+  emitter.particleFrictionMin = 0.98;
+  emitter.particleFrictionMax = 0.99;
+  emitter.particleRotateSpeedMin = -0.25;
+  emitter.particleRotateSpeedMax = 0.25;
+  emitter.particleAlphaDecayMin = 0.99;
+  emitter.particleAlphaDecayMax = 0.995;
+  emitter.particleScaleDecayMin = 1.001;
+  emitter.particleScaleDecayMax = 1.003;
+  return e;
+};
 function PixelBuffer()
 {
   this.createBuffer = function(width, height)
@@ -1570,27 +1732,12 @@ TANK.registerComponent("Ship")
   // Explode the ship
   this.explode = function()
   {
-    // Remove object and spawn particles
+    // Remove objects
     TANK.main.removeChild(this._entity);
-    for (var i = 0; i < 60; ++i)
-    {
-      var e = TANK.createEntity("Glow");
-      var rotation = Math.random() * Math.PI * 2;
-      var speed = 75 + Math.random() * 150;
-      e.Pos2D.x = t.x - this.image.width / 2 + Math.random() * this.image.width / 2;
-      e.Pos2D.y = t.y - this.image.height / 2 + Math.random() * this.image.height / 2;
-      e.Velocity.x = Math.cos(rotation) * speed;
-      e.Velocity.y = Math.sin(rotation) * speed;
-      e.Glow.alphaDecay = 0.3 + Math.random() * 0.5;
-      e.Glow.friction = 0.99 - Math.random() * 0.08;
-      e.Glow.innerRadius = 4 + Math.random() * 6.5;
-      e.Glow.radius = e.Glow.innerRadius + 7 + Math.random() * 14;
-      e.Glow.colorA = "rgba(255, 255, 210, 0.6)";
-      e.Glow.colorB = "rgba(255, 255, 150, 0.3)";
-      e.Glow.colorC = "rgba(180, 20, 20, 0.0)";
-      e.Life.life = 5;
-      TANK.main.addChild(e);
-    }
+    TANK.main.removeChild(this.exploder);
+
+    // Create explosion effect
+    ParticleLibrary.explosionMedium(t.x, t.y);
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
@@ -1631,8 +1778,10 @@ TANK.registerComponent("Ship")
     // Check if dead
     if (this.health < 0 && !this.dead)
     {
-      this.deadTimer = 1.5 + Math.random() * 1.5;
+      this.deadTimer = 2.5 + Math.random() * 1.5;
       this.dead = true;
+      this.exploder = ParticleLibrary.slowMediumFire();
+      TANK.main.addChild(this.exploder);
     }
 
     // Explode after a bit of time
@@ -1640,31 +1789,12 @@ TANK.registerComponent("Ship")
       this.explode();
     if (this.dead)
     {
-      if (Math.random() < 0.05)
-      {
-        var x = Math.random() * this.image.width;
-        var y= Math.random() * this.image.height;
-        this.addDamage(x, y, 3 + Math.random() * 8);
-
-        var e = TANK.createEntity("Glow");
-        var rotation = Math.random() * Math.PI * 2;
-        var speed = 75 + Math.random() * 150;
-        e.Pos2D.x = t.x - this.image.width / 2 + Math.random() * this.image.width / 2;
-        e.Pos2D.y = t.y - this.image.height / 2 + Math.random() * this.image.height / 2;
-        e.Velocity.x = Math.cos(rotation) * speed;
-        e.Velocity.y = Math.sin(rotation) * speed;
-        e.Glow.alphaDecay = 0.3 + Math.random() * 0.5;
-        e.Glow.friction = 0.99 - Math.random() * 0.08;
-        e.Glow.innerRadius = 4 + Math.random() * 6.5;
-        e.Glow.radius = e.Glow.innerRadius + 7 + Math.random() * 14;
-        e.Glow.colorA = "rgba(255, 255, 210, 0.6)";
-        e.Glow.colorB = "rgba(255, 255, 150, 0.3)";
-        e.Glow.colorC = "rgba(180, 20, 20, 0.0)";
-        e.Life.life = 5;
-        TANK.main.addChild(e);
-      }
-
+      this.exploder.Pos2D.x = t.x;
+      this.exploder.Pos2D.y = t.y;
       this.deadTimer -= dt;
+
+      if (Math.random() < 0.1)
+        this.addDamage(-50 + Math.random() * 100, -50 + Math.random() * 100, 4 + Math.random() * 4);
       return;
     }
 
@@ -1806,6 +1936,7 @@ TANK.registerComponent("Ship")
     if (this.thrustOn || this.thrustAlpha > 0)
     {
       ctx.globalAlpha = this.thrustAlpha;
+      // ctx.globalCompositeOperation = "lighter";
       ctx.drawImage(this.imageEngine, 0, 0);
     }
 

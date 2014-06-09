@@ -106,27 +106,12 @@ TANK.registerComponent("Ship")
   // Explode the ship
   this.explode = function()
   {
-    // Remove object and spawn particles
+    // Remove objects
     TANK.main.removeChild(this._entity);
-    for (var i = 0; i < 60; ++i)
-    {
-      var e = TANK.createEntity("Glow");
-      var rotation = Math.random() * Math.PI * 2;
-      var speed = 75 + Math.random() * 150;
-      e.Pos2D.x = t.x - this.image.width / 2 + Math.random() * this.image.width / 2;
-      e.Pos2D.y = t.y - this.image.height / 2 + Math.random() * this.image.height / 2;
-      e.Velocity.x = Math.cos(rotation) * speed;
-      e.Velocity.y = Math.sin(rotation) * speed;
-      e.Glow.alphaDecay = 0.3 + Math.random() * 0.5;
-      e.Glow.friction = 0.99 - Math.random() * 0.08;
-      e.Glow.innerRadius = 4 + Math.random() * 6.5;
-      e.Glow.radius = e.Glow.innerRadius + 7 + Math.random() * 14;
-      e.Glow.colorA = "rgba(255, 255, 210, 0.6)";
-      e.Glow.colorB = "rgba(255, 255, 150, 0.3)";
-      e.Glow.colorC = "rgba(180, 20, 20, 0.0)";
-      e.Life.life = 5;
-      TANK.main.addChild(e);
-    }
+    TANK.main.removeChild(this.exploder);
+
+    // Create explosion effect
+    ParticleLibrary.explosionMedium(t.x, t.y);
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
@@ -167,8 +152,10 @@ TANK.registerComponent("Ship")
     // Check if dead
     if (this.health < 0 && !this.dead)
     {
-      this.deadTimer = 1.5 + Math.random() * 1.5;
+      this.deadTimer = 2.5 + Math.random() * 1.5;
       this.dead = true;
+      this.exploder = ParticleLibrary.slowMediumFire();
+      TANK.main.addChild(this.exploder);
     }
 
     // Explode after a bit of time
@@ -176,31 +163,12 @@ TANK.registerComponent("Ship")
       this.explode();
     if (this.dead)
     {
-      if (Math.random() < 0.05)
-      {
-        var x = Math.random() * this.image.width;
-        var y= Math.random() * this.image.height;
-        this.addDamage(x, y, 3 + Math.random() * 8);
-
-        var e = TANK.createEntity("Glow");
-        var rotation = Math.random() * Math.PI * 2;
-        var speed = 75 + Math.random() * 150;
-        e.Pos2D.x = t.x - this.image.width / 2 + Math.random() * this.image.width / 2;
-        e.Pos2D.y = t.y - this.image.height / 2 + Math.random() * this.image.height / 2;
-        e.Velocity.x = Math.cos(rotation) * speed;
-        e.Velocity.y = Math.sin(rotation) * speed;
-        e.Glow.alphaDecay = 0.3 + Math.random() * 0.5;
-        e.Glow.friction = 0.99 - Math.random() * 0.08;
-        e.Glow.innerRadius = 4 + Math.random() * 6.5;
-        e.Glow.radius = e.Glow.innerRadius + 7 + Math.random() * 14;
-        e.Glow.colorA = "rgba(255, 255, 210, 0.6)";
-        e.Glow.colorB = "rgba(255, 255, 150, 0.3)";
-        e.Glow.colorC = "rgba(180, 20, 20, 0.0)";
-        e.Life.life = 5;
-        TANK.main.addChild(e);
-      }
-
+      this.exploder.Pos2D.x = t.x;
+      this.exploder.Pos2D.y = t.y;
       this.deadTimer -= dt;
+
+      if (Math.random() < 0.1)
+        this.addDamage(-50 + Math.random() * 100, -50 + Math.random() * 100, 4 + Math.random() * 4);
       return;
     }
 
@@ -342,6 +310,7 @@ TANK.registerComponent("Ship")
     if (this.thrustOn || this.thrustAlpha > 0)
     {
       ctx.globalAlpha = this.thrustAlpha;
+      // ctx.globalCompositeOperation = "lighter";
       ctx.drawImage(this.imageEngine, 0, 0);
     }
 
