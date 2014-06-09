@@ -2,11 +2,12 @@ TANK.registerComponent("Game")
 
 .construct(function()
 {
-  this.scaleFactor = 8;
+  this.scaleFactor = 3;
   this.factions = [];
   this.barCommands = [];
   this.topBarItems = [];
   this.mousePosWorld = [0, 0];
+  this.lightDir = Math.random() * Math.PI * 2;
 })
 
 .initialize(function()
@@ -111,10 +112,10 @@ TANK.registerComponent("Game")
     e = TANK.createEntity("Player");
     e.Pos2D.x = 0;
     e.Pos2D.y = 0;
-    e.Ship.shipData = new Ships.cruiser();
+    e.Ship.shipData = new Ships.frigate();
     e.Ship.faction = this.factions[0];
     TANK.main.addChild(e, "Player");
 
-    this.factions[0].controlPoints[0].buyShip("frigate");
+    // this.factions[0].controlPoints[0].buyShip("frigate");
   });
 });

@@ -11,18 +11,7 @@ TANK.registerComponent("Player")
   this.headingRight = false;
   this.speedUp = false;
   this.speedDown = false;
-
-  this.headingRadius = 25;
-  this.speedStart = 5;
-  this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
-  this.speedStartScaled = this.speedStart * TANK.main.Game.scaleFactor;
-  this.fireButtons =
-  [
-    {side: "left", pos: [0, -8], radius: 2},
-    {side: "right", pos: [0, 8], radius: 2},
-    {side: "front", pos: [12, 0], radius: 2},
-    {side: "back", pos: [-12, 0], radius: 2},
-  ];
+  this.fireButtons = [];
 })
 
 .initialize(function()
@@ -191,6 +180,20 @@ TANK.registerComponent("Player")
 
   this.update = function(dt)
   {
+    // Calculate HUD size
+    this.headingRadius = Math.max(ship.image.width, ship.image.height) * 0.75;
+    this.speedStart = this.headingRadius * 0.25;
+    this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
+    this.speedStartScaled = this.speedStart * TANK.main.Game.scaleFactor;
+
+    this.fireButtons =
+    [
+      {side: "left", pos: [0, -ship.image.height * 0.75], radius: 6},
+      {side: "right", pos: [0, ship.image.height * 0.75], radius: 6},
+      {side: "front", pos: [ship.image.width * 0.75, 0], radius: 6},
+      {side: "back", pos: [-ship.image.width * 0.75, 0], radius: 6},
+    ];
+
     // Heading controls
     if (this.headingLeft)
       ship.heading -= dt * 3;

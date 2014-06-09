@@ -79,6 +79,7 @@ TANK.registerComponent("Lights")
     {
       var light = this.lights[i];
       ctx.save();
+      ctx.globalCompositeOperation = "lighter";
       ctx.translate(-light.radius + 0.5, -light.radius + 0.5);
       ctx.drawImage(light.buffer.canvas, light.x, light.y);
       ctx.restore();
