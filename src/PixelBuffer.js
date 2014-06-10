@@ -11,6 +11,11 @@ function PixelBuffer()
     this.buffer = this.context.getImageData(0, 0, this.width, this.height);
   };
 
+  this.readBuffer = function()
+  {
+    this.buffer = this.context.getImageData(0, 0, this.width, this.height);
+  };
+
   this.applyBuffer = function()
   {
     this.context.putImageData(this.buffer, 0, 0);
@@ -74,6 +79,8 @@ function PixelBuffer()
 
   this.getPixel = function(x, y)
   {
+    x = Math.round(x);
+    y = Math.round(y);
     var index = x * 4 + (y * this.buffer.width * 4);
     var pixel = [];
     pixel[0] = this.buffer.data[index + 0];
@@ -81,5 +88,30 @@ function PixelBuffer()
     pixel[2] = this.buffer.data[index + 2];
     pixel[3] = this.buffer.data[index + 3];
     return pixel;
+  };
+
+  this.testRay = function(rayStart, rayDir, precision)
+  {
+    var p = [rayStart[0], rayStart[1]];
+    var len = Math.sqrt(rayDir[0] * rayDir[0] + rayDir[1] * rayDir[1]);
+    var v = [rayDir[0] / len, rayDir[1] / len];
+    if (typeof precision === "undefined")
+      precision = 5;
+    var hit = false;
+    var minSteps = 10;
+    while (!hit)
+    {
+      p[0] += v[0] * precision;
+      p[1] += v[1] * precision;
+      var pixel = this.getPixel(p[0], p[1]);
+      if (pixel && pixel[3] > 0)
+        return p;
+      if (!pixel)
+      {
+        --minSteps;
+        if (minSteps < 0)
+          return null;
+      }
+    }
   };
 }

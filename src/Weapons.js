@@ -59,7 +59,6 @@ TANK.registerComponent("Weapons")
 
   this.fireGun = function(gunIndex, gunSide)
   {
-    var e = TANK.createEntity("Bullet");
     var gun = this.guns[gunSide];
     var pos = [0, 0];
     gunIndex += (1 / gun.count) / 2;
@@ -75,14 +74,20 @@ TANK.registerComponent("Weapons")
     pos = TANK.Math2D.rotate(pos, t.rotation);
     pos = TANK.Math2D.add(pos, [t.x, t.y]);
 
+    // Fire bullet
+    var e = TANK.createEntity("Bullet");
     e.Pos2D.x = pos[0];
     e.Pos2D.y = pos[1];
+    e.Pos2D.rotation = t.rotation + gun.angle;
     e.Velocity.x = Math.cos(t.rotation + gun.angle) * this.bulletSpeed;
     e.Velocity.y = Math.sin(t.rotation + gun.angle) * this.bulletSpeed;
     e.Life.life = gun.range / this.bulletSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
     TANK.main.addChild(e);
+
+    // Create effect
+    ParticleLibrary.gunFireMedium(pos[0], pos[1], t.rotation + gun.angle);
   };
 
   this.fireGuns = function(gunSide)

@@ -46,10 +46,11 @@ TANK.registerComponent("Ship")
     this.imageLighting[i].src = this.shipData.imageLighting[i];
   this.health = this.shipData.health;
 
-  // Create damage buffer
+  // Create texture buffers
   this.mainBuffer = new PixelBuffer();
   this.damageBuffer = new PixelBuffer();
   this.decalBuffer = new PixelBuffer();
+  this.collisionBuffer = new PixelBuffer();
 
   // Wait for main image to load
   var that = this;
@@ -67,10 +68,13 @@ TANK.registerComponent("Ship")
     that._entity.Weapons.width = that.image.width * TANK.main.Game.scaleFactor;
     that._entity.Weapons.height = that.image.height * TANK.main.Game.scaleFactor;
 
-    // Setup damage buffer
+    // Setup texture buffers
     that.mainBuffer.createBuffer(that.image.width, that.image.height);
     that.damageBuffer.createBuffer(that.image.width, that.image.height);
     that.decalBuffer.createBuffer(that.image.width, that.image.height);
+    that.collisionBuffer.createBuffer(that.image.width, that.image.height);
+    that.collisionBuffer.context.drawImage(that.image, 0, 0);
+    that.collisionBuffer.readBuffer();
   });
 
   // Add weapons
@@ -98,7 +102,6 @@ TANK.registerComponent("Ship")
     // Draw burnt edge around damage
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
 
-
     this.damageBuffer.applyBuffer();
     this.decalBuffer.applyBuffer();
   };
@@ -121,12 +124,15 @@ TANK.registerComponent("Ship")
   };
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
+  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
   {
+    // Affect trajectory
     v.x += dir[0] * 0.02;
     v.y += dir[1] * 0.02;
     var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
     v.r += dir * 0.5;
+
+    // Do damage
     this.health -= damage;
   });
 
@@ -310,7 +316,6 @@ TANK.registerComponent("Ship")
     if (this.thrustOn || this.thrustAlpha > 0)
     {
       ctx.globalAlpha = this.thrustAlpha;
-      // ctx.globalCompositeOperation = "lighter";
       ctx.drawImage(this.imageEngine, 0, 0);
     }
 

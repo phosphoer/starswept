@@ -284,7 +284,7 @@ TANK.registerComponent("AIWatch")
 });
 TANK.registerComponent("Bullet")
 
-.includes(["Pos2D", "Velocity", "Collider2D", "Life"])
+.includes(["Pos2D", "Velocity", "Collider2D", "Life", "ParticleEmitter"])
 
 .construct(function()
 {
@@ -300,13 +300,13 @@ TANK.registerComponent("Bullet")
   this._entity.Collider2D.collisionLayer = "bullets";
   this._entity.Collider2D.collidesWith = ["ships"];
 
-  // Make buffer
-  this.pixelBuffer = new PixelBuffer();
-  this.pixelBuffer.createBuffer(1, 1);
-
-  // Predraw shape
-  this.pixelBuffer.context.fillStyle = "#fff";
-  this.pixelBuffer.context.fillRect(0, 0, 1, 1);
+  var emitter = this._entity.ParticleEmitter;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnPerSecond = 200;
+  emitter.particleLifeMin = 0.2;
+  emitter.particleLifeMax = 0.4;
+  emitter.particleAlphaDecayMin = 0.80;
+  emitter.particleAlphaDecayMax = 0.85;
 
   TANK.main.Renderer2D.add(this);
 
@@ -315,25 +315,56 @@ TANK.registerComponent("Bullet")
     if (this.owner === obj)
       return;
 
+    // Special ship collision logic
+    var hit = true;
+    if (obj.Ship)
+    {
+      hit = false;
+      var testPos = [t.x, t.y];
+      var shipPos = [obj.Pos2D.x, obj.Pos2D.y];
+      var shipHalfSize = TANK.Math2D.scale([obj.Ship.collisionBuffer.width / 2, obj.Ship.collisionBuffer.height / 2], TANK.main.Game.scaleFactor);
+      testPos = TANK.Math2D.subtract(testPos, shipPos);
+      testPos = TANK.Math2D.rotate(testPos, -obj.Pos2D.rotation);
+      testPos = TANK.Math2D.add(testPos, shipHalfSize);
+      testPos = TANK.Math2D.scale(testPos, 1 / TANK.main.Game.scaleFactor);
+      var p = obj.Ship.collisionBuffer.getPixel(testPos[0], testPos[1]);
+      if (p[3] > 0)
+      {
+        // Do damage
+        obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], [t.x, t.y], this.owner);
+        TANK.main.removeChild(this._entity);
+        this.stopListeningTo(this._entity, "collide");
+        obj.Ship.addDamage(testPos[0], testPos[1], 3 + Math.random() * 3);
+
+        // Spawn effect
+        ParticleLibrary.damageMedium(t.x, t.y, t.rotation + Math.PI);
+        hit = true;
+      }
+    }
+
+    if (!hit)
+      return;
+
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < 1) dist = 1;
     if (dist < window.innerWidth / 2)
       TANK.main.dispatch("camerashake", 0.1 / dist);
-
-    // Do damage
-    obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], this.owner);
-    TANK.main.removeChild(this._entity);
-    this.stopListeningTo(this._entity, "collide");
   });
 
   this.draw = function(ctx, camera)
   {
     ctx.save();
+    ctx.globalCompositeOperation = "lighten";
     ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
-    ctx.drawImage(this.pixelBuffer.canvas, 0, 0);
+    ctx.scale(1, 2);
+    ctx.rotate(t.rotation);
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(0, 0, 3, Math.PI * 2, false);
+    ctx.fill();
+    ctx.closePath();
     ctx.restore();
   };
 });
@@ -1023,6 +1054,112 @@ ParticleLibrary.explosionMediumSmoke = function(x, y)
   emitter.particleScaleDecayMax = 1.003;
   return e;
 };
+
+ParticleLibrary.gunFireMedium = function(x, y, angle)
+{
+  var obj = {};
+  obj.smoke = ParticleLibrary.gunFireMediumSmoke(x, y, angle);
+  obj.sparks = ParticleLibrary.gunFireMediumSparks(x, y, angle);
+  TANK.main.addChild(obj.smoke);
+  TANK.main.addChild(obj.sparks);
+  return obj;
+};
+
+ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 8;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.blendMode = "source-over";
+  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.spawnOffsetMin = [-20, -20];
+  emitter.spawnOffsetMax = [20, 20];
+  emitter.spawnSpeedMin = 100;
+  emitter.spawnSpeedMax = 150;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 10;
+  emitter.spawnScaleMax = 15;
+  emitter.spawnPerSecond = 15;
+  emitter.spawnDuration = 0.2;
+  emitter.particleLifeMin = 6;
+  emitter.particleLifeMax = 9;
+  emitter.particleFrictionMin = 0.96;
+  emitter.particleFrictionMax = 0.98;
+  emitter.particleRotateSpeedMin = -0.25;
+  emitter.particleRotateSpeedMax = 0.25;
+  emitter.particleAlphaDecayMin = 0.99;
+  emitter.particleAlphaDecayMax = 0.995;
+  emitter.particleScaleDecayMin = 1.001;
+  emitter.particleScaleDecayMax = 1.003;
+  return e;
+};
+
+ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 3;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.alignRotationToSpawnAngle = true;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnOffsetMin = [-5, -5];
+  emitter.spawnOffsetMax = [5, 5];
+  emitter.spawnSpeedMin = 350;
+  emitter.spawnSpeedMax = 550;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 1;
+  emitter.spawnScaleMax = 2;
+  emitter.spawnPerSecond = 700;
+  emitter.spawnDuration = 0.1;
+  emitter.particleLifeMin = 3;
+  emitter.particleLifeMax = 5;
+  emitter.particleFrictionMin = 0.92;
+  emitter.particleFrictionMax = 0.95;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  return e;
+};
+
+ParticleLibrary.damageMedium = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 3;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.alignRotationToSpawnAngle = true;
+  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.spawnOffsetMin = [-5, -5];
+  emitter.spawnOffsetMax = [5, 5];
+  emitter.spawnSpeedMin = 250;
+  emitter.spawnSpeedMax = 350;
+  emitter.spawnAngleMin = angle - 0.3;
+  emitter.spawnAngleMax = angle + 0.3;
+  emitter.spawnScaleMin = 1;
+  emitter.spawnScaleMax = 2;
+  emitter.spawnPerSecond = 700;
+  emitter.spawnDuration = 0.1;
+  emitter.particleLifeMin = 3;
+  emitter.particleLifeMax = 5;
+  emitter.particleFrictionMin = 0.92;
+  emitter.particleFrictionMax = 0.95;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  TANK.main.addChild(e);
+  return e;
+};
 function PixelBuffer()
 {
   this.createBuffer = function(width, height)
@@ -1033,6 +1170,11 @@ function PixelBuffer()
     this.canvas.width = this.width;
     this.canvas.height = this.height;
     this.context = this.canvas.getContext("2d");
+    this.buffer = this.context.getImageData(0, 0, this.width, this.height);
+  };
+
+  this.readBuffer = function()
+  {
     this.buffer = this.context.getImageData(0, 0, this.width, this.height);
   };
 
@@ -1099,6 +1241,8 @@ function PixelBuffer()
 
   this.getPixel = function(x, y)
   {
+    x = Math.round(x);
+    y = Math.round(y);
     var index = x * 4 + (y * this.buffer.width * 4);
     var pixel = [];
     pixel[0] = this.buffer.data[index + 0];
@@ -1106,6 +1250,31 @@ function PixelBuffer()
     pixel[2] = this.buffer.data[index + 2];
     pixel[3] = this.buffer.data[index + 3];
     return pixel;
+  };
+
+  this.testRay = function(rayStart, rayDir, precision)
+  {
+    var p = [rayStart[0], rayStart[1]];
+    var len = Math.sqrt(rayDir[0] * rayDir[0] + rayDir[1] * rayDir[1]);
+    var v = [rayDir[0] / len, rayDir[1] / len];
+    if (typeof precision === "undefined")
+      precision = 5;
+    var hit = false;
+    var minSteps = 10;
+    while (!hit)
+    {
+      p[0] += v[0] * precision;
+      p[1] += v[1] * precision;
+      var pixel = this.getPixel(p[0], p[1]);
+      if (pixel && pixel[3] > 0)
+        return p;
+      if (!pixel)
+      {
+        --minSteps;
+        if (minSteps < 0)
+          return null;
+      }
+    }
   };
 }
 (function()
@@ -1264,11 +1433,11 @@ TANK.registerComponent("Planet")
   // Draw lighting
   var x = -this.radius;
   var y = 0;
-  grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.5, x, y, this.radius * 2.0);
+  grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.2, x, y, this.radius * 1.8);
   grad.addColorStop(0, "rgba(0, 0, 0, 0.0)");
   grad.addColorStop(0.6, "rgba(0, 0, 0, 0.6)");
   grad.addColorStop(0.8, "rgba(0, 0, 0, 0.7)");
-  grad.addColorStop(1, "rgba(0, 0, 0, 1.0)");
+  grad.addColorStop(1, "rgba(0, 0, 0, 0.9)");
 
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
@@ -1672,10 +1841,11 @@ TANK.registerComponent("Ship")
     this.imageLighting[i].src = this.shipData.imageLighting[i];
   this.health = this.shipData.health;
 
-  // Create damage buffer
+  // Create texture buffers
   this.mainBuffer = new PixelBuffer();
   this.damageBuffer = new PixelBuffer();
   this.decalBuffer = new PixelBuffer();
+  this.collisionBuffer = new PixelBuffer();
 
   // Wait for main image to load
   var that = this;
@@ -1693,10 +1863,13 @@ TANK.registerComponent("Ship")
     that._entity.Weapons.width = that.image.width * TANK.main.Game.scaleFactor;
     that._entity.Weapons.height = that.image.height * TANK.main.Game.scaleFactor;
 
-    // Setup damage buffer
+    // Setup texture buffers
     that.mainBuffer.createBuffer(that.image.width, that.image.height);
     that.damageBuffer.createBuffer(that.image.width, that.image.height);
     that.decalBuffer.createBuffer(that.image.width, that.image.height);
+    that.collisionBuffer.createBuffer(that.image.width, that.image.height);
+    that.collisionBuffer.context.drawImage(that.image, 0, 0);
+    that.collisionBuffer.readBuffer();
   });
 
   // Add weapons
@@ -1724,7 +1897,6 @@ TANK.registerComponent("Ship")
     // Draw burnt edge around damage
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
 
-
     this.damageBuffer.applyBuffer();
     this.decalBuffer.applyBuffer();
   };
@@ -1747,12 +1919,15 @@ TANK.registerComponent("Ship")
   };
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
+  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
   {
+    // Affect trajectory
     v.x += dir[0] * 0.02;
     v.y += dir[1] * 0.02;
     var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
     v.r += dir * 0.5;
+
+    // Do damage
     this.health -= damage;
   });
 
@@ -1936,7 +2111,6 @@ TANK.registerComponent("Ship")
     if (this.thrustOn || this.thrustAlpha > 0)
     {
       ctx.globalAlpha = this.thrustAlpha;
-      // ctx.globalCompositeOperation = "lighter";
       ctx.drawImage(this.imageEngine, 0, 0);
     }
 
@@ -2240,7 +2414,6 @@ TANK.registerComponent("Weapons")
 
   this.fireGun = function(gunIndex, gunSide)
   {
-    var e = TANK.createEntity("Bullet");
     var gun = this.guns[gunSide];
     var pos = [0, 0];
     gunIndex += (1 / gun.count) / 2;
@@ -2256,14 +2429,20 @@ TANK.registerComponent("Weapons")
     pos = TANK.Math2D.rotate(pos, t.rotation);
     pos = TANK.Math2D.add(pos, [t.x, t.y]);
 
+    // Fire bullet
+    var e = TANK.createEntity("Bullet");
     e.Pos2D.x = pos[0];
     e.Pos2D.y = pos[1];
+    e.Pos2D.rotation = t.rotation + gun.angle;
     e.Velocity.x = Math.cos(t.rotation + gun.angle) * this.bulletSpeed;
     e.Velocity.y = Math.sin(t.rotation + gun.angle) * this.bulletSpeed;
     e.Life.life = gun.range / this.bulletSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
     TANK.main.addChild(e);
+
+    // Create effect
+    ParticleLibrary.gunFireMedium(pos[0], pos[1], t.rotation + gun.angle);
   };
 
   this.fireGuns = function(gunSide)
