@@ -21,33 +21,47 @@ Ships.frigate = function()
   this.guns =
   {
     left:
-    {
-      count: 3,
-      damage: 0.1,
-      range: 1300,
-      time: 5
-    },
-    right:
-    {
-      count: 3,
-      damage: 0.1,
-      range: 1300,
-      time: 5
-    },
+    [
+      {
+        type: "mediumRail",
+        x: 20,
+        y: 4
+      },
+      {
+        type: "mediumRail",
+        x: 40,
+        y: 4
+      }
+    ],
     front:
-    {
-      count: 2,
-      damage: 0.1,
-      range: 800,
-      time: 3
-    },
+    [
+      {
+        type: "mediumRail",
+        x: 78,
+        y: 28
+      }
+    ],
+    right:
+    [
+      {
+        type: "mediumRail",
+        x: 20,
+        y: 44
+      },
+      {
+        type: "mediumRail",
+        x: 40,
+        y: 44
+      }
+    ],
     back:
-    {
-      count: 1,
-      damage: 0.1,
-      range: 800,
-      time: 3
-    }
+    [
+      {
+        type: "mediumRail",
+        x: 23,
+        y: 30
+      }
+    ]
   },
   this.lights =
   [

@@ -65,8 +65,8 @@ TANK.registerComponent("Ship")
     that._entity.Lights.redrawLights();
     that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
     that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
-    that._entity.Weapons.width = that.image.width * TANK.main.Game.scaleFactor;
-    that._entity.Weapons.height = that.image.height * TANK.main.Game.scaleFactor;
+    that._entity.Weapons.width = that.image.width;
+    that._entity.Weapons.height = that.image.height;
 
     // Setup texture buffers
     that.mainBuffer.createBuffer(that.image.width, that.image.height);
@@ -78,12 +78,17 @@ TANK.registerComponent("Ship")
   });
 
   // Add weapons
-  for (var i in this.shipData.guns)
+  for (var gunSide in this.shipData.guns)
   {
-    var gunData = this.shipData.guns[i];
-    var gun = this._entity.Weapons.guns[i];
-    for (var j in gunData)
-      gun[j] = gunData[j];
+    var guns = this.shipData.guns[gunSide];
+    for (var j = 0; j < guns.length; ++j)
+    {
+      var gunData = guns[j];
+      var gun = new Guns[gunData.type]();
+      gun.x = gunData.x;
+      gun.y = gunData.y;
+      this._entity.Weapons.addGun(gun, gunSide);
+    }
   };
 
   // Move towards a given point

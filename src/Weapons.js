@@ -4,42 +4,13 @@ TANK.registerComponent("Weapons")
 
 .construct(function()
 {
-  this.zdepth = 1;
-  this.bulletSpeed = 800;
+  this.zdepth = 3;
   this.guns =
   {
-    left: {
-      count: 2,
-      damage: 0.1,
-      range: 800,
-      timer: 0,
-      time: 5,
-      angle: Math.PI * -0.5
-    },
-    right: {
-      count: 2,
-      damage: 0.1,
-      range: 800,
-      timer: 0,
-      time: 5,
-      angle: Math.PI * 0.5
-    },
-    front: {
-      count: 1,
-      damage: 0.1,
-      range: 600,
-      timer: 0,
-      time: 3,
-      angle: 0
-    },
-    back: {
-      count: 1,
-      damage: 0.1,
-      range: 600,
-      timer: 0,
-      time: 5,
-      angle: Math.PI
-    }
+    left: [],
+    right: [],
+    front: [],
+    back: []
   };
   this.height = 10;
   this.width = 5;
@@ -49,29 +20,42 @@ TANK.registerComponent("Weapons")
 {
   var t = this._entity.Pos2D;
 
-  // TANK.main.Renderer2D.add(this);
+  TANK.main.Renderer2D.add(this);
+
+  this.addGun = function(gunObj, gunSide)
+  {
+    var angle;
+    if (gunSide === "front")
+      angle = 0;
+    else if (gunSide === "back")
+      angle = Math.PI;
+    else if (gunSide === "left")
+      angle = Math.PI / -2;
+    else if (gunSide === "right")
+      angle = Math.PI / 2;
+
+    gunObj.angle = angle;
+    this.guns[gunSide].push(gunObj);
+  };
 
   this.reloadPercent = function(gunSide)
   {
-    var gun = this.guns[gunSide];
-    return 1 - gun.timer / gun.time;
+    if (this.guns[gunSide].length === 0)
+      return 0;
+    var gun = this.guns[gunSide][0]; 
+    return 1 - gun.reloadTimer / gun.reloadTime;
   };
 
   this.fireGun = function(gunIndex, gunSide)
   {
-    var gun = this.guns[gunSide];
-    var pos = [0, 0];
-    gunIndex += (1 / gun.count) / 2;
-    if (gunSide === "front")
-      pos = [this.width / 2, (gunIndex / gun.count) * this.height - this.height / 2];
-    else if (gunSide === "back")
-      pos = [-this.width / 2, (gunIndex / gun.count) * this.height - this.height / 2];
-    else if (gunSide === "left")
-      pos = [(gunIndex / gun.count) * this.width - this.width / 2, -this.height / 2];
-    else if (gunSide === "right")
-      pos = [(gunIndex / gun.count) * this.width - this.width / 2, this.height / 2];
+    var gun = this.guns[gunSide][gunIndex];
+    if (gun.reloadTimer > 0)
+      return;
 
+    var pos = [gun.x, gun.y];
+    pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
     pos = TANK.Math2D.rotate(pos, t.rotation);
+    pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
     pos = TANK.Math2D.add(pos, [t.x, t.y]);
 
     // Fire bullet
@@ -79,28 +63,24 @@ TANK.registerComponent("Weapons")
     e.Pos2D.x = pos[0];
     e.Pos2D.y = pos[1];
     e.Pos2D.rotation = t.rotation + gun.angle;
-    e.Velocity.x = Math.cos(t.rotation + gun.angle) * this.bulletSpeed;
-    e.Velocity.y = Math.sin(t.rotation + gun.angle) * this.bulletSpeed;
-    e.Life.life = gun.range / this.bulletSpeed;
+    e.Velocity.x = Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
+    e.Velocity.y = Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
+    e.Life.life = gun.range / gun.projectileSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
     TANK.main.addChild(e);
 
     // Create effect
     ParticleLibrary.gunFireMedium(pos[0], pos[1], t.rotation + gun.angle);
+
+    gun.reloadTimer = gun.reloadTime;
   };
 
   this.fireGuns = function(gunSide)
   {
-    var gun = this.guns[gunSide];
-    if (gun.timer > 0)
-      return;
-
-    gun.timer = gun.time;
-    for (var i = 0; i < this.guns[gunSide].count; ++i)
-    {
+    var guns = this.guns[gunSide];
+    for (var i = 0; i < guns.length; ++i)
       this.fireGun(i, gunSide);
-    }
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
@@ -114,10 +94,13 @@ TANK.registerComponent("Weapons")
   {
     for (var i in this.guns)
     {
-      var gun = this.guns[i];
-      gun.timer -= dt;
-      if (gun.timer < 0)
-        gun.timer = 0;
+      var guns = this.guns[i];
+      for (var j = 0; j < guns.length; ++j)
+      {
+        guns[j].reloadTimer -= dt;
+        if (guns[j].reloadTimer < 0)
+          guns[j].reloadTimer = 0;
+      }
     }
   };
 
@@ -125,11 +108,27 @@ TANK.registerComponent("Weapons")
   {
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
-    ctx.strokeStyle = "rgba(100, 255, 100, 0.25)";
-    ctx.lineWidth = 2;
+    ctx.translate(this.width / -2, this.height / -2);
 
-    ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
+    for (var gunSide in this.guns)
+    {
+      for (var i = 0; i < this.guns[gunSide].length; ++i)
+      {
+        var gun = this.guns[gunSide][i];
+        ctx.save();
+        ctx.translate(gun.x, gun.y);
+        ctx.rotate(gun.angle);
+
+        if (!gun.image)
+        {
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(-2.5, -2.5, 5, 5);
+        }
+        ctx.restore();
+      }
+    }
 
     ctx.restore();
   };
