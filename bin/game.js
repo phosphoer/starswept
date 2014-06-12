@@ -791,11 +791,14 @@ var Guns = {};
 
 Guns.mediumRail = function()
 {
+  this.image = new Image();
+  this.image.src = "res/medium-rail.png";
   this.reloadTime = 5;
   this.reloadTimer = 0;
   this.range = 800;
   this.damage = 0.1;
   this.projectileSpeed = 800;
+  this.recoil = 7;
   this.x = 0;
   this.y = 0;
 };
@@ -2439,6 +2442,7 @@ TANK.registerComponent("Weapons")
     var gun = this.guns[gunSide][gunIndex];
     if (gun.reloadTimer > 0)
       return;
+    gun.reloadTimer = gun.reloadTime;
 
     var pos = [gun.x, gun.y];
     pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
@@ -2461,21 +2465,28 @@ TANK.registerComponent("Weapons")
     // Create effect
     ParticleLibrary.gunFireMedium(pos[0], pos[1], t.rotation + gun.angle);
 
-    gun.reloadTimer = gun.reloadTime;
+    // Recoil
+    this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
+    this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
+    this._entity.Velocity.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
   };
 
   this.fireGuns = function(gunSide)
   {
+    // Shake screen if on camera
+    if (this.reloadPercent(gunSide) >= 1)
+    {
+      var camera = TANK.main.Renderer2D.camera;
+      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+      if (dist < 1) dist = 1;
+      if (dist < window.innerWidth / 2)
+        TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
+    }
+    
     var guns = this.guns[gunSide];
     for (var i = 0; i < guns.length; ++i)
       this.fireGun(i, gunSide);
 
-    // Shake screen if on camera
-    var camera = TANK.main.Renderer2D.camera;
-    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
-    if (dist < 1) dist = 1;
-    if (dist < window.innerWidth / 2)
-      TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
   };
 
   this.update = function(dt)
@@ -2513,6 +2524,12 @@ TANK.registerComponent("Weapons")
         {
           ctx.fillStyle = "#fff";
           ctx.fillRect(-2.5, -2.5, 5, 5);
+        }
+        else
+        {
+          ctx.scale(0.5, 0.5);
+          ctx.translate(gun.image.width / -2, gun.image.height / -2);
+          ctx.drawImage(gun.image, 0, 0);
         }
         ctx.restore();
       }
