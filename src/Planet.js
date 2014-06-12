@@ -154,11 +154,11 @@ TANK.registerComponent("Planet")
   // Draw lighting
   var x = -this.radius;
   var y = 0;
-  grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.5, x, y, this.radius * 2.0);
+  grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.2, x, y, this.radius * 1.8);
   grad.addColorStop(0, "rgba(0, 0, 0, 0.0)");
   grad.addColorStop(0.6, "rgba(0, 0, 0, 0.6)");
   grad.addColorStop(0.8, "rgba(0, 0, 0, 0.7)");
-  grad.addColorStop(1, "rgba(0, 0, 0, 1.0)");
+  grad.addColorStop(1, "rgba(0, 0, 0, 0.9)");
 
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
