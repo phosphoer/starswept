@@ -1914,12 +1914,26 @@ TANK.registerComponent("Ship")
   {
     // Cut out radius around damage
     this.damageBuffer.setPixelRadiusRand(x, y, radius - 2, [255, 255, 255, 255], 0.7, radius, [0, 0, 0, 0], 0.0);
+    this.damageBuffer.applyBuffer();
 
     // Draw burnt edge around damage
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
-
-    this.damageBuffer.applyBuffer();
     this.decalBuffer.applyBuffer();
+
+    // Do damage to weapons on the ship
+    for (var side in this._entity.Weapons.guns)
+    {
+      var guns = this._entity.Weapons.guns[side];
+      for (var i = 0; i < guns.length; ++i)
+      {
+        var gun = guns[i];
+        if (TANK.Math2D.pointDistancePoint([x, y], [gun.x, gun.y]) < radius)
+        {
+          this._entity.Weapons.removeGun(gun, side);
+          i = 0;
+        }
+      }
+    }
   };
 
   // Explode the ship
@@ -2165,12 +2179,12 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 20,
-        y: 4
+        y: 3
       },
       {
         type: "mediumRail",
         x: 40,
-        y: 4
+        y: 3
       }
     ],
     front:
@@ -2186,12 +2200,12 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 20,
-        y: 44
+        y: 45
       },
       {
         type: "mediumRail",
         x: 40,
-        y: 44
+        y: 45
       }
     ],
     back:
@@ -2427,6 +2441,20 @@ TANK.registerComponent("Weapons")
 
     gunObj.angle = angle;
     this.guns[gunSide].push(gunObj);
+  };
+
+  this.removeGun = function(gunObj, gunSide)
+  {
+    for (var i = 0; i < this.guns[gunSide].length; ++i)
+    {
+      if (this.guns[gunSide][i] === gunObj)
+      {
+        this.guns[gunSide].splice(i, 1);
+        return true;
+      }
+    }
+
+    return false;
   };
 
   this.reloadPercent = function(gunSide)

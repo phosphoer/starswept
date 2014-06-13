@@ -38,6 +38,20 @@ TANK.registerComponent("Weapons")
     this.guns[gunSide].push(gunObj);
   };
 
+  this.removeGun = function(gunObj, gunSide)
+  {
+    for (var i = 0; i < this.guns[gunSide].length; ++i)
+    {
+      if (this.guns[gunSide][i] === gunObj)
+      {
+        this.guns[gunSide].splice(i, 1);
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   this.reloadPercent = function(gunSide)
   {
     if (this.guns[gunSide].length === 0)
