@@ -909,6 +909,15 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
+function main()
+{
+  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField"]);
+
+  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
+  TANK.main.Input.context = document.querySelector("#stage");
+
+  TANK.start();
+}
 var ParticleLibrary = {};
 
 ParticleLibrary.slowMediumFire = function()
@@ -1534,6 +1543,7 @@ TANK.registerComponent("Player")
 {
   this.zdepth = 5;
   this.shakeTime = 0;
+  this.clickTimer = 1;
 
   this.headingLeft = false;
   this.headingRight = false;
@@ -1582,9 +1592,19 @@ TANK.registerComponent("Player")
     this.shakeTime = duration;
   };
 
-  this.mouseDownHandler = function()
+  this.mouseDownHandler = function(e)
   {
     this.mouseDown = true;
+
+    // Handle double tap
+    if (this.clickTimer < .3)
+    {
+        TANK.main.dispatch("doubleclick", e);
+        return;
+    }
+    this.clickTimer = 0;
+
+    // Handle tapping a fire button
     var mousePos = TANK.main.Game.mousePosWorld;
     for (var i = 0; i < this.fireButtons.length; ++i)
     {
@@ -1656,6 +1676,31 @@ TANK.registerComponent("Player")
     }
   });
 
+  this.listenTo(TANK.main, "doubleclick", function(e)
+  {
+    // If we double click a ship in the same faction, we can
+    // transfer control to it
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    for (var i in ships)
+    {
+        // Skip our own ship
+        if (ships[i] === this._entity)
+            continue;
+
+        // Check if mouse is over the ship
+        var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
+        var shipSize = [ships[i].Collider2D.width, ships[i].Collider2D.height];
+        if (TANK.Math2D.pointInOBB(TANK.main.Game.mousePosWorld, shipPos, shipSize, ships[i].Pos2D.rotation))
+        {
+            // Transfer control to the ship
+            this._entity.removeComponent("Player");
+            ships[i].addComponent("Player");
+            ships[i].removeComponent("AIShip");
+            ships[i].removeComponent("AIWatch");
+        }
+    }
+  });
+
   this.listenTo(TANK.main, "mousedown", this.mouseDownHandler);
   this.listenTo(TANK.main, "touchstart", this.mouseDownHandler);
   this.listenTo(TANK.main, "mousemove", this.mouseMoveHandler);
@@ -1708,6 +1753,9 @@ TANK.registerComponent("Player")
 
   this.update = function(dt)
   {
+    // Timers
+    this.clickTimer += dt;
+
     // Calculate HUD size
     this.headingRadius = Math.max(ship.image.width, ship.image.height) * 0.75;
     this.speedStart = this.headingRadius * 0.25;
@@ -2566,13 +2614,3 @@ TANK.registerComponent("Weapons")
     ctx.restore();
   };
 });
-
-function main()
-{
-  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField"]);
-
-  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
-  TANK.main.Input.context = document.querySelector("#stage");
-
-  TANK.start();
-}
