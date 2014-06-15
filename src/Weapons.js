@@ -92,24 +92,20 @@ TANK.registerComponent("Weapons")
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
+
+    // Shake screen
+    var camera = TANK.main.Renderer2D.camera;
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+    if (dist < 1) dist = 1;
+    if (dist < window.innerWidth / 2)
+      TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)
   {
-    // Shake screen if on camera
-    if (this.reloadPercent(gunSide) >= 1)
-    {
-      var camera = TANK.main.Renderer2D.camera;
-      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
-      if (dist < 1) dist = 1;
-      if (dist < window.innerWidth / 2)
-        TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
-    }
-    
     var guns = this.guns[gunSide];
     for (var i = 0; i < guns.length; ++i)
       this.fireGun(i, gunSide);
-
   };
 
   this.update = function(dt)

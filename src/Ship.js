@@ -98,6 +98,11 @@ TANK.registerComponent("Ship")
     this.desiredSpeed = this.shipData.maxSpeed;
   };
 
+  this.setSpeedPercent = function(percent)
+  {
+    this.desiredSpeed = this.shipData.maxSpeed * percent;
+  };
+
   // Add damage decals to the ship
   this.addDamage = function(x, y, radius)
   {

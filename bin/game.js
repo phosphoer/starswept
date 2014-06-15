@@ -58,8 +58,8 @@ this.Action = this.Action || {};
 Action.AIAttack = function(e, target)
 {
   this.target = target;
-  this.maxTurnSpeed = 1;
-  this.optimalDistance = 500;
+  this.attackDistanceMin = 350;
+  this.attackDistanceMax = 550;
   this.giveUpTimer = 5;
   this._blocking = true;
 
@@ -85,14 +85,53 @@ Action.AIAttack = function(e, target)
     // Get direction to player
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 
-    // Approach target if we are aggressive
+    // If we are aggressive, we should move to engage the target
+    // Depending on the layout of our ship, this either means attempting
+    // to line up a broadside, or aligning our fore-guns with the target
     if (e.AIShip.aggressive)
-      e.Ship.moveTowards(targetPos);
-
-    // Shoot randomly
-    if (Math.random() < 0.05 && e.Weapons.aimingAtTarget && targetDist < 1500)
     {
+      // If we are too close we should turn to get farther away
+      if (targetDist < this.attackDistanceMin)
+      {
+        ship.heading = targetDir + Math.PI;
+        ship.setSpeedPercent(1);
+      }
+      // We want to get to a minimum distance from the target before attempting to aim at it
+      else if (targetDist > this.attackDistanceMax)
+      {
+        ship.heading = targetDir;
+        ship.setSpeedPercent(1);
+      }
+      else
+      {
+        // Aim at a right angle to the direction to the target, to target with a broadside
+        ship.heading = targetDir + Math.PI / 2;
+
+        // Slow down to half speed while circling
+        ship.setSpeedPercent(0.5);
+      }
+    }
+
+    // Check each gun and see if it is facing the target and in range
+    // If so, fire
+    for (var i in e.Weapons.guns)
+    {
+      var guns = e.Weapons.guns[i];
+      for (var j = 0; j < guns.length; ++j)
+      {
+        if (guns[j].reloadTimer > 0)
+          continue;
+        var targetVec = TANK.Math2D.subtract(targetPos, [t.x, t.y]);
+        targetVec = TANK.Math2D.scale(targetVec, 1 / targetDist);
+        var gunDir = [Math.cos(guns[j].angle + t.rotation), Math.sin(guns[j].angle + t.rotation)];
+        var dot = TANK.Math2D.dot(gunDir, targetVec);
+        if (Math.abs(1 - dot) < 0.05 && targetDist < guns[j].range)
+        {
+          e.Weapons.fireGun(j, i);
+        }
+      }
     }
   };
 
@@ -181,7 +220,7 @@ TANK.registerComponent("AIShip")
   this._entity.addComponent("AIWatch");
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
+  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
   {
     if (owner && owner.Ship && owner.Ship.faction.team != ship.faction.team && !(this.actions[0] instanceof Action.AIAttack))
     {
@@ -719,7 +758,7 @@ TANK.registerComponent("Game")
     e.Ship.faction = this.factions[0];
     TANK.main.addChild(e, "Player");
 
-    // this.factions[0].controlPoints[0].buyShip("frigate");
+    this.factions[1].controlPoints[0].buyShip("frigate");
   });
 });
 TANK.registerComponent("Glow")
@@ -1909,6 +1948,11 @@ TANK.registerComponent("Ship")
     this.desiredSpeed = this.shipData.maxSpeed;
   };
 
+  this.setSpeedPercent = function(percent)
+  {
+    this.desiredSpeed = this.shipData.maxSpeed * percent;
+  };
+
   // Add damage decals to the ship
   this.addDamage = function(x, y, radius)
   {
@@ -2497,24 +2541,20 @@ TANK.registerComponent("Weapons")
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
+
+    // Shake screen
+    var camera = TANK.main.Renderer2D.camera;
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+    if (dist < 1) dist = 1;
+    if (dist < window.innerWidth / 2)
+      TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)
   {
-    // Shake screen if on camera
-    if (this.reloadPercent(gunSide) >= 1)
-    {
-      var camera = TANK.main.Renderer2D.camera;
-      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
-      if (dist < 1) dist = 1;
-      if (dist < window.innerWidth / 2)
-        TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
-    }
-    
     var guns = this.guns[gunSide];
     for (var i = 0; i < guns.length; ++i)
       this.fireGun(i, gunSide);
-
   };
 
   this.update = function(dt)

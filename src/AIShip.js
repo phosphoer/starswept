@@ -31,7 +31,7 @@ TANK.registerComponent("AIShip")
   this._entity.addComponent("AIWatch");
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
+  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
   {
     if (owner && owner.Ship && owner.Ship.faction.team != ship.faction.team && !(this.actions[0] instanceof Action.AIAttack))
     {
