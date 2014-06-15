@@ -29,6 +29,8 @@ Action.AIAttack = function(e, target)
 
     // Get direction to player
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
+    // targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
     var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 
@@ -68,11 +70,12 @@ Action.AIAttack = function(e, target)
       {
         if (guns[j].reloadTimer > 0)
           continue;
-        var targetVec = TANK.Math2D.subtract(targetPos, [t.x, t.y]);
-        targetVec = TANK.Math2D.scale(targetVec, 1 / targetDist);
+        var distFromGun = TANK.Math2D.pointDistancePoint(targetPos, guns[j].worldPos);
+        var targetVec = TANK.Math2D.subtract(targetPos, guns[j].worldPos);
+        targetVec = TANK.Math2D.scale(targetVec, 1 / distFromGun);
         var gunDir = [Math.cos(guns[j].angle + t.rotation), Math.sin(guns[j].angle + t.rotation)];
         var dot = TANK.Math2D.dot(gunDir, targetVec);
-        if (Math.abs(1 - dot) < 0.05 && targetDist < guns[j].range)
+        if (Math.abs(1 - dot) < 0.05 && distFromGun < guns[j].range)
         {
           e.Weapons.fireGun(j, i);
         }

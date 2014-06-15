@@ -1,6 +1,6 @@
 TANK.registerComponent("Ship")
 
-.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons"])
+.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons", "OrderTarget"])
 
 .construct(function()
 {
@@ -65,6 +65,8 @@ TANK.registerComponent("Ship")
     that._entity.Lights.redrawLights();
     that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
     that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
+    that._entity.Clickable.width = that.image.width * TANK.main.Game.scaleFactor;
+    that._entity.Clickable.height = that.image.height * TANK.main.Game.scaleFactor;
     that._entity.Weapons.width = that.image.width;
     that._entity.Weapons.height = that.image.height;
 
@@ -341,6 +343,15 @@ TANK.registerComponent("Ship")
     {
       ctx.globalAlpha = this.thrustAlpha;
       ctx.drawImage(this.imageEngine, 0, 0);
+    }
+
+    // Draw selection box
+    if (this.selected)
+    {
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1 * camera.z;
+      ctx.strokeStyle = "rgba(150, 255, 150, 0.8)";
+      ctx.strokeRect(0, 0, this.image.width, this.image.height);
     }
 
     ctx.restore();

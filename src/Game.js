@@ -104,8 +104,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 2000;
-    e.Pos2D.y = 2000;
+    e.Pos2D.x = 1000;
+    e.Pos2D.y = 1000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
@@ -114,7 +114,7 @@ TANK.registerComponent("Game")
     e.Pos2D.y = 0;
     e.Ship.shipData = new Ships.frigate();
     e.Ship.faction = this.factions[0];
-    TANK.main.addChild(e, "Player");
+    TANK.main.addChild(e);
 
     this.factions[1].controlPoints[0].buyShip("frigate");
   });

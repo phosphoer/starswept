@@ -67,11 +67,7 @@ TANK.registerComponent("Weapons")
       return;
     gun.reloadTimer = gun.reloadTime;
 
-    var pos = [gun.x, gun.y];
-    pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
-    pos = TANK.Math2D.rotate(pos, t.rotation);
-    pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
-    pos = TANK.Math2D.add(pos, [t.x, t.y]);
+    var pos = gun.worldPos
 
     // Fire bullet
     var e = TANK.createEntity("Bullet");
@@ -118,6 +114,13 @@ TANK.registerComponent("Weapons")
         guns[j].reloadTimer -= dt;
         if (guns[j].reloadTimer < 0)
           guns[j].reloadTimer = 0;
+
+        var pos = [guns[j].x, guns[j].y];
+        pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
+        pos = TANK.Math2D.rotate(pos, t.rotation);
+        pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
+        pos = TANK.Math2D.add(pos, [t.x, t.y]);
+        guns[j].worldPos = pos;        
       }
     }
   };
