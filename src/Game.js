@@ -104,8 +104,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 1000;
-    e.Pos2D.y = 1000;
+    e.Pos2D.x = 2000;
+    e.Pos2D.y = 2000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 

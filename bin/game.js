@@ -157,6 +157,7 @@ TANK.registerComponent("AIFaction")
 
   this.update = function(dt)
   {
+    // Buy a ship
     if (faction.money > 30 && this.numShips < 3 && 0)
     {
       // Pick a control point to buy a ship at
@@ -753,8 +754,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 1000;
-    e.Pos2D.y = 1000;
+    e.Pos2D.x = 2000;
+    e.Pos2D.y = 2000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
@@ -1657,7 +1658,7 @@ TANK.registerComponent("Player")
     // Handle the beginning of a selection drag if the mouse down was outside
     // of the heading radius
     var distToPlayer = TANK.Math2D.pointDistancePoint([t.x, t.y], mousePos);
-    if (distToPlayer > this.headingRadius)
+    if (distToPlayer > this.headingRadiusScaled && !this.zooming)
     {
       this.selecting = true;
       this.selectPos = [mousePos[0], mousePos[1]];
@@ -1703,6 +1704,7 @@ TANK.registerComponent("Player")
       }
     }
 
+    this.zooming = false;
     this.mouseDown = false;
     this.fireButtonDown = false;
     this.selecting = false;
@@ -1753,6 +1755,7 @@ TANK.registerComponent("Player")
   {
     if (e.scale)
     {
+      this.zooming = true;
       var scale = 1 / e.scale;
       scale = Math.min(scale, 1.1);
       scale = Math.max(scale, 0.9);
