@@ -20,6 +20,6 @@ TANK.registerComponent("Clickable")
       return TANK.Math2D.pointDistancePoint(pos, [t.x, t.y]) < this.radius;
     }
 
-    return TANK.Math2D.pointInAABB(pos, [t.x, t.y], [width, height]);
+    return TANK.Math2D.pointInAABB(pos, [t.x, t.y], [this.width, this.height]);
   };
 });

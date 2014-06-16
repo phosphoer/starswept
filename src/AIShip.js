@@ -30,6 +30,32 @@ TANK.registerComponent("AIShip")
     }
   });
 
+  this.getContextOrder = function(target)
+  {
+    if (!target)
+      return null;
+
+    // Do something with a ship
+    if (target.Ship)
+    {
+      // Attack the ship if it is an enemy
+      if (target.Ship.faction.team !== ship.faction.team)
+        return "Attack";
+      else
+        return "Escort";
+    }
+    // Go to a control point
+    else if (target.ControlPoint)
+    {
+      if (target.ControlPoint.faction.team !== ship.faction.team)
+        return "Capture";
+      else
+        return "Defend";
+    }
+
+    return null;
+  };
+
   // Handle being given an order to do something with an object
   this.giveContextOrder = function(target)
   {

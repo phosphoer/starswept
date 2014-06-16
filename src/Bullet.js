@@ -36,6 +36,9 @@ TANK.registerComponent("Bullet")
     if (obj.Ship)
     {
       hit = false;
+      if (this.owner.Ship && this.owner.Ship.faction === obj.Ship.faction)
+        return;
+
       var testPos = [t.x, t.y];
       var shipPos = [obj.Pos2D.x, obj.Pos2D.y];
       var shipHalfSize = TANK.Math2D.scale([obj.Ship.collisionBuffer.width / 2, obj.Ship.collisionBuffer.height / 2], TANK.main.Game.scaleFactor);
@@ -48,7 +51,7 @@ TANK.registerComponent("Bullet")
       {
         // Do damage
         obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], [t.x, t.y], this.owner);
-        TANK.main.removeChild(this._entity);
+        this._entity.Life.life = 0;
         this.stopListeningTo(this._entity, "collide");
         obj.Ship.addDamage(testPos[0], testPos[1], 3 + Math.random() * 3);
 

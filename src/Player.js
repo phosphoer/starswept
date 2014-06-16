@@ -72,9 +72,8 @@ TANK.registerComponent("Player")
       {
         if (targets[i].Clickable.checkClick(mousePos))
         {
-          for (var j = 0; j < this.selectedShips.length; ++j)
-            this.selectedShips[j].AIShip.giveContextOrder(targets[i]);
-          this.clearSelection();
+          this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(targets[i]);
+          this.pendingTarget = targets[i];
           return;
         }
       }
@@ -93,6 +92,23 @@ TANK.registerComponent("Player")
 
   this.mouseUpHandler = function(e)
   {
+    // Handle giving an order to an already made selection
+    var mousePos = TANK.main.Game.mousePosWorld;
+    if (this.selectedShips.length > 0 && this.pendingOrder)
+    {
+      var targets = TANK.main.getChildrenWithComponent("OrderTarget");
+      for (var i in targets)
+      {
+        if (targets[i].Clickable.checkClick(mousePos))
+        {
+          for (var j = 0; j < this.selectedShips.length; ++j)
+            this.selectedShips[j].AIShip.giveContextOrder(targets[i]);
+          this.clearSelection();
+          break;
+        }
+      }
+    }
+
     // If we were in selection mode, we should find out what we selected
     if (this.selecting)
     {
@@ -115,11 +131,13 @@ TANK.registerComponent("Player")
     this.mouseDown = false;
     this.fireButtonDown = false;
     this.selecting = false;
+    this.pendingTarget = null;
+    this.pendingOrder = null;
   };
 
   this.mouseMoveHandler = function(e)
   {
-    if (this.mouseDown && !this.fireButtonDown)
+    if (this.mouseDown && !this.fireButtonDown && !this.selecting && !this.pendingTarget)
     {
       var mousePos = TANK.main.Game.mousePosWorld;
 
@@ -248,6 +266,15 @@ TANK.registerComponent("Player")
       this.selectRadius = TANK.Math2D.pointDistancePoint(this.selectPos, TANK.main.Game.mousePosWorld);
     }
 
+    // Check if mouse is still over order target
+    if (this.pendingTarget)
+    {
+      if (this.pendingTarget.Clickable.checkClick(TANK.main.Game.mousePosWorld))
+        this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(this.pendingTarget);
+      else
+        this.pendingOrder = null;
+    }
+
     // Calculate HUD size
     this.headingRadius = Math.max(ship.image.width, ship.image.height) * 0.75;
     this.speedStart = this.headingRadius * 0.25;
@@ -309,6 +336,18 @@ TANK.registerComponent("Player")
       ctx.closePath();
       ctx.fill();
 
+      ctx.restore();
+    }
+
+    if (this.pendingOrder)
+    {
+      var mousePos = TANK.main.Game.mousePosWorld;
+      ctx.save()
+      ctx.translate(-camera.x, -camera.y);
+      var fontSize = 20 * camera.z;
+      ctx.font = fontSize + "px sans-serif";
+      ctx.fillStyle = "#ddd";
+      ctx.fillText(this.pendingOrder, mousePos[0], mousePos[1]);
       ctx.restore();
     }
 
