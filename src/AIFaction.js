@@ -13,6 +13,7 @@ TANK.registerComponent("AIFaction")
 
   this.update = function(dt)
   {
+    // Buy a ship
     if (faction.money > 30 && this.numShips < 3 && 0)
     {
       // Pick a control point to buy a ship at

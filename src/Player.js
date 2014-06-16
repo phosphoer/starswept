@@ -82,7 +82,7 @@ TANK.registerComponent("Player")
     // Handle the beginning of a selection drag if the mouse down was outside
     // of the heading radius
     var distToPlayer = TANK.Math2D.pointDistancePoint([t.x, t.y], mousePos);
-    if (distToPlayer > this.headingRadius)
+    if (distToPlayer > this.headingRadiusScaled && !this.zooming)
     {
       this.selecting = true;
       this.selectPos = [mousePos[0], mousePos[1]];
@@ -128,6 +128,7 @@ TANK.registerComponent("Player")
       }
     }
 
+    this.zooming = false;
     this.mouseDown = false;
     this.fireButtonDown = false;
     this.selecting = false;
@@ -178,6 +179,7 @@ TANK.registerComponent("Player")
   {
     if (e.scale)
     {
+      this.zooming = true;
       var scale = 1 / e.scale;
       scale = Math.min(scale, 1.1);
       scale = Math.max(scale, 0.9);
