@@ -25,12 +25,12 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 20,
-        y: 4
+        y: 3
       },
       {
         type: "mediumRail",
         x: 40,
-        y: 4
+        y: 3
       }
     ],
     front:
@@ -46,12 +46,12 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 20,
-        y: 44
+        y: 45
       },
       {
         type: "mediumRail",
         x: 40,
-        y: 44
+        y: 45
       }
     ],
     back:

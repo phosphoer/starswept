@@ -38,6 +38,20 @@ TANK.registerComponent("Weapons")
     this.guns[gunSide].push(gunObj);
   };
 
+  this.removeGun = function(gunObj, gunSide)
+  {
+    for (var i = 0; i < this.guns[gunSide].length; ++i)
+    {
+      if (this.guns[gunSide][i] === gunObj)
+      {
+        this.guns[gunSide].splice(i, 1);
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   this.reloadPercent = function(gunSide)
   {
     if (this.guns[gunSide].length === 0)
@@ -53,11 +67,7 @@ TANK.registerComponent("Weapons")
       return;
     gun.reloadTimer = gun.reloadTime;
 
-    var pos = [gun.x, gun.y];
-    pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
-    pos = TANK.Math2D.rotate(pos, t.rotation);
-    pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
-    pos = TANK.Math2D.add(pos, [t.x, t.y]);
+    var pos = gun.worldPos
 
     // Fire bullet
     var e = TANK.createEntity("Bullet");
@@ -78,24 +88,20 @@ TANK.registerComponent("Weapons")
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
+
+    // Shake screen
+    var camera = TANK.main.Renderer2D.camera;
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+    if (dist < 1) dist = 1;
+    if (dist < window.innerWidth / 2)
+      TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)
   {
-    // Shake screen if on camera
-    if (this.reloadPercent(gunSide) >= 1)
-    {
-      var camera = TANK.main.Renderer2D.camera;
-      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
-      if (dist < 1) dist = 1;
-      if (dist < window.innerWidth / 2)
-        TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
-    }
-    
     var guns = this.guns[gunSide];
     for (var i = 0; i < guns.length; ++i)
       this.fireGun(i, gunSide);
-
   };
 
   this.update = function(dt)
@@ -108,6 +114,13 @@ TANK.registerComponent("Weapons")
         guns[j].reloadTimer -= dt;
         if (guns[j].reloadTimer < 0)
           guns[j].reloadTimer = 0;
+
+        var pos = [guns[j].x, guns[j].y];
+        pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
+        pos = TANK.Math2D.rotate(pos, t.rotation);
+        pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
+        pos = TANK.Math2D.add(pos, [t.x, t.y]);
+        guns[j].worldPos = pos;        
       }
     }
   };

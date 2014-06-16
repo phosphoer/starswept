@@ -1,6 +1,6 @@
 TANK.registerComponent("Ship")
 
-.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons"])
+.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons", "OrderTarget"])
 
 .construct(function()
 {
@@ -65,6 +65,8 @@ TANK.registerComponent("Ship")
     that._entity.Lights.redrawLights();
     that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
     that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
+    that._entity.Clickable.width = that.image.width * TANK.main.Game.scaleFactor;
+    that._entity.Clickable.height = that.image.height * TANK.main.Game.scaleFactor;
     that._entity.Weapons.width = that.image.width;
     that._entity.Weapons.height = that.image.height;
 
@@ -98,17 +100,36 @@ TANK.registerComponent("Ship")
     this.desiredSpeed = this.shipData.maxSpeed;
   };
 
+  this.setSpeedPercent = function(percent)
+  {
+    this.desiredSpeed = this.shipData.maxSpeed * percent;
+  };
+
   // Add damage decals to the ship
   this.addDamage = function(x, y, radius)
   {
     // Cut out radius around damage
     this.damageBuffer.setPixelRadiusRand(x, y, radius - 2, [255, 255, 255, 255], 0.7, radius, [0, 0, 0, 0], 0.0);
+    this.damageBuffer.applyBuffer();
 
     // Draw burnt edge around damage
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
-
-    this.damageBuffer.applyBuffer();
     this.decalBuffer.applyBuffer();
+
+    // Do damage to weapons on the ship
+    for (var side in this._entity.Weapons.guns)
+    {
+      var guns = this._entity.Weapons.guns[side];
+      for (var i = 0; i < guns.length; ++i)
+      {
+        var gun = guns[i];
+        if (TANK.Math2D.pointDistancePoint([x, y], [gun.x, gun.y]) < radius)
+        {
+          this._entity.Weapons.removeGun(gun, side);
+          i = 0;
+        }
+      }
+    }
   };
 
   // Explode the ship
@@ -322,6 +343,15 @@ TANK.registerComponent("Ship")
     {
       ctx.globalAlpha = this.thrustAlpha;
       ctx.drawImage(this.imageEngine, 0, 0);
+    }
+
+    // Draw selection box
+    if (this.selected)
+    {
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1 * camera.z;
+      ctx.strokeStyle = "rgba(150, 255, 150, 0.8)";
+      ctx.strokeRect(0, 0, this.image.width, this.image.height);
     }
 
     ctx.restore();

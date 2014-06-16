@@ -1,6 +1,6 @@
 TANK.registerComponent("ControlPoint")
 
-.includes(["Planet", "Droppable"])
+.includes(["Planet", "OrderTarget"])
 
 .construct(function()
 {
@@ -20,6 +20,8 @@ TANK.registerComponent("ControlPoint")
   var t = this._entity.Pos2D;
 
   TANK.main.Renderer2D.add(this);
+
+  this._entity.Clickable.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
 
   this.tryCapture = function(faction, amount)
   {

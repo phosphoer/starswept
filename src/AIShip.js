@@ -1,6 +1,6 @@
 TANK.registerComponent("AIShip")
 
-.includes(["Ship", "Droppable"])
+.includes(["Ship"])
 
 .construct(function()
 {
@@ -15,23 +15,14 @@ TANK.registerComponent("AIShip")
   var v = this._entity.Velocity;
   var ship = this._entity.Ship;
 
-  this._entity.Droppable.selectDepth = 1;
-
   // Get AI behaviors from ship
   this.aggressive = ship.shipData.aggressive;
-
-  // Only draggable if on the player team
-  if (ship.faction.team === 0)
-  {
-    this._entity.addComponent("Draggable");
-    this._entity.Draggable.selectDepth = 1;
-  }
 
   // Always watch for enemies
   this._entity.addComponent("AIWatch");
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
+  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
   {
     if (owner && owner.Ship && owner.Ship.faction.team != ship.faction.team && !(this.actions[0] instanceof Action.AIAttack))
     {
@@ -39,23 +30,51 @@ TANK.registerComponent("AIShip")
     }
   });
 
-  // Reponse to being dragged onto something
-  this.listenTo(this._entity, "dragend", function(dest)
+  this.getContextOrder = function(target)
   {
-    if (!dest)
-      return;
+    if (!target)
+      return null;
 
-    // Attack an enemy ship
-    if (dest.Ship && dest.Ship.faction.team != ship.faction.team)
+    // Do something with a ship
+    if (target.Ship)
     {
-      this.prependAction(new Action.AIAttack(this._entity, dest));
+      // Attack the ship if it is an enemy
+      if (target.Ship.faction.team !== ship.faction.team)
+        return "Attack";
+      else
+        return "Escort";
     }
     // Go to a control point
-    else if (dest.ControlPoint)
+    else if (target.ControlPoint)
     {
-      this.prependAction(new Action.AIApproach(this._entity, dest));
+      if (target.ControlPoint.faction.team !== ship.faction.team)
+        return "Capture";
+      else
+        return "Defend";
     }
-  });
+
+    return null;
+  };
+
+  // Handle being given an order to do something with an object
+  this.giveContextOrder = function(target)
+  {
+    if (!target)
+      return;
+
+    // Do something with a ship
+    if (target.Ship)
+    {
+      // Attack the ship if it is an enemy
+      if (target.Ship.faction.team != ship.faction.team)
+        this.prependAction(new Action.AIAttack(this._entity, target));
+    }
+    // Go to a control point
+    else if (target.ControlPoint)
+    {
+      this.prependAction(new Action.AIApproach(this._entity, target));
+    }
+  };
 
   this.prependAction = function(action, blocking)
   {

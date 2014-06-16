@@ -3,8 +3,8 @@ this.Action = this.Action || {};
 Action.AIAttack = function(e, target)
 {
   this.target = target;
-  this.maxTurnSpeed = 1;
-  this.optimalDistance = 500;
+  this.attackDistanceMin = 350;
+  this.attackDistanceMax = 550;
   this.giveUpTimer = 5;
   this._blocking = true;
 
@@ -29,15 +29,57 @@ Action.AIAttack = function(e, target)
 
     // Get direction to player
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
+    // targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 
-    // Approach target if we are aggressive
+    // If we are aggressive, we should move to engage the target
+    // Depending on the layout of our ship, this either means attempting
+    // to line up a broadside, or aligning our fore-guns with the target
     if (e.AIShip.aggressive)
-      e.Ship.moveTowards(targetPos);
-
-    // Shoot randomly
-    if (Math.random() < 0.05 && e.Weapons.aimingAtTarget && targetDist < 1500)
     {
+      // If we are too close we should turn to get farther away
+      if (targetDist < this.attackDistanceMin)
+      {
+        ship.heading = targetDir + Math.PI;
+        ship.setSpeedPercent(1);
+      }
+      // We want to get to a minimum distance from the target before attempting to aim at it
+      else if (targetDist > this.attackDistanceMax)
+      {
+        ship.heading = targetDir;
+        ship.setSpeedPercent(1);
+      }
+      else
+      {
+        // Aim at a right angle to the direction to the target, to target with a broadside
+        ship.heading = targetDir + Math.PI / 2;
+
+        // Slow down to half speed while circling
+        ship.setSpeedPercent(0.5);
+      }
+    }
+
+    // Check each gun and see if it is facing the target and in range
+    // If so, fire
+    for (var i in e.Weapons.guns)
+    {
+      var guns = e.Weapons.guns[i];
+      for (var j = 0; j < guns.length; ++j)
+      {
+        if (guns[j].reloadTimer > 0)
+          continue;
+        var distFromGun = TANK.Math2D.pointDistancePoint(targetPos, guns[j].worldPos);
+        var targetVec = TANK.Math2D.subtract(targetPos, guns[j].worldPos);
+        targetVec = TANK.Math2D.scale(targetVec, 1 / distFromGun);
+        var gunDir = [Math.cos(guns[j].angle + t.rotation), Math.sin(guns[j].angle + t.rotation)];
+        var dot = TANK.Math2D.dot(gunDir, targetVec);
+        if (Math.abs(1 - dot) < 0.05 && distFromGun < guns[j].range)
+        {
+          e.Weapons.fireGun(j, i);
+        }
+      }
     }
   };
 

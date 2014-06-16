@@ -58,8 +58,8 @@ this.Action = this.Action || {};
 Action.AIAttack = function(e, target)
 {
   this.target = target;
-  this.maxTurnSpeed = 1;
-  this.optimalDistance = 500;
+  this.attackDistanceMin = 350;
+  this.attackDistanceMax = 550;
   this.giveUpTimer = 5;
   this._blocking = true;
 
@@ -84,15 +84,57 @@ Action.AIAttack = function(e, target)
 
     // Get direction to player
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
+    // targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 
-    // Approach target if we are aggressive
+    // If we are aggressive, we should move to engage the target
+    // Depending on the layout of our ship, this either means attempting
+    // to line up a broadside, or aligning our fore-guns with the target
     if (e.AIShip.aggressive)
-      e.Ship.moveTowards(targetPos);
-
-    // Shoot randomly
-    if (Math.random() < 0.05 && e.Weapons.aimingAtTarget && targetDist < 1500)
     {
+      // If we are too close we should turn to get farther away
+      if (targetDist < this.attackDistanceMin)
+      {
+        ship.heading = targetDir + Math.PI;
+        ship.setSpeedPercent(1);
+      }
+      // We want to get to a minimum distance from the target before attempting to aim at it
+      else if (targetDist > this.attackDistanceMax)
+      {
+        ship.heading = targetDir;
+        ship.setSpeedPercent(1);
+      }
+      else
+      {
+        // Aim at a right angle to the direction to the target, to target with a broadside
+        ship.heading = targetDir + Math.PI / 2;
+
+        // Slow down to half speed while circling
+        ship.setSpeedPercent(0.5);
+      }
+    }
+
+    // Check each gun and see if it is facing the target and in range
+    // If so, fire
+    for (var i in e.Weapons.guns)
+    {
+      var guns = e.Weapons.guns[i];
+      for (var j = 0; j < guns.length; ++j)
+      {
+        if (guns[j].reloadTimer > 0)
+          continue;
+        var distFromGun = TANK.Math2D.pointDistancePoint(targetPos, guns[j].worldPos);
+        var targetVec = TANK.Math2D.subtract(targetPos, guns[j].worldPos);
+        targetVec = TANK.Math2D.scale(targetVec, 1 / distFromGun);
+        var gunDir = [Math.cos(guns[j].angle + t.rotation), Math.sin(guns[j].angle + t.rotation)];
+        var dot = TANK.Math2D.dot(gunDir, targetVec);
+        if (Math.abs(1 - dot) < 0.05 && distFromGun < guns[j].range)
+        {
+          e.Weapons.fireGun(j, i);
+        }
+      }
     }
   };
 
@@ -150,7 +192,7 @@ Action.AIIdle = function(e)
 
 TANK.registerComponent("AIShip")
 
-.includes(["Ship", "Droppable"])
+.includes(["Ship"])
 
 .construct(function()
 {
@@ -165,23 +207,14 @@ TANK.registerComponent("AIShip")
   var v = this._entity.Velocity;
   var ship = this._entity.Ship;
 
-  this._entity.Droppable.selectDepth = 1;
-
   // Get AI behaviors from ship
   this.aggressive = ship.shipData.aggressive;
-
-  // Only draggable if on the player team
-  if (ship.faction.team === 0)
-  {
-    this._entity.addComponent("Draggable");
-    this._entity.Draggable.selectDepth = 1;
-  }
 
   // Always watch for enemies
   this._entity.addComponent("AIWatch");
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, owner)
+  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
   {
     if (owner && owner.Ship && owner.Ship.faction.team != ship.faction.team && !(this.actions[0] instanceof Action.AIAttack))
     {
@@ -189,23 +222,51 @@ TANK.registerComponent("AIShip")
     }
   });
 
-  // Reponse to being dragged onto something
-  this.listenTo(this._entity, "dragend", function(dest)
+  this.getContextOrder = function(target)
   {
-    if (!dest)
-      return;
+    if (!target)
+      return null;
 
-    // Attack an enemy ship
-    if (dest.Ship && dest.Ship.faction.team != ship.faction.team)
+    // Do something with a ship
+    if (target.Ship)
     {
-      this.prependAction(new Action.AIAttack(this._entity, dest));
+      // Attack the ship if it is an enemy
+      if (target.Ship.faction.team !== ship.faction.team)
+        return "Attack";
+      else
+        return "Escort";
     }
     // Go to a control point
-    else if (dest.ControlPoint)
+    else if (target.ControlPoint)
     {
-      this.prependAction(new Action.AIApproach(this._entity, dest));
+      if (target.ControlPoint.faction.team !== ship.faction.team)
+        return "Capture";
+      else
+        return "Defend";
     }
-  });
+
+    return null;
+  };
+
+  // Handle being given an order to do something with an object
+  this.giveContextOrder = function(target)
+  {
+    if (!target)
+      return;
+
+    // Do something with a ship
+    if (target.Ship)
+    {
+      // Attack the ship if it is an enemy
+      if (target.Ship.faction.team != ship.faction.team)
+        this.prependAction(new Action.AIAttack(this._entity, target));
+    }
+    // Go to a control point
+    else if (target.ControlPoint)
+    {
+      this.prependAction(new Action.AIApproach(this._entity, target));
+    }
+  };
 
   this.prependAction = function(action, blocking)
   {
@@ -320,6 +381,9 @@ TANK.registerComponent("Bullet")
     if (obj.Ship)
     {
       hit = false;
+      if (this.owner.Ship && this.owner.Ship.faction === obj.Ship.faction)
+        return;
+
       var testPos = [t.x, t.y];
       var shipPos = [obj.Pos2D.x, obj.Pos2D.y];
       var shipHalfSize = TANK.Math2D.scale([obj.Ship.collisionBuffer.width / 2, obj.Ship.collisionBuffer.height / 2], TANK.main.Game.scaleFactor);
@@ -332,7 +396,7 @@ TANK.registerComponent("Bullet")
       {
         // Do damage
         obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], [t.x, t.y], this.owner);
-        TANK.main.removeChild(this._entity);
+        this._entity.Life.life = 0;
         this.stopListeningTo(this._entity, "collide");
         obj.Ship.addDamage(testPos[0], testPos[1], 3 + Math.random() * 3);
 
@@ -368,9 +432,34 @@ TANK.registerComponent("Bullet")
     ctx.restore();
   };
 });
+TANK.registerComponent("Clickable")
+
+.includes("Pos2D")
+
+.construct(function()
+{
+  this.width = 0;
+  this.height = 0;
+  this.radius = 0;
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  this.checkClick = function(pos)
+  {
+    if (this.radius)
+    {
+      return TANK.Math2D.pointDistancePoint(pos, [t.x, t.y]) < this.radius;
+    }
+
+    return TANK.Math2D.pointInAABB(pos, [t.x, t.y], [this.width, this.height]);
+  };
+});
 TANK.registerComponent("ControlPoint")
 
-.includes(["Planet", "Droppable"])
+.includes(["Planet", "OrderTarget"])
 
 .construct(function()
 {
@@ -390,6 +479,8 @@ TANK.registerComponent("ControlPoint")
   var t = this._entity.Pos2D;
 
   TANK.main.Renderer2D.add(this);
+
+  this._entity.Clickable.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
 
   this.tryCapture = function(faction, amount)
   {
@@ -526,51 +617,6 @@ TANK.registerComponent("Cursor")
   };
 });
 
-TANK.registerComponent("Draggable")
-
-.includes("Pos2D")
-
-.construct(function()
-{
-  this.zdepth = 8;
-  this.dragging = false;
-})
-
-.initialize(function()
-{
-  var t = this._entity.Pos2D;
-
-  TANK.main.Renderer2D.add(this);
-
-  this.listenTo(this._entity, "dragstart", function()
-  {
-    this.dragging = true;
-  });
-
-  this.listenTo(this._entity, "dragend", function(dest)
-  {
-    this.dragging = false;
-  });
-
-  this.draw = function(ctx, camera)
-  {
-    if (!this.dragging)
-      return;
-
-    var mousePos = TANK.main.Game.mousePosWorld;
-    ctx.save();
-    ctx.strokeStyle = "#5f5";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(t.x - camera.x, t.y - camera.y);
-    ctx.lineTo(mousePos[0] - camera.x, mousePos[1] - camera.y);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-  };
-});
-
-TANK.registerComponent("Droppable");
 TANK.registerComponent("Faction")
 
 .construct(function()
@@ -707,8 +753,8 @@ TANK.registerComponent("Game")
     TANK.main.addChild(e);
 
     e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 2000;
-    e.Pos2D.y = 2000;
+    e.Pos2D.x = 1000;
+    e.Pos2D.y = 1000;
     this.factions[1].addControlPoint(e.ControlPoint);
     TANK.main.addChild(e);
 
@@ -717,9 +763,9 @@ TANK.registerComponent("Game")
     e.Pos2D.y = 0;
     e.Ship.shipData = new Ships.frigate();
     e.Ship.faction = this.factions[0];
-    TANK.main.addChild(e, "Player");
+    TANK.main.addChild(e);
 
-    // this.factions[0].controlPoints[0].buyShip("frigate");
+    this.factions[1].controlPoints[0].buyShip("frigate");
   });
 });
 TANK.registerComponent("Glow")
@@ -909,6 +955,7 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
+TANK.registerComponent("OrderTarget").includes("Clickable");
 var ParticleLibrary = {};
 
 ParticleLibrary.slowMediumFire = function()
@@ -1534,12 +1581,14 @@ TANK.registerComponent("Player")
 {
   this.zdepth = 5;
   this.shakeTime = 0;
+  this.clickTimer = 1;
 
   this.headingLeft = false;
   this.headingRight = false;
   this.speedUp = false;
   this.speedDown = false;
   this.fireButtons = [];
+  this.selectedShips = [];
 })
 
 .initialize(function()
@@ -1549,32 +1598,11 @@ TANK.registerComponent("Player")
 
   TANK.main.Renderer2D.add(this);
 
-  this.checkForSelection = function(componentName)
+  this.clearSelection = function()
   {
-    var selectables = TANK.main.getChildrenWithComponent(componentName);
-
-    // Get cursor pos
-    var e = TANK.createEntity("Cursor");
-    TANK.main.addChild(e);
-    e.Cursor.updatePos();
-
-    var selected = null;
-    var selectionList = [];
-    for (var i in selectables)
-    {
-      var selectable = selectables[i];
-      if (e.Collider2D.collide(selectable.Collider2D))
-        selectionList.push(selectable);
-    }
-    selectionList.sort(function(a, b)
-    {
-      var depthA = a[componentName].selectDepth || 0;
-      var depthB = b[componentName].selectDepth || 0;
-      return depthA - depthB;
-    });
-
-    TANK.main.removeChild(e);
-    return selectionList[selectionList.length - 1];
+    for (var i = 0; i < this.selectedShips.length; ++i)
+      this.selectedShips[i].Ship.selected = false;
+    this.selectedShips = [];
   };
 
   this.shakeCamera = function(duration)
@@ -1582,9 +1610,19 @@ TANK.registerComponent("Player")
     this.shakeTime = duration;
   };
 
-  this.mouseDownHandler = function()
+  this.mouseDownHandler = function(e)
   {
     this.mouseDown = true;
+
+    // Handle double tap
+    if (this.clickTimer < .3)
+    {
+        TANK.main.dispatch("doubleclick", e);
+        return;
+    }
+    this.clickTimer = 0;
+
+    // Handle tapping a fire button
     var mousePos = TANK.main.Game.mousePosWorld;
     for (var i = 0; i < this.fireButtons.length; ++i)
     {
@@ -1600,11 +1638,81 @@ TANK.registerComponent("Player")
         return;
       }
     }
+
+    // Handle giving an order to an already made selection
+    if (this.selectedShips.length > 0)
+    {
+      var targets = TANK.main.getChildrenWithComponent("OrderTarget");
+      for (var i in targets)
+      {
+        if (targets[i].Clickable.checkClick(mousePos))
+        {
+          this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(targets[i]);
+          this.pendingTarget = targets[i];
+          return;
+        }
+      }
+    }
+
+    // Handle the beginning of a selection drag if the mouse down was outside
+    // of the heading radius
+    var distToPlayer = TANK.Math2D.pointDistancePoint([t.x, t.y], mousePos);
+    if (distToPlayer > this.headingRadius)
+    {
+      this.selecting = true;
+      this.selectPos = [mousePos[0], mousePos[1]];
+      this.selectRadius = 0;
+    }
+  };
+
+  this.mouseUpHandler = function(e)
+  {
+    // Handle giving an order to an already made selection
+    var mousePos = TANK.main.Game.mousePosWorld;
+    if (this.selectedShips.length > 0 && this.pendingOrder)
+    {
+      var targets = TANK.main.getChildrenWithComponent("OrderTarget");
+      for (var i in targets)
+      {
+        if (targets[i].Clickable.checkClick(mousePos))
+        {
+          for (var j = 0; j < this.selectedShips.length; ++j)
+            this.selectedShips[j].AIShip.giveContextOrder(targets[i]);
+          this.clearSelection();
+          break;
+        }
+      }
+    }
+
+    // If we were in selection mode, we should find out what we selected
+    if (this.selecting)
+    {
+      // Only ships in our faction can be selected
+      this.clearSelection();
+      var ships = TANK.main.getChildrenWithComponent("AIShip");
+      for (var i in ships)
+      {
+        if (ships[i].Ship.faction === ship.faction)
+        {
+          if (TANK.Math2D.pointDistancePoint([ships[i].Pos2D.x, ships[i].Pos2D.y], this.selectPos) < this.selectRadius)
+          {
+            this.selectedShips.push(ships[i]);
+            ships[i].Ship.selected = true;
+          }
+        }
+      }
+    }
+
+    this.mouseDown = false;
+    this.fireButtonDown = false;
+    this.selecting = false;
+    this.pendingTarget = null;
+    this.pendingOrder = null;
   };
 
   this.mouseMoveHandler = function(e)
   {
-    if (this.mouseDown && !this.fireButtonDown)
+    if (this.mouseDown && !this.fireButtonDown && !this.selecting && !this.pendingTarget)
     {
       var mousePos = TANK.main.Game.mousePosWorld;
 
@@ -1656,22 +1764,38 @@ TANK.registerComponent("Player")
     }
   });
 
+  this.listenTo(TANK.main, "doubleclick", function(e)
+  {
+    // If we double click a ship in the same faction, we can
+    // transfer control to it
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    for (var i in ships)
+    {
+        // Skip our own ship
+        if (ships[i] === this._entity)
+            continue;
+
+        // Check if mouse is over the ship
+        var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
+        var shipSize = [ships[i].Collider2D.width, ships[i].Collider2D.height];
+        if (TANK.Math2D.pointInOBB(TANK.main.Game.mousePosWorld, shipPos, shipSize, ships[i].Pos2D.rotation))
+        {
+            // Transfer control to the ship
+            this._entity.removeComponent("Player");
+            this._entity.addComponent("AIShip");
+            ships[i].addComponent("Player");
+            ships[i].removeComponent("AIShip");
+            ships[i].removeComponent("AIWatch");
+        }
+    }
+  });
+
   this.listenTo(TANK.main, "mousedown", this.mouseDownHandler);
-  this.listenTo(TANK.main, "touchstart", this.mouseDownHandler);
+  this.listenTo(TANK.main, "mouseup", this.mouseUpHandler);
   this.listenTo(TANK.main, "mousemove", this.mouseMoveHandler);
+  this.listenTo(TANK.main, "touchstart", this.mouseDownHandler);
+  this.listenTo(TANK.main, "touchend", this.mouseUpHandler);
   this.listenTo(TANK.main, "touchmove", this.mouseMoveHandler);
-
-  this.listenTo(TANK.main, "mouseup", function(e)
-  {
-    this.mouseDown = false;
-    this.fireButtonDown = false;
-  });
-
-  this.listenTo(TANK.main, "touchend", function(e)
-  {
-    this.mouseDown = false;
-    this.fireButtonDown = false;
-  });
 
   this.listenTo(TANK.main, "keydown", function(e)
   {
@@ -1708,6 +1832,24 @@ TANK.registerComponent("Player")
 
   this.update = function(dt)
   {
+    // Timers
+    this.clickTimer += dt;
+
+    // Calculate selection radius
+    if (this.selecting)
+    {
+      this.selectRadius = TANK.Math2D.pointDistancePoint(this.selectPos, TANK.main.Game.mousePosWorld);
+    }
+
+    // Check if mouse is still over order target
+    if (this.pendingTarget)
+    {
+      if (this.pendingTarget.Clickable.checkClick(TANK.main.Game.mousePosWorld))
+        this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(this.pendingTarget);
+      else
+        this.pendingOrder = null;
+    }
+
     // Calculate HUD size
     this.headingRadius = Math.max(ship.image.width, ship.image.height) * 0.75;
     this.speedStart = this.headingRadius * 0.25;
@@ -1749,10 +1891,45 @@ TANK.registerComponent("Player")
 
   this.draw = function(ctx, camera)
   {
+    // Draw selection radius
+    if (this.selecting)
+    {
+      ctx.save()
+      ctx.translate(-camera.x, -camera.y);
+
+      // Inner circle
+      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.beginPath();
+      ctx.arc(this.selectPos[0], this.selectPos[1], 10 * camera.z, Math.PI * 2, false);
+      ctx.closePath();
+      ctx.fill();
+
+      // Selection radius
+      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.beginPath();
+      ctx.arc(this.selectPos[0], this.selectPos[1], this.selectRadius, Math.PI * 2, false);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    if (this.pendingOrder)
+    {
+      var mousePos = TANK.main.Game.mousePosWorld;
+      ctx.save()
+      ctx.translate(-camera.x, -camera.y);
+      var fontSize = 20 * camera.z;
+      ctx.font = fontSize + "px sans-serif";
+      ctx.fillStyle = "#ddd";
+      ctx.fillText(this.pendingOrder, mousePos[0], mousePos[1]);
+      ctx.restore();
+    }
+
     if (camera.z > 5)
       return;
 
-    var pos = TANK.main.Game.mousePosWorld;
+    // Draw player HUD
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
@@ -1811,7 +1988,7 @@ TANK.registerComponent("Player")
 });
 TANK.registerComponent("Ship")
 
-.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons"])
+.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons", "OrderTarget"])
 
 .construct(function()
 {
@@ -1876,6 +2053,8 @@ TANK.registerComponent("Ship")
     that._entity.Lights.redrawLights();
     that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
     that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
+    that._entity.Clickable.width = that.image.width * TANK.main.Game.scaleFactor;
+    that._entity.Clickable.height = that.image.height * TANK.main.Game.scaleFactor;
     that._entity.Weapons.width = that.image.width;
     that._entity.Weapons.height = that.image.height;
 
@@ -1909,17 +2088,36 @@ TANK.registerComponent("Ship")
     this.desiredSpeed = this.shipData.maxSpeed;
   };
 
+  this.setSpeedPercent = function(percent)
+  {
+    this.desiredSpeed = this.shipData.maxSpeed * percent;
+  };
+
   // Add damage decals to the ship
   this.addDamage = function(x, y, radius)
   {
     // Cut out radius around damage
     this.damageBuffer.setPixelRadiusRand(x, y, radius - 2, [255, 255, 255, 255], 0.7, radius, [0, 0, 0, 0], 0.0);
+    this.damageBuffer.applyBuffer();
 
     // Draw burnt edge around damage
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
-
-    this.damageBuffer.applyBuffer();
     this.decalBuffer.applyBuffer();
+
+    // Do damage to weapons on the ship
+    for (var side in this._entity.Weapons.guns)
+    {
+      var guns = this._entity.Weapons.guns[side];
+      for (var i = 0; i < guns.length; ++i)
+      {
+        var gun = guns[i];
+        if (TANK.Math2D.pointDistancePoint([x, y], [gun.x, gun.y]) < radius)
+        {
+          this._entity.Weapons.removeGun(gun, side);
+          i = 0;
+        }
+      }
+    }
   };
 
   // Explode the ship
@@ -2135,6 +2333,15 @@ TANK.registerComponent("Ship")
       ctx.drawImage(this.imageEngine, 0, 0);
     }
 
+    // Draw selection box
+    if (this.selected)
+    {
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1 * camera.z;
+      ctx.strokeStyle = "rgba(150, 255, 150, 0.8)";
+      ctx.strokeRect(0, 0, this.image.width, this.image.height);
+    }
+
     ctx.restore();
   };
 });
@@ -2165,12 +2372,12 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 20,
-        y: 4
+        y: 3
       },
       {
         type: "mediumRail",
         x: 40,
-        y: 4
+        y: 3
       }
     ],
     front:
@@ -2186,12 +2393,12 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 20,
-        y: 44
+        y: 45
       },
       {
         type: "mediumRail",
         x: 40,
-        y: 44
+        y: 45
       }
     ],
     back:
@@ -2429,6 +2636,20 @@ TANK.registerComponent("Weapons")
     this.guns[gunSide].push(gunObj);
   };
 
+  this.removeGun = function(gunObj, gunSide)
+  {
+    for (var i = 0; i < this.guns[gunSide].length; ++i)
+    {
+      if (this.guns[gunSide][i] === gunObj)
+      {
+        this.guns[gunSide].splice(i, 1);
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   this.reloadPercent = function(gunSide)
   {
     if (this.guns[gunSide].length === 0)
@@ -2444,11 +2665,7 @@ TANK.registerComponent("Weapons")
       return;
     gun.reloadTimer = gun.reloadTime;
 
-    var pos = [gun.x, gun.y];
-    pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
-    pos = TANK.Math2D.rotate(pos, t.rotation);
-    pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
-    pos = TANK.Math2D.add(pos, [t.x, t.y]);
+    var pos = gun.worldPos
 
     // Fire bullet
     var e = TANK.createEntity("Bullet");
@@ -2469,24 +2686,20 @@ TANK.registerComponent("Weapons")
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
+
+    // Shake screen
+    var camera = TANK.main.Renderer2D.camera;
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
+    if (dist < 1) dist = 1;
+    if (dist < window.innerWidth / 2)
+      TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)
   {
-    // Shake screen if on camera
-    if (this.reloadPercent(gunSide) >= 1)
-    {
-      var camera = TANK.main.Renderer2D.camera;
-      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
-      if (dist < 1) dist = 1;
-      if (dist < window.innerWidth / 2)
-        TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
-    }
-    
     var guns = this.guns[gunSide];
     for (var i = 0; i < guns.length; ++i)
       this.fireGun(i, gunSide);
-
   };
 
   this.update = function(dt)
@@ -2499,6 +2712,13 @@ TANK.registerComponent("Weapons")
         guns[j].reloadTimer -= dt;
         if (guns[j].reloadTimer < 0)
           guns[j].reloadTimer = 0;
+
+        var pos = [guns[j].x, guns[j].y];
+        pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
+        pos = TANK.Math2D.rotate(pos, t.rotation);
+        pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
+        pos = TANK.Math2D.add(pos, [t.x, t.y]);
+        guns[j].worldPos = pos;        
       }
     }
   };
