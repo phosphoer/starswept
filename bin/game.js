@@ -1,71 +1,11 @@
 this.Action = this.Action || {};
 
-Action.AIApproach = function(e, target)
-{
-  this.target = target;
-  this.optimalDistance = 300;
-  this.giveUpTimer = 5;
-  this._blocking = true;
-
-  this.start = function()
-  {
-  };
-
-  this.update = function(dt)
-  {
-    var t = e.Pos2D;
-    var v = e.Velocity;
-    var ship = e.Ship;
-
-    if (!this.target || !TANK.main.getChild(this.target._id))
-    {
-      this.giveUpTimer -= dt;
-      if (this.giveUpTimer < 0)
-        e.AIShip.removeBehavior("AIApproach");
-      return;
-    }
-
-    // Get direction to target
-    var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
-    var targetVel = this.target.Velocity;
-    if (targetVel)
-    {
-      targetPos[0] += targetVel.x * 1;
-      targetPos[1] += targetVel.y * 1;
-    }
-    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-
-    if (targetDist > this.optimalDistance)
-    {
-      ship.moveTowards(targetPos);
-    }
-    else
-    {
-      ship.desiredSpeed = 0;
-
-      if (v.getSpeed() < 1 && v.r < 0.1)
-        this._done = true;
-    }
-  };
-
-  this.stop = function()
-  {
-  };
-};
-
-this.Action = this.Action || {};
-
 Action.AIAttack = function(e, target)
 {
   this.target = target;
   this.attackDistanceMin = 350;
   this.attackDistanceMax = 550;
   this.giveUpTimer = 5;
-  this._blocking = true;
-
-  this.start = function()
-  {
-  };
 
   this.update = function(dt)
   {
@@ -78,70 +18,197 @@ Action.AIAttack = function(e, target)
     {
       this.giveUpTimer -= dt;
       if (this.giveUpTimer < 0)
-        this._done = true;
-      return;
+        return true;
     }
 
-    // Get direction to player
+    // Get direction to target
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
-    // targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
     var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 
-    // If we are aggressive, we should move to engage the target
+    // We should move to engage the target
     // Depending on the layout of our ship, this either means attempting
     // to line up a broadside, or aligning our fore-guns with the target
-    if (e.AIShip.aggressive)
+    // If we are too close we should turn to get farther away
+    if (targetDist < this.attackDistanceMin)
     {
-      // If we are too close we should turn to get farther away
-      if (targetDist < this.attackDistanceMin)
-      {
-        ship.heading = targetDir + Math.PI;
-        ship.setSpeedPercent(1);
-      }
-      // We want to get to a minimum distance from the target before attempting to aim at it
-      else if (targetDist > this.attackDistanceMax)
-      {
-        ship.heading = targetDir;
-        ship.setSpeedPercent(1);
-      }
-      else
-      {
-        // Aim at a right angle to the direction to the target, to target with a broadside
-        ship.heading = targetDir + Math.PI / 2;
+      ship.heading = targetDir + Math.PI;
+      ship.setSpeedPercent(1);
+    }
+    // We want to get to a minimum distance from the target before attempting to aim at it
+    else if (targetDist > this.attackDistanceMax)
+    {
+      ship.heading = targetDir;
+      ship.setSpeedPercent(1);
+    }
+    else
+    {
+      // Aim at a right angle to the direction to the target, to target with a broadside
+      ship.heading = targetDir + Math.PI / 2;
 
-        // Slow down to half speed while circling
-        ship.setSpeedPercent(0.5);
-      }
+      // Slow down to half speed while circling
+      ship.setSpeedPercent(0.5);
+    }
+  };
+};
+this.Action = this.Action || {};
+
+Action.AIDefend = function(e, target)
+{ 
+  this.timer = 0;
+  this.stayTime = 20;
+  this.defendPos = [0, 0];
+  this.desiredDist = 200;
+  this.maxDefendDist = 600;
+  this.aggroDistance = 800;
+  this.scanTimer = 1;
+
+  this.update = function(dt)
+  {
+    var t = e.Pos2D;
+
+    // Pick a new defend position
+    this.timer -= dt;
+    if (this.timer <= 0)
+    {
+      this.pickNewPos();
+      this.timer = this.stayTime;
     }
 
-    // Check each gun and see if it is facing the target and in range
-    // If so, fire
-    for (var i in e.Weapons.guns)
+    // Move to the control point and stop
+    var dist = TANK.Math2D.pointDistancePoint(this.defendPos, [t.x, t.y]);
+    if (dist > this.desiredDist * 3)
+      e.Ship.moveTowards(this.defendPos);
+    else if (dist > this.desiredDist)
+      e.Ship.moveTowards(this.defendPos, 0.3)
+    else
+      e.Ship.setSpeedPercent(0);
+
+    // Once we are in our defend location, we should attack any enemy ships
+    // that come near the location
+    this.scanTimer -= dt;
+    if (dist <= this.desiredDist && this.scanTimer < 0)
     {
-      var guns = e.Weapons.guns[i];
-      for (var j = 0; j < guns.length; ++j)
+      this.scanTimer = 1;
+
+      var ships = TANK.main.getChildrenWithComponent("Ship");
+      for (var i in ships)
       {
-        if (guns[j].reloadTimer > 0)
+        // Skip ships on our team
+        var obj = ships[i];
+        if (obj.Ship.faction.team === e.Ship.faction.team)
           continue;
-        var distFromGun = TANK.Math2D.pointDistancePoint(targetPos, guns[j].worldPos);
-        var targetVec = TANK.Math2D.subtract(targetPos, guns[j].worldPos);
-        targetVec = TANK.Math2D.scale(targetVec, 1 / distFromGun);
-        var gunDir = [Math.cos(guns[j].angle + t.rotation), Math.sin(guns[j].angle + t.rotation)];
-        var dot = TANK.Math2D.dot(gunDir, targetVec);
-        if (Math.abs(1 - dot) < 0.05 && distFromGun < guns[j].range)
+
+        // If we see a ship, clear our order queue, attack the ship, and then go back to defending this point
+        if (TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], this.defendPos) <= this.aggroDistance)
         {
-          e.Weapons.fireGun(j, i);
+          e.AIShip.clearOrders();
+          e.AIShip.addOrder(new Action.AIAttack(e, obj));
+          e.AIShip.addOrder(new Action.AIDefend(e, target));
         }
       }
     }
   };
 
-  this.stop = function()
+  this.pickNewPos = function()
   {
+    var angle = Math.random() * Math.PI * 2;
+    var dist = Math.random() * this.maxDefendDist;
+    var offsetVec = [Math.cos(angle) * dist, Math.sin(angle) * dist];
+    this.defendPos = TANK.Math2D.add([target.Pos2D.x, target.Pos2D.y], offsetVec);
   };
 };
+
+Action.AIDefendNearest = function(e)
+{
+  this.update = function(dt)
+  {
+    // Look at all friendly control points and give a defend
+    // order for the nearest one
+    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+    var minDist = Infinity;
+    var nearest = null;
+    for (var i in controlPoints)
+    {
+      var obj = controlPoints[i];
+      var dist = TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], [e.Pos2D.x, e.Pos2D.y]);
+      if (dist < minDist)
+      {
+        minDist = dist;
+        nearest = obj;
+      }
+    }
+
+    e.AIShip.addOrder(new Action.AIDefend(e, nearest));
+    return true;
+  };
+};
+
+this.Action = this.Action || {};
+
+Action.AIEscort = function(e, target)
+{
+  this.target = target;
+  this.giveUpTimer = 5;
+  this.desiredDist = 300;
+  this.aggroDistance = 500;
+  this.scanTimer = 1;
+
+  this.update = function(dt)
+  {
+    var t = e.Pos2D;
+    var v = e.Velocity;
+
+    // Give up if we can't find our target
+    if (!this.target || !TANK.main.getChild(this.target._id))
+    {
+      this.giveUpTimer -= dt;
+      if (this.giveUpTimer < 0)
+        return true;
+    }
+
+    // Move towards the target ship
+    var targetPos = [target.Pos2D.x, target.Pos2D.y];
+    var targetSpeedPercent = (target.Ship.desiredSpeed / target.Ship.shipData.maxSpeed);
+    var dist = TANK.Math2D.pointDistancePoint(targetPos, [t.x, t.y]);
+    if (dist > this.desiredDist * 3)
+      e.Ship.moveTowards(targetPos);
+    else if (dist > this.desiredDist)
+      e.Ship.moveTowards(targetPos, targetSpeedPercent + 0.2)
+    else
+    {
+      e.Ship.setSpeedPercent(targetSpeedPercent);
+      e.Ship.heading = target.Ship.heading;
+    }
+
+    // Once we are in our defend location, we should attack any enemy ships
+    // that come near the location
+    this.scanTimer -= dt;
+    if (dist <= this.desiredDist && this.scanTimer < 0)
+    {
+      this.scanTimer = 1;
+
+      var ships = TANK.main.getChildrenWithComponent("Ship");
+      for (var i in ships)
+      {
+        // Skip ships on our team
+        var obj = ships[i];
+        if (obj.Ship.faction.team === e.Ship.faction.team)
+          continue;
+
+        // If we see a ship, clear our order queue, attack the ship, and then go back to defending this point
+        if (TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], targetPos) <= this.aggroDistance)
+        {
+          e.AIShip.clearOrders();
+          e.AIShip.addOrder(new Action.AIAttack(e, obj));
+          e.AIShip.addOrder(new Action.AIEscort(e, target));
+        }
+      }
+    }
+  };
+};
+
 TANK.registerComponent("AIFaction")
 
 .includes("Faction")
@@ -167,30 +234,6 @@ TANK.registerComponent("AIFaction")
     }
   };
 });
-this.Action = this.Action || {};
-
-Action.AIIdle = function(e)
-{
-  this._blocking = true;
-
-  this.start = function()
-  {
-  };
-
-  this.update = function(dt)
-  {
-    var v = e.Velocity;
-    var ship = e.Ship;
-
-    // Decelarate
-    ship.desiredSpeed = 0;
-  };
-
-  this.stop = function()
-  {
-  };
-};
-
 TANK.registerComponent("AIShip")
 
 .includes(["Ship"])
@@ -199,7 +242,6 @@ TANK.registerComponent("AIShip")
 {
   this.actions = [];
   this.removedActions = [];
-  this.aggressive = true;
 })
 
 .initialize(function()
@@ -208,21 +250,13 @@ TANK.registerComponent("AIShip")
   var v = this._entity.Velocity;
   var ship = this._entity.Ship;
 
-  // Get AI behaviors from ship
-  this.aggressive = ship.shipData.aggressive;
-
-  // Always watch for enemies
-  this._entity.addComponent("AIWatch");
-
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
   {
-    if (owner && owner.Ship && owner.Ship.faction.team != ship.faction.team && !(this.actions[0] instanceof Action.AIAttack))
-    {
-      this.prependAction(new Action.AIAttack(this._entity, owner));
-    }
+
   });
 
+  // Get the name of a context order
   this.getContextOrder = function(target)
   {
     if (!target)
@@ -258,54 +292,96 @@ TANK.registerComponent("AIShip")
     // Do something with a ship
     if (target.Ship)
     {
+      this.clearOrders();
       // Attack the ship if it is an enemy
       if (target.Ship.faction.team != ship.faction.team)
-        this.prependAction(new Action.AIAttack(this._entity, target));
+        this.addOrder(new Action.AIAttack(this._entity, target));
+      // Otherwise, escort the ship
+      else
+        this.addOrder(new Action.AIEscort(this._entity, target));
     }
     // Go to a control point
     else if (target.ControlPoint)
     {
-      this.prependAction(new Action.AIApproach(this._entity, target));
+      this.clearOrders();
+      if (target.ControlPoint.faction.team !== ship.faction.team)
+        this.addOrder(new Action.AIDefend(this._entity, target));
+      else
+        this.addOrder(new Action.AIDefend(this._entity, target));
     }
   };
 
-  this.prependAction = function(action, blocking)
+  // Add an action to the queue
+  this.addOrder = function(order)
   {
-    if (blocking !== undefined)
-      action._blocking = blocking;
-    this.actions.splice(0, 0, action);
-    action.start();
+    this.actions.push(order);
   };
 
-  this.appendAction = function(action, blocking)
+  // Clear the current queue of orders
+  this.clearOrders = function()
   {
-    if (blocking !== undefined)
-      action._blocking = blocking;
-    this.actions.push(action);
-    action.start();
+    this.actions = [];
   };
 
   this.update = function(dt)
   {
-    for (var i = 0; i < this.actions.length; ++i)
+    // If we have no orders, go defend the nearest control point
+    if (this.actions.length === 0)
+      this.addOrder(new Action.AIDefendNearest(this._entity));
+
+    // Run current orders
+    if (this.actions.length > 0)
     {
-      var action = this.actions[i];
-      if (action.update)
-        action.update(dt);
+      var done = this.actions[0].update(dt);
+      if (done || this.actions[0]._done === true)
+        this.actions.splice(0, 1);
+    }
 
-      if (action._done)
-        this.removedActions.push(i);
+    // Always scan for enemies in range and fire guns if they come within
+    // sights
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    for (var i in ships)
+    {
+      // Skip ships on our team
+      var e = ships[i];
+      if (e.Ship.faction.team === ship.faction.team)
+        continue;
 
-      if (action._blocking)
-        break;
-    };
-
-    for (var i = 0; i < this.removedActions.length; ++i)
-      this.actions.splice(this.removedActions[i], 1);
-    this.removedActions = [];
+      // Try to shoot at this ship if it is in range
+      if (TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [t.x, t.y]) <= this._entity.Weapons.maxRange)
+        this.fireGunsAtTarget(e);
+    }
   };
 
-  this.appendAction(new Action.AIIdle(this._entity));
+  // Attempt to fire guns at a given target, if it is in our sights
+  this.fireGunsAtTarget = function(target)
+  {
+    var targetPos = [target.Pos2D.x, target.Pos2D.y];
+    var targetVelocity = [target.Velocity.x, target.Velocity.y];
+    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
+
+    // Check each gun and see if it is facing the target and in range
+    // If so, fire
+    for (var i in this._entity.Weapons.guns)
+    {
+      var guns = this._entity.Weapons.guns[i];
+      for (var j = 0; j < guns.length; ++j)
+      {
+        if (guns[j].reloadTimer > 0)
+          continue;
+        var distFromGun = TANK.Math2D.pointDistancePoint(targetPos, guns[j].worldPos);
+        var targetVec = TANK.Math2D.subtract(targetPos, guns[j].worldPos);
+        targetVec = TANK.Math2D.scale(targetVec, 1 / distFromGun);
+        var gunDir = [Math.cos(guns[j].angle + t.rotation), Math.sin(guns[j].angle + t.rotation)];
+        var dot = TANK.Math2D.dot(gunDir, targetVec);
+        if (Math.abs(1 - dot) < 0.05 && distFromGun < guns[j].range)
+        {
+          this._entity.Weapons.fireGun(j, i);
+        }
+      }
+    }
+  };
 });
 TANK.registerComponent("AIWatch")
 
@@ -2085,15 +2161,25 @@ TANK.registerComponent("Ship")
   };
 
   // Move towards a given point
-  this.moveTowards = function(pos)
+  this.moveTowards = function(pos, speedPercent)
   {
     this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
-    this.desiredSpeed = this.shipData.maxSpeed;
+
+    // Set speed
+    if (typeof speedPercent === "undefined")
+      this.setSpeedPercent(1)
+    else
+      this.setSpeedPercent(speedPercent)
+
+    // If not facing in the right direction just turn off engines
+    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, pos);
+    if (Math.abs(dir) > 0.3)
+      this.setSpeedPercent(0);
   };
 
   this.setSpeedPercent = function(percent)
   {
-    this.desiredSpeed = this.shipData.maxSpeed * percent;
+    this.desiredSpeed = Math.min(this.shipData.maxSpeed, this.shipData.maxSpeed * percent);
   };
 
   // Add damage decals to the ship
@@ -2197,10 +2283,12 @@ TANK.registerComponent("Ship")
 
     // Apply heading logic
     var headingVec = [Math.cos(this.heading), Math.sin(this.heading)];
+    var currentVec = [Math.cos(t.rotation), Math.sin(t.rotation)]
+    var headingDot = TANK.Math2D.dot(headingVec, currentVec);
     var dir = TANK.Math2D.getDirectionToPoint([0, 0], t.rotation, headingVec);
-    if (dir < -0.1)
+    if (Math.abs(1 - headingDot) > 0.01 && dir < 0)
       v.r -= dt * this.shipData.turnAccel;
-    else if (dir > 0.1)
+    else if (Math.abs(1 - headingDot) > 0.01 && dir > 0)
       v.r += dt * this.shipData.turnAccel;
     else
       v.r *= 0.95;
@@ -2239,8 +2327,8 @@ TANK.registerComponent("Ship")
       v.y *= 0.99;
     }
     // Correct trajectory
-    v.x += correctionVec[0] * dt * 0.05;
-    v.y += correctionVec[1] * dt * 0.05;
+    v.x += correctionVec[0] * dt * 0.07;
+    v.y += correctionVec[1] * dt * 0.07;
 
     // Cap movement
     if (Math.abs(v.r) > this.shipData.maxTurnSpeed)
@@ -2361,13 +2449,12 @@ Ships.frigate = function()
     front: "res/frigate-lit-front.png",
     back: "res/frigate-lit-back.png"
   };
-  this.maxTurnSpeed = 0.3;
+  this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;
-  this.turnAccel = 1;
+  this.turnAccel = 1.2;
   this.health = 1;
   this.cost = 30;
-  this.aggressive = true;
   this.guns =
   {
     left:
@@ -2449,7 +2536,6 @@ Ships.cruiser = function()
   this.maxSpeed = 100;
   this.health = 1.5;
   this.cost = 50;
-  this.aggressive = false;
   this.guns =
   {
     left:
@@ -2615,6 +2701,7 @@ TANK.registerComponent("Weapons")
   };
   this.height = 10;
   this.width = 5;
+  this.maxRange = 0;
 })
 
 .initialize(function()
@@ -2707,21 +2794,28 @@ TANK.registerComponent("Weapons")
 
   this.update = function(dt)
   {
+    // Update all guns
+    this.maxRange = 0;
     for (var i in this.guns)
     {
       var guns = this.guns[i];
       for (var j = 0; j < guns.length; ++j)
       {
+        // Reload timer
         guns[j].reloadTimer -= dt;
         if (guns[j].reloadTimer < 0)
           guns[j].reloadTimer = 0;
 
+        // Calculate world position of gun
         var pos = [guns[j].x, guns[j].y];
         pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
         pos = TANK.Math2D.rotate(pos, t.rotation);
         pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
         pos = TANK.Math2D.add(pos, [t.x, t.y]);
-        guns[j].worldPos = pos;        
+        guns[j].worldPos = pos;
+
+        // Find max range
+        this.maxRange = Math.max(this.maxRange, guns[j].range);    
       }
     }
   };
