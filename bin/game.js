@@ -738,8 +738,6 @@ TANK.registerComponent("Game")
 
 .initialize(function()
 {
-  lowLag.init();
-
   this.barUI = new Ractive(
   {
     el: "barContainer",
@@ -845,6 +843,7 @@ TANK.registerComponent("Game")
     this.factions[1].controlPoints[0].buyShip("frigate");
   });
 });
+
 TANK.registerComponent("Glow")
 
 .includes(["Pos2D", "Velocity", "Life"])
@@ -1032,6 +1031,15 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
+function main()
+{
+  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField"]);
+
+  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
+  TANK.main.Input.context = document.querySelector("#stage");
+
+  TANK.start();
+}
 TANK.registerComponent("OrderTarget").includes("Clickable");
 var ParticleLibrary = {};
 
@@ -2855,13 +2863,3 @@ TANK.registerComponent("Weapons")
     ctx.restore();
   };
 });
-
-function main()
-{
-  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField"]);
-
-  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
-  TANK.main.Input.context = document.querySelector("#stage");
-
-  TANK.start();
-}
