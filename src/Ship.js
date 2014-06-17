@@ -94,15 +94,25 @@ TANK.registerComponent("Ship")
   };
 
   // Move towards a given point
-  this.moveTowards = function(pos)
+  this.moveTowards = function(pos, speedPercent)
   {
     this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
-    this.desiredSpeed = this.shipData.maxSpeed;
+
+    // Set speed
+    if (typeof speedPercent === "undefined")
+      this.setSpeedPercent(1)
+    else
+      this.setSpeedPercent(speedPercent)
+
+    // If not facing in the right direction just turn off engines
+    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, pos);
+    if (Math.abs(dir) > 0.3)
+      this.setSpeedPercent(0);
   };
 
   this.setSpeedPercent = function(percent)
   {
-    this.desiredSpeed = this.shipData.maxSpeed * percent;
+    this.desiredSpeed = Math.min(this.shipData.maxSpeed, this.shipData.maxSpeed * percent);
   };
 
   // Add damage decals to the ship
@@ -206,10 +216,12 @@ TANK.registerComponent("Ship")
 
     // Apply heading logic
     var headingVec = [Math.cos(this.heading), Math.sin(this.heading)];
+    var currentVec = [Math.cos(t.rotation), Math.sin(t.rotation)]
+    var headingDot = TANK.Math2D.dot(headingVec, currentVec);
     var dir = TANK.Math2D.getDirectionToPoint([0, 0], t.rotation, headingVec);
-    if (dir < -0.1)
+    if (Math.abs(1 - headingDot) > 0.01 && dir < 0)
       v.r -= dt * this.shipData.turnAccel;
-    else if (dir > 0.1)
+    else if (Math.abs(1 - headingDot) > 0.01 && dir > 0)
       v.r += dt * this.shipData.turnAccel;
     else
       v.r *= 0.95;
@@ -248,8 +260,8 @@ TANK.registerComponent("Ship")
       v.y *= 0.99;
     }
     // Correct trajectory
-    v.x += correctionVec[0] * dt * 0.05;
-    v.y += correctionVec[1] * dt * 0.05;
+    v.x += correctionVec[0] * dt * 0.07;
+    v.y += correctionVec[1] * dt * 0.07;
 
     // Cap movement
     if (Math.abs(v.r) > this.shipData.maxTurnSpeed)

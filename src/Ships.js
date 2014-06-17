@@ -11,13 +11,12 @@ Ships.frigate = function()
     front: "res/frigate-lit-front.png",
     back: "res/frigate-lit-back.png"
   };
-  this.maxTurnSpeed = 0.3;
+  this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;
-  this.turnAccel = 1;
+  this.turnAccel = 1.2;
   this.health = 1;
   this.cost = 30;
-  this.aggressive = true;
   this.guns =
   {
     left:
@@ -99,7 +98,6 @@ Ships.cruiser = function()
   this.maxSpeed = 100;
   this.health = 1.5;
   this.cost = 50;
-  this.aggressive = false;
   this.guns =
   {
     left:
