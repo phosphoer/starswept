@@ -14,6 +14,7 @@ TANK.registerComponent("Weapons")
   };
   this.height = 10;
   this.width = 5;
+  this.maxRange = 0;
 })
 
 .initialize(function()
@@ -106,21 +107,28 @@ TANK.registerComponent("Weapons")
 
   this.update = function(dt)
   {
+    // Update all guns
+    this.maxRange = 0;
     for (var i in this.guns)
     {
       var guns = this.guns[i];
       for (var j = 0; j < guns.length; ++j)
       {
+        // Reload timer
         guns[j].reloadTimer -= dt;
         if (guns[j].reloadTimer < 0)
           guns[j].reloadTimer = 0;
 
+        // Calculate world position of gun
         var pos = [guns[j].x, guns[j].y];
         pos = TANK.Math2D.subtract(pos, [this.width / 2, this.height / 2]);
         pos = TANK.Math2D.rotate(pos, t.rotation);
         pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
         pos = TANK.Math2D.add(pos, [t.x, t.y]);
-        guns[j].worldPos = pos;        
+        guns[j].worldPos = pos;
+
+        // Find max range
+        this.maxRange = Math.max(this.maxRange, guns[j].range);    
       }
     }
   };

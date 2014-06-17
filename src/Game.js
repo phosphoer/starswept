@@ -12,8 +12,6 @@ TANK.registerComponent("Game")
 
 .initialize(function()
 {
-  lowLag.init();
-
   this.barUI = new Ractive(
   {
     el: "barContainer",
