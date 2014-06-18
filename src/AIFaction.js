@@ -4,7 +4,9 @@ TANK.registerComponent("AIFaction")
 
 .construct(function()
 {
-  this.numShips = 0;
+  this.currentCaptureTarget = null;
+  this.shipsBuildForCapture = [];
+  this.shipsQueuedForCapture = 0;
 })
 
 .initialize(function()
@@ -13,13 +15,6 @@ TANK.registerComponent("AIFaction")
 
   this.update = function(dt)
   {
-    // Buy a ship
-    if (faction.money > 30 && this.numShips < 3 && 0)
-    {
-      // Pick a control point to buy a ship at
-      var controlPoint = faction.controlPoints[Math.floor(Math.random() * faction.controlPoints.length)];
-      controlPoint.buyShip("frigate");
-      ++this.numShips;
-    }
+
   };
 });

@@ -2,6 +2,7 @@ var Ships = {};
 
 Ships.frigate = function()
 {
+  this.name = "Frigate";
   this.image = "res/frigate.png";
   this.imageEngine = "res/frigate-engine.png";
   this.imageLighting =
@@ -17,6 +18,7 @@ Ships.frigate = function()
   this.turnAccel = 1.2;
   this.health = 1;
   this.cost = 30;
+  this.buildTime = 5;
   this.guns =
   {
     left:
@@ -93,6 +95,7 @@ Ships.frigate = function()
 
 Ships.cruiser = function()
 {
+  this.name = "Cruiser";
   this.image = "res/cruiser.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 100;
