@@ -76,7 +76,10 @@ TANK.registerComponent("ControlPoint")
     {
       this.faction.money -= shipData.cost;
       this.queuedShips.push({shipData: shipData, time: shipData.buildTime, callback: callback});
+      return true;
     }
+
+    return false;
   };
 
   this.draw = function(ctx, camera)
@@ -95,7 +98,7 @@ TANK.registerComponent("ControlPoint")
       ctx.fill();
       ctx.restore();
     }
-    else if (this.faction.team === 0)
+    else if (this.faction && this.faction.team === 0)
     {
       // Draw queue
       ctx.save();
