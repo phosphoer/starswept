@@ -113,7 +113,5 @@ TANK.registerComponent("Game")
     e.Ship.shipData = new Ships.frigate();
     e.Ship.faction = this.factions[0];
     TANK.main.addChild(e);
-
-    this.factions[1].controlPoints[0].buyShip("frigate");
   });
 });

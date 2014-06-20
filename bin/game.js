@@ -229,7 +229,17 @@ TANK.registerComponent("AIFaction")
 
   this.calculateControlPointThreat = function(e)
   {
-    return 3;
+    // Find how many enemy ships are near the planet
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var numShips = 0;
+    for (var i in ships)
+    {
+      var dist = TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [ships[i].Pos2D.x, ships[i].Pos2D.y]);
+      if (dist < 700 && ships[i].Ship.faction.team !== faction.team)
+        ++numShips;
+    }
+
+    return Math.max(Math.round(numShips * 1.5), 1);
   };
 
   this.assignShipsToCaptureTarget = function(num)
@@ -964,8 +974,6 @@ TANK.registerComponent("Game")
     e.Ship.shipData = new Ships.frigate();
     e.Ship.faction = this.factions[0];
     TANK.main.addChild(e);
-
-    this.factions[1].controlPoints[0].buyShip("frigate");
   });
 });
 
