@@ -11,12 +11,12 @@ TANK.registerComponent("Faction")
 
 .initialize(function()
 {
-  this.listenTo(this._entity, "buyship", function(ship, callback)
+  this.listenTo(this._entity, "buyship", function(ship, callback, data)
   {
-    this.buyShip(callback);
+    this.buyShip(ship, callback, data);
   });
 
-  this.buyShip = function(callback)
+  this.buyShip = function(type, callback, data)
   {
     // Find a control point with small queue
     var shortestQueueLength = Infinity;
@@ -32,9 +32,9 @@ TANK.registerComponent("Faction")
 
     if (chosenControlPoint) 
     {
-      if (!chosenControlPoint.buyShip("frigate", callback))
+      if (!chosenControlPoint.buyShip(type, callback, data))
       {
-        this._entity.dispatchTimed(5, "buyship", null, callback);
+        this._entity.dispatchTimed(5, "buyship", type, callback, data);
       }
     }
   };

@@ -2,6 +2,7 @@ var Ships = {};
 
 Ships.frigate = function()
 {
+  this.type = "frigate";
   this.name = "Frigate";
   this.image = "res/frigate.png";
   this.imageEngine = "res/frigate-engine.png";

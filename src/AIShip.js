@@ -4,6 +4,7 @@ TANK.registerComponent("AIShip")
 
 .construct(function()
 {
+  this.idle = true;
   this.actions = [];
   this.removedActions = [];
 })
@@ -79,6 +80,7 @@ TANK.registerComponent("AIShip")
   this.addOrder = function(order)
   {
     this.actions.push(order);
+    this.idle = false;
   };
 
   // Clear the current queue of orders
@@ -91,7 +93,10 @@ TANK.registerComponent("AIShip")
   {
     // If we have no orders, go defend the nearest control point
     if (this.actions.length === 0)
+    {
       this.addOrder(new Action.AIDefendNearest(this._entity));
+      this.idle = true;
+    }
 
     // Run current orders
     if (this.actions.length > 0)

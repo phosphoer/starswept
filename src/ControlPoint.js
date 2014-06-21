@@ -68,14 +68,14 @@ TANK.registerComponent("ControlPoint")
     }
   };
 
-  this.buyShip = function(shipType, callback)
+  this.buyShip = function(shipType, callback, data)
   {
     var shipData = new Ships[shipType]();
 
     if (this.faction.money >= shipData.cost)
     {
       this.faction.money -= shipData.cost;
-      this.queuedShips.push({shipData: shipData, time: shipData.buildTime, callback: callback});
+      this.queuedShips.push({shipData: shipData, time: shipData.buildTime, callback: callback, data: data});
       return true;
     }
 
@@ -148,7 +148,7 @@ TANK.registerComponent("ControlPoint")
         --i;
 
         if (item.callback)
-          item.callback(e);
+          item.callback(e, item.data);
       }
     }
   };
