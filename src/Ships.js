@@ -1,5 +1,73 @@
 var Ships = {};
 
+Ships.fighter = function()
+{
+  this.type = "fighter";
+  this.name = "Fighter";
+  this.image = "res/fighter.png";
+  this.imageEngine = "res/fighter-engine.png";
+  this.imageLighting =
+  {
+    left: "res/fighter-lit-left.png",
+    right: "res/fighter-lit-right.png",
+    front: "res/fighter-lit-front.png",
+    back: "res/fighter-lit-back.png"
+  };
+  this.maxTurnSpeed = 0.85;
+  this.maxSpeed = 250;
+  this.accel = 35;
+  this.turnAccel = 1.8;
+  this.health = 0.2;
+  this.cost = 5;
+  this.buildTime = 2;
+  this.guns =
+  {
+    front:
+    [
+      {
+        type: "mediumRail",
+        x: 19,
+        y: 14
+      }
+    ]
+  },
+  this.lights =
+  [
+    {
+      x: 3, y: 6, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 2, y: 15, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 4, y: 22, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 13, y: 15, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      states:
+      {
+        on: {alpha: 0.5},
+        off: {alpha: 0.2}
+      }
+    }
+  ];
+};
+
 Ships.frigate = function()
 {
   this.type = "frigate";
@@ -85,82 +153,6 @@ Ships.frigate = function()
     },
     {
       x: 49, y: 3, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
-  ];
-};
-
-Ships.cruiser = function()
-{
-  this.name = "Cruiser";
-  this.image = "res/cruiser.png";
-  this.maxTurnSpeed = 1.0;
-  this.maxSpeed = 100;
-  this.health = 1.5;
-  this.cost = 50;
-  this.guns =
-  {
-    left:
-    {
-      count: 3,
-      damage: 0.1,
-      range: 800,
-      time: 5
-    },
-    right:
-    {
-      count: 3,
-      damage: 0.1,
-      range: 800,
-      time: 5
-    },
-    front:
-    {
-      count: 2,
-      damage: 0.1,
-      range: 600,
-      time: 3
-    },
-    back:
-    {
-      count: 1,
-      damage: 0.1,
-      range: 600,
-      time: 3
-    }
-  },
-  this.lights =
-  [
-    {
-      x: 3, y: 0, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.3}
-      }
-    },
-    {
-      x: 0, y: 3, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.3}
-      }
-    },
-    {
-      x: 3, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.3}
-      }
-    },
-    {
-      x: 7, y: 5, radius: 2, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.25,
       states:
       {
         on: {alpha: 0.5},

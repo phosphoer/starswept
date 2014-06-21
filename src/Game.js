@@ -29,18 +29,18 @@ TANK.registerComponent("Game")
   var that = this;
   this.barCommands.push(
   {
-    name: "Build Frigate",
+    name: "Build Fighter",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip("frigate");
+      that.factions[0].controlPoints[0].buyShip("fighter");
     }
   });
   this.barCommands.push(
   {
-    name: "Build Cruiser",
+    name: "Build Frigate",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip("cruiser");
+      that.factions[0].controlPoints[0].buyShip("frigate");
     }
   });
 
