@@ -209,37 +209,203 @@ Action.AIEscort = function(e, target)
   };
 };
 
+(function()
+{
+
 TANK.registerComponent("AIFaction")
-
 .includes("Faction")
-
 .construct(function()
 {
-  this.numShips = 0;
-})
+  this.currentCaptureTarget = null;
+  this.projects = [];
 
+  this.idleShipScanTime = 5;
+  this.idleShipScanTimer = 0;
+  this.idleShips = [];
+})
 .initialize(function()
 {
   var faction = this._entity.Faction;
+  var that = this;
+
+  this.calculateControlPointThreat = function(e)
+  {
+    // Find how many enemy ships are near the planet
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var numShips = 0;
+    for (var i in ships)
+    {
+      var dist = TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [ships[i].Pos2D.x, ships[i].Pos2D.y]);
+      if (dist < 700 && ships[i].Ship.faction.team !== faction.team)
+        ++numShips;
+    }
+
+    return Math.max(Math.round(numShips * 1.5), 1);
+  };
 
   this.update = function(dt)
   {
-    // Buy a ship
-    if (faction.money > 30 && this.numShips < 3 && 0)
+    // Find idle ships
+    this.idleShipScanTimer -= dt;
+    if (this.idleShipScanTimer <= 0)
     {
-      // Pick a control point to buy a ship at
-      var controlPoint = faction.controlPoints[Math.floor(Math.random() * faction.controlPoints.length)];
-      controlPoint.buyShip("frigate");
-      ++this.numShips;
+      this.idleShips = [];
+      this.idleShipScanTimer = this.idleShipScanTime;
+      var ships = TANK.main.getChildrenWithComponent("AIShip");
+      for (var i in ships)
+      {
+        if (ships[i].AIShip.idle)
+          this.idleShips.push(ships[i]);
+      }
+    } 
+
+    // If we don't have a current capture target, find one and create a project for it
+    if (!this.currentCaptureTarget)
+    {
+      console.log("AI: No capture target, picking a new one...");
+      var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+      for (var i in controlPoints)
+      {
+        var e = controlPoints[i];
+        if (!e.ControlPoint.faction || e.ControlPoint.faction.team !== faction.team)
+        {
+          console.log("AI: Found capture target, assigning ships...");
+          this.currentCaptureTarget = e;
+          var threat = this.calculateControlPointThreat(this.currentCaptureTarget);
+          var captureProject = new AIProject(this);
+          captureProject.target = e;
+          captureProject.order = "AIDefend";
+          captureProject.buildCombatGroup(threat);
+          captureProject.acquireShips();
+          captureProject.completeCondition = function()
+          {
+            return e.ControlPoint.faction === faction;
+          };
+          this.projects.push(captureProject);
+          break;
+        }
+      }
     }
+
+    // Update existing projects
+    for (var i = 0; i < this.projects.length; ++i)
+    {
+      this.projects[i].update(dt);
+      if (this.projects[i].complete)
+        this.projects[i] = null;
+    }
+    this.projects = this.projects.filter(function(val) {return val !== null;});
   };
 });
+
+function AIProject(aiFaction)
+{
+  this.target = null;
+  this.order = "";
+  this.shipsQueued = 0;
+  this.shipsRequired = [];
+  this.ready = false;
+  this.inProgress = false;
+  this.complete = false;
+
+  this.completeCondition = function()
+  {
+    return false;
+  };
+
+  this.buildCombatGroup = function(num)
+  {
+    this.shipsRequired = [];
+    for (var i = 0; i < num; ++i)
+    {
+      var ship = {type: "frigate"};
+      this.shipsRequired.push(ship);
+    }
+  };
+
+  this.acquireShips = function()
+  {
+    // Assign any existing idle ships
+    for (var i = 0; i < this.shipsRequired.length; ++i)
+    {
+      for (var j = 0; j < aiFaction.idleShips.length; ++j)
+      {
+        if (aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
+        {
+          this.shipsRequired[i].assignedShip = aiFaction.idleShips[j];
+          aiFaction.idleShips[j] = null;
+          break;
+        }
+      }
+    }
+    console.log("AI: Found " + aiFaction.idleShips.length + " idle ships...");
+    aiFaction.idleShips = aiFaction.idleShips.filter(function(val) {return val !== null;});
+
+    // Queue ships for construction to fill remaining places
+    var that = this;
+    for (var i = 0; i < this.shipsRequired.length; ++i)
+    {
+      if (!this.shipsRequired[i].assignedShip)
+      {
+        ++this.shipsQueued;
+        console.log("AI: Queued ship for build...");
+        aiFaction._entity.Faction.buyShip(this.shipsRequired[i].type, function(e, requiredShip)
+        {
+          console.log("AI: ...Ship for target complete");
+          requiredShip.assignedShip = e;
+        }, this.shipsRequired[i]);
+      }
+    }
+  };
+
+  this.update = function(dt)
+  {
+    // Check if the project is ready
+    if (!this.inProgress && this.shipsRequired.length > 0)
+    {
+      this.ready = true;
+      for (var i = 0; i < this.shipsRequired.length; ++i)
+      {
+        if (!this.shipsRequired[i].assignedShip)
+          this.ready = false;
+      }
+    }
+
+    // Once the project is ready, assign allocated ships to the target
+    if (this.ready && !this.inProgress)
+    {
+      this.inProgress = true;
+      for (var i = 0; i < this.shipsRequired.length; ++i)
+      {
+        this.shipsRequired[i].assignedShip.AIShip.giveContextOrder(this.target);
+      }
+    }
+
+    // Check if the project is complete
+    this.complete = this.completeCondition();
+    if (this.complete)
+    {
+      // If so, cancel all orders for the assigned ships
+      for (var i = 0; i < this.shipsRequired.length; ++i)
+      {
+        var item = this.shipsRequired[i];
+        if (item.assignedShip && TANK.main.getChild(item.assignedShip._id))
+        {
+          item.assignedShip.AIShip.clearOrders();
+        }
+      }
+    }
+  };
+};
+
+})();
 TANK.registerComponent("AIShip")
 
 .includes(["Ship"])
 
 .construct(function()
 {
+  this.idle = true;
   this.actions = [];
   this.removedActions = [];
 })
@@ -315,6 +481,7 @@ TANK.registerComponent("AIShip")
   this.addOrder = function(order)
   {
     this.actions.push(order);
+    this.idle = false;
   };
 
   // Clear the current queue of orders
@@ -327,7 +494,10 @@ TANK.registerComponent("AIShip")
   {
     // If we have no orders, go defend the nearest control point
     if (this.actions.length === 0)
+    {
       this.addOrder(new Action.AIDefendNearest(this._entity));
+      this.idle = true;
+    }
 
     // Run current orders
     if (this.actions.length > 0)
@@ -549,6 +719,7 @@ TANK.registerComponent("ControlPoint")
   this.capturePercent = 0;
   this.captureDistance = 500;
   this.passiveCapture = 0.05
+  this.queuedShips = [];
 })
 
 .initialize(function()
@@ -603,39 +774,50 @@ TANK.registerComponent("ControlPoint")
     }
   };
 
-  this.buyShip = function(shipType)
+  this.buyShip = function(shipType, callback, data)
   {
     var shipData = new Ships[shipType]();
 
     if (this.faction.money >= shipData.cost)
     {
       this.faction.money -= shipData.cost;
-
-      var e = TANK.createEntity("AIShip");
-      e.Ship.faction = this.faction;
-      e.Ship.shipData = shipData;
-      e.Pos2D.x = t.x - 400 + Math.random() * 800;
-      e.Pos2D.y = t.y - 400 + Math.random() * 800;
-      TANK.main.addChild(e);
+      this.queuedShips.push({shipData: shipData, time: shipData.buildTime, callback: callback, data: data});
+      return true;
     }
+
+    return false;
   };
 
   this.draw = function(ctx, camera)
   {
-    if (camera.z < 8)
-      return;
+    if (camera.z >= 8)
+    {
+      // Draw strategic icon
+      ctx.save();
+      ctx.fillStyle = this.faction ? this.faction.color : "#555";
+      ctx.lineWidth = 2;
+      ctx.translate(t.x - camera.x, t.y - camera.y);
 
-    ctx.save();
-    ctx.fillStyle = this.faction ? this.faction.color : "#555";
-    ctx.lineWidth = 2;
-    ctx.translate(t.x - camera.x, t.y - camera.y);
-
-    ctx.beginPath();
-    ctx.arc(0, 0, 300, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.restore();
+      ctx.beginPath();
+      ctx.arc(0, 0, 300, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    else if (this.faction && this.faction.team === 0)
+    {
+      // Draw queue
+      ctx.save();
+      ctx.fillStyle = "#ddd";
+      ctx.font =  20 * camera.z + "px sans-serif";
+      ctx.translate(t.x - camera.x, t.y - camera.y);
+      for (var i = 0; i < this.queuedShips.length; ++i)
+      {
+        var timeRemaining = Math.round(this.queuedShips[i].time);
+        ctx.fillText(this.queuedShips[i].shipData.name + " - " + timeRemaining + " seconds", 400, -400 + i * 40);
+      }
+      ctx.restore();
+    }
   };
 
   this.update = function(dt)
@@ -652,6 +834,28 @@ TANK.registerComponent("ControlPoint")
 
       if (this.faction)
         this.faction.money += this.value;
+    }
+
+    // Process build queue
+    for (var i = 0; i < this.queuedShips.length; ++i)
+    {
+      var item = this.queuedShips[i];
+      item.time -= dt;
+      if (item.time <= 0)
+      {
+        var e = TANK.createEntity("AIShip");
+        e.Ship.faction = this.faction;
+        e.Ship.shipData = item.shipData;
+        e.Pos2D.x = t.x - 400 + Math.random() * 800;
+        e.Pos2D.y = t.y - 400 + Math.random() * 800;
+        TANK.main.addChild(e);
+
+        this.queuedShips.splice(i, 1);
+        --i;
+
+        if (item.callback)
+          item.callback(e, item.data);
+      }
     }
   };
 });
@@ -702,10 +906,39 @@ TANK.registerComponent("Faction")
   this.color = "#666";
   this.money = 50;
   this.controlPoints = [];
+  this.shipsToBuy = [];
 })
 
 .initialize(function()
 {
+  this.listenTo(this._entity, "buyship", function(ship, callback, data)
+  {
+    this.buyShip(ship, callback, data);
+  });
+
+  this.buyShip = function(type, callback, data)
+  {
+    // Find a control point with small queue
+    var shortestQueueLength = Infinity;
+    var chosenControlPoint = null;
+    for (var i = 0; i < this.controlPoints.length; ++i)
+    {
+      if (this.controlPoints[i].queuedShips.length < shortestQueueLength)
+      {
+        shortestQueueLength = this.controlPoints[i].queuedShips.length;
+        chosenControlPoint = this.controlPoints[i];
+      }
+    }
+
+    if (chosenControlPoint) 
+    {
+      if (!chosenControlPoint.buyShip(type, callback, data))
+      {
+        this._entity.dispatchTimed(5, "buyship", type, callback, data);
+      }
+    }
+  };
+
   this.addControlPoint = function(controlPoint)
   {
     controlPoint.faction = this;
@@ -755,18 +988,18 @@ TANK.registerComponent("Game")
   var that = this;
   this.barCommands.push(
   {
-    name: "Build Frigate",
+    name: "Build Fighter",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip("frigate");
+      that.factions[0].controlPoints[0].buyShip("fighter");
     }
   });
   this.barCommands.push(
   {
-    name: "Build Cruiser",
+    name: "Build Frigate",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip("cruiser");
+      that.factions[0].controlPoints[0].buyShip("frigate");
     }
   });
 
@@ -839,8 +1072,6 @@ TANK.registerComponent("Game")
     e.Ship.shipData = new Ships.frigate();
     e.Ship.faction = this.factions[0];
     TANK.main.addChild(e);
-
-    this.factions[1].controlPoints[0].buyShip("frigate");
   });
 });
 
@@ -1031,15 +1262,6 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
-function main()
-{
-  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField"]);
-
-  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
-  TANK.main.Input.context = document.querySelector("#stage");
-
-  TANK.start();
-}
 TANK.registerComponent("OrderTarget").includes("Clickable");
 var ParticleLibrary = {};
 
@@ -2446,8 +2668,78 @@ TANK.registerComponent("Ship")
 });
 var Ships = {};
 
+Ships.fighter = function()
+{
+  this.type = "fighter";
+  this.name = "Fighter";
+  this.image = "res/fighter.png";
+  this.imageEngine = "res/fighter-engine.png";
+  this.imageLighting =
+  {
+    left: "res/fighter-lit-left.png",
+    right: "res/fighter-lit-right.png",
+    front: "res/fighter-lit-front.png",
+    back: "res/fighter-lit-back.png"
+  };
+  this.maxTurnSpeed = 0.85;
+  this.maxSpeed = 250;
+  this.accel = 35;
+  this.turnAccel = 1.8;
+  this.health = 0.2;
+  this.cost = 5;
+  this.buildTime = 2;
+  this.guns =
+  {
+    front:
+    [
+      {
+        type: "mediumRail",
+        x: 19,
+        y: 14
+      }
+    ]
+  },
+  this.lights =
+  [
+    {
+      x: 3, y: 6, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 2, y: 15, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 4, y: 22, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 13, y: 15, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      states:
+      {
+        on: {alpha: 0.5},
+        off: {alpha: 0.2}
+      }
+    }
+  ];
+};
+
 Ships.frigate = function()
 {
+  this.type = "frigate";
+  this.name = "Frigate";
   this.image = "res/frigate.png";
   this.imageEngine = "res/frigate-engine.png";
   this.imageLighting =
@@ -2463,6 +2755,7 @@ Ships.frigate = function()
   this.turnAccel = 1.2;
   this.health = 1;
   this.cost = 30;
+  this.buildTime = 5;
   this.guns =
   {
     left:
@@ -2528,81 +2821,6 @@ Ships.frigate = function()
     },
     {
       x: 49, y: 3, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
-  ];
-};
-
-Ships.cruiser = function()
-{
-  this.image = "res/cruiser.png";
-  this.maxTurnSpeed = 1.0;
-  this.maxSpeed = 100;
-  this.health = 1.5;
-  this.cost = 50;
-  this.guns =
-  {
-    left:
-    {
-      count: 3,
-      damage: 0.1,
-      range: 800,
-      time: 5
-    },
-    right:
-    {
-      count: 3,
-      damage: 0.1,
-      range: 800,
-      time: 5
-    },
-    front:
-    {
-      count: 2,
-      damage: 0.1,
-      range: 600,
-      time: 3
-    },
-    back:
-    {
-      count: 1,
-      damage: 0.1,
-      range: 600,
-      time: 3
-    }
-  },
-  this.lights =
-  [
-    {
-      x: 3, y: 0, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.3}
-      }
-    },
-    {
-      x: 0, y: 3, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.3}
-      }
-    },
-    {
-      x: 3, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 4, alpha: 0.8},
-        off: {radius: 3, alpha: 0.3}
-      }
-    },
-    {
-      x: 7, y: 5, radius: 2, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.25,
       states:
       {
         on: {alpha: 0.5},
@@ -2863,3 +3081,13 @@ TANK.registerComponent("Weapons")
     ctx.restore();
   };
 });
+
+function main()
+{
+  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField"]);
+
+  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
+  TANK.main.Input.context = document.querySelector("#stage");
+
+  TANK.start();
+}

@@ -6,10 +6,39 @@ TANK.registerComponent("Faction")
   this.color = "#666";
   this.money = 50;
   this.controlPoints = [];
+  this.shipsToBuy = [];
 })
 
 .initialize(function()
 {
+  this.listenTo(this._entity, "buyship", function(ship, callback, data)
+  {
+    this.buyShip(ship, callback, data);
+  });
+
+  this.buyShip = function(type, callback, data)
+  {
+    // Find a control point with small queue
+    var shortestQueueLength = Infinity;
+    var chosenControlPoint = null;
+    for (var i = 0; i < this.controlPoints.length; ++i)
+    {
+      if (this.controlPoints[i].queuedShips.length < shortestQueueLength)
+      {
+        shortestQueueLength = this.controlPoints[i].queuedShips.length;
+        chosenControlPoint = this.controlPoints[i];
+      }
+    }
+
+    if (chosenControlPoint) 
+    {
+      if (!chosenControlPoint.buyShip(type, callback, data))
+      {
+        this._entity.dispatchTimed(5, "buyship", type, callback, data);
+      }
+    }
+  };
+
   this.addControlPoint = function(controlPoint)
   {
     controlPoint.faction = this;
