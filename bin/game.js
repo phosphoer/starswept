@@ -592,13 +592,15 @@ TANK.registerComponent("AIWatch")
 });
 TANK.registerComponent("Bullet")
 
-.includes(["Pos2D", "Velocity", "Collider2D", "Life", "ParticleEmitter"])
+.includes(["Pos2D", "Velocity", "Collider2D", "Life"])
 
 .construct(function()
 {
   this.zdepth = 2;
   this.owner = null;
   this.damage = 0.2;
+  this.trailEffect = "mediumRailTrail";
+  this.size = 3;
 })
 
 .initialize(function()
@@ -608,13 +610,7 @@ TANK.registerComponent("Bullet")
   this._entity.Collider2D.collisionLayer = "bullets";
   this._entity.Collider2D.collidesWith = ["ships"];
 
-  var emitter = this._entity.ParticleEmitter;
-  emitter.particleImage.src = "res/particle-spark-1.png";
-  emitter.spawnPerSecond = 200;
-  emitter.particleLifeMin = 0.2;
-  emitter.particleLifeMax = 0.4;
-  emitter.particleAlphaDecayMin = 0.80;
-  emitter.particleAlphaDecayMax = 0.85;
+  this.trailEmitter = ParticleLibrary[this.trailEffect]();
 
   TANK.main.Renderer2D.add(this);
 
@@ -664,6 +660,12 @@ TANK.registerComponent("Bullet")
       TANK.main.dispatch("camerashake", 0.1 / dist);
   });
 
+  this.update = function(dt)
+  {
+    this.trailEmitter.Pos2D.x = t.x;
+    this.trailEmitter.Pos2D.y = t.y;
+  };
+
   this.draw = function(ctx, camera)
   {
     ctx.save();
@@ -673,11 +675,16 @@ TANK.registerComponent("Bullet")
     ctx.rotate(t.rotation);
     ctx.fillStyle = "#fff";
     ctx.beginPath();
-    ctx.arc(0, 0, 3, Math.PI * 2, false);
+    ctx.arc(0, 0, this.size, Math.PI * 2, false);
     ctx.fill();
     ctx.closePath();
     ctx.restore();
   };
+})
+
+.uninitialize(function()
+{
+  TANK.main.removeChild(this.trailEmitter);
 });
 TANK.registerComponent("Clickable")
 
@@ -1050,7 +1057,7 @@ TANK.registerComponent("Game")
     this.factions.push(e.Faction);
     TANK.main.addChild(e);
 
-    e = TANK.createEntity("AIFaction");
+    e = TANK.createEntity("Faction");
     e.Faction.team = 1;
     e.Faction.color = "#d55";
     this.factions.push(e.Faction);
@@ -1142,15 +1149,38 @@ TANK.registerComponent("Glow")
 });
 var Guns = {};
 
+
+Guns.smallRail = function()
+{
+  this.image = new Image();
+  this.image.src = "res/small-rail.png";
+  this.shootEffect = "gunFireSmall";
+  this.trailEffect = "smallRailTrail";
+  this.screenShake = 0;
+  this.reloadTime = 1;
+  this.reloadTimer = 0;
+  this.range = 500;
+  this.damage = 0.1;
+  this.projectileSpeed = 900;
+  this.projectileSize = 1;
+  this.recoil = 2;
+  this.x = 0;
+  this.y = 0;
+};
+
 Guns.mediumRail = function()
 {
   this.image = new Image();
   this.image.src = "res/medium-rail.png";
+  this.shootEffect = "gunFireMedium";
+  this.trailEffect = "mediumRailTrail";
+  this.screenShake = 0.5;
   this.reloadTime = 5;
   this.reloadTimer = 0;
   this.range = 800;
   this.damage = 0.1;
   this.projectileSpeed = 800;
+  this.projectileSize = 3;
   this.recoil = 7;
   this.x = 0;
   this.y = 0;
@@ -1425,6 +1455,80 @@ ParticleLibrary.explosionMediumSmoke = function(x, y)
   return e;
 };
 
+ParticleLibrary.gunFireSmall = function(x, y, angle)
+{
+  var obj = {};
+  obj.smoke = ParticleLibrary.gunFireSmallSmoke(x, y, angle);
+  obj.sparks = ParticleLibrary.gunFireSmallSparks(x, y, angle);
+  TANK.main.addChild(obj.smoke);
+  TANK.main.addChild(obj.sparks);
+  return obj;
+};
+
+ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 8;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.blendMode = "source-over";
+  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.spawnOffsetMin = [-8, -8];
+  emitter.spawnOffsetMax = [8, 8];
+  emitter.spawnSpeedMin = 100;
+  emitter.spawnSpeedMax = 150;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 2;
+  emitter.spawnScaleMax = 5;
+  emitter.spawnPerSecond = 15;
+  emitter.spawnDuration = 0.2;
+  emitter.particleLifeMin = 4;
+  emitter.particleLifeMax = 7;
+  emitter.particleFrictionMin = 0.96;
+  emitter.particleFrictionMax = 0.98;
+  emitter.particleRotateSpeedMin = -0.25;
+  emitter.particleRotateSpeedMax = 0.25;
+  emitter.particleAlphaDecayMin = 0.99;
+  emitter.particleAlphaDecayMax = 0.995;
+  emitter.particleScaleDecayMin = 1.001;
+  emitter.particleScaleDecayMax = 1.003;
+  return e;
+};
+
+ParticleLibrary.gunFireSmallSparks = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 3;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.alignRotationToSpawnAngle = true;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnOffsetMin = [-5, -5];
+  emitter.spawnOffsetMax = [5, 5];
+  emitter.spawnSpeedMin = 250;
+  emitter.spawnSpeedMax = 350;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 0.5;
+  emitter.spawnScaleMax = 0.75;
+  emitter.spawnPerSecond = 200;
+  emitter.spawnDuration = 0.1;
+  emitter.particleLifeMin = 1;
+  emitter.particleLifeMax = 2;
+  emitter.particleFrictionMin = 0.92;
+  emitter.particleFrictionMax = 0.95;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  return e;
+};
+
 ParticleLibrary.gunFireMedium = function(x, y, angle)
 {
   var obj = {};
@@ -1527,6 +1631,36 @@ ParticleLibrary.damageMedium = function(x, y, angle)
   emitter.particleAlphaDecayMax = 0.99;
   emitter.particleScaleDecayMin = 0.96;
   emitter.particleScaleDecayMax = 0.98;
+  TANK.main.addChild(e);
+  return e;
+};
+
+ParticleLibrary.smallRailTrail = function()
+{
+  var e = TANK.createEntity(["ParticleEmitter"]);
+  var emitter = e.ParticleEmitter;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnPerSecond = 100;
+  emitter.particleLifeMin = 0.2;
+  emitter.particleLifeMax = 0.3;
+  emitter.spawnScaleMin = 0.5;
+  emitter.spawnScaleMax = 1;
+  emitter.particleAlphaDecayMin = 0.80;
+  emitter.particleAlphaDecayMax = 0.85;
+  TANK.main.addChild(e);
+  return e;
+};
+
+ParticleLibrary.mediumRailTrail = function()
+{
+  var e = TANK.createEntity(["ParticleEmitter"]);
+  var emitter = e.ParticleEmitter;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnPerSecond = 200;
+  emitter.particleLifeMin = 0.2;
+  emitter.particleLifeMax = 0.4;
+  emitter.particleAlphaDecayMin = 0.80;
+  emitter.particleAlphaDecayMax = 0.85;
   TANK.main.addChild(e);
   return e;
 };
@@ -2040,7 +2174,7 @@ TANK.registerComponent("Player")
 
   this.listenTo(this._entity, "collide", function(obj)
   {
-    if (obj.Bullet && obj.owner !== this._entity)
+    if (obj.Bullet && obj.Bullet.owner !== this._entity)
       this.shakeCamera(0.1);
   });
 
@@ -2681,10 +2815,10 @@ Ships.fighter = function()
     front: "res/fighter-lit-front.png",
     back: "res/fighter-lit-back.png"
   };
-  this.maxTurnSpeed = 0.85;
+  this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
-  this.turnAccel = 1.8;
+  this.turnAccel = 2.0;
   this.health = 0.2;
   this.cost = 5;
   this.buildTime = 2;
@@ -2693,7 +2827,7 @@ Ships.fighter = function()
     front:
     [
       {
-        type: "mediumRail",
+        type: "smallRail",
         x: 19,
         y: 14
       }
@@ -2981,7 +3115,7 @@ TANK.registerComponent("Weapons")
       return;
     gun.reloadTimer = gun.reloadTime;
 
-    var pos = gun.worldPos
+    var pos = gun.worldPos;
 
     // Fire bullet
     var e = TANK.createEntity("Bullet");
@@ -2993,10 +3127,12 @@ TANK.registerComponent("Weapons")
     e.Life.life = gun.range / gun.projectileSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
+    e.Bullet.trailEffect = gun.trailEffect;
+    e.Bullet.size = gun.projectileSize;
     TANK.main.addChild(e);
 
     // Create effect
-    ParticleLibrary.gunFireMedium(pos[0], pos[1], t.rotation + gun.angle);
+    ParticleLibrary[gun.shootEffect](pos[0], pos[1], t.rotation + gun.angle);
 
     // Recoil
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
@@ -3007,8 +3143,8 @@ TANK.registerComponent("Weapons")
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < 1) dist = 1;
-    if (dist < window.innerWidth / 2)
-      TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
+    if (dist < window.innerWidth / 2 && gun.screenShake > 0)
+      TANK.main.dispatch("camerashake", gun.screenShake / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)

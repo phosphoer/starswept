@@ -158,7 +158,7 @@ TANK.registerComponent("Player")
 
   this.listenTo(this._entity, "collide", function(obj)
   {
-    if (obj.Bullet && obj.owner !== this._entity)
+    if (obj.Bullet && obj.Bullet.owner !== this._entity)
       this.shakeCamera(0.1);
   });
 

@@ -91,7 +91,7 @@ TANK.registerComponent("Game")
     this.factions.push(e.Faction);
     TANK.main.addChild(e);
 
-    e = TANK.createEntity("AIFaction");
+    e = TANK.createEntity("Faction");
     e.Faction.team = 1;
     e.Faction.color = "#d55";
     this.factions.push(e.Faction);

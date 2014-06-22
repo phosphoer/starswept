@@ -1,12 +1,14 @@
 TANK.registerComponent("Bullet")
 
-.includes(["Pos2D", "Velocity", "Collider2D", "Life", "ParticleEmitter"])
+.includes(["Pos2D", "Velocity", "Collider2D", "Life"])
 
 .construct(function()
 {
   this.zdepth = 2;
   this.owner = null;
   this.damage = 0.2;
+  this.trailEffect = "mediumRailTrail";
+  this.size = 3;
 })
 
 .initialize(function()
@@ -16,13 +18,7 @@ TANK.registerComponent("Bullet")
   this._entity.Collider2D.collisionLayer = "bullets";
   this._entity.Collider2D.collidesWith = ["ships"];
 
-  var emitter = this._entity.ParticleEmitter;
-  emitter.particleImage.src = "res/particle-spark-1.png";
-  emitter.spawnPerSecond = 200;
-  emitter.particleLifeMin = 0.2;
-  emitter.particleLifeMax = 0.4;
-  emitter.particleAlphaDecayMin = 0.80;
-  emitter.particleAlphaDecayMax = 0.85;
+  this.trailEmitter = ParticleLibrary[this.trailEffect]();
 
   TANK.main.Renderer2D.add(this);
 
@@ -72,6 +68,12 @@ TANK.registerComponent("Bullet")
       TANK.main.dispatch("camerashake", 0.1 / dist);
   });
 
+  this.update = function(dt)
+  {
+    this.trailEmitter.Pos2D.x = t.x;
+    this.trailEmitter.Pos2D.y = t.y;
+  };
+
   this.draw = function(ctx, camera)
   {
     ctx.save();
@@ -81,9 +83,14 @@ TANK.registerComponent("Bullet")
     ctx.rotate(t.rotation);
     ctx.fillStyle = "#fff";
     ctx.beginPath();
-    ctx.arc(0, 0, 3, Math.PI * 2, false);
+    ctx.arc(0, 0, this.size, Math.PI * 2, false);
     ctx.fill();
     ctx.closePath();
     ctx.restore();
   };
+})
+
+.uninitialize(function()
+{
+  TANK.main.removeChild(this.trailEmitter);
 });

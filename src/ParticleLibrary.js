@@ -160,6 +160,80 @@ ParticleLibrary.explosionMediumSmoke = function(x, y)
   return e;
 };
 
+ParticleLibrary.gunFireSmall = function(x, y, angle)
+{
+  var obj = {};
+  obj.smoke = ParticleLibrary.gunFireSmallSmoke(x, y, angle);
+  obj.sparks = ParticleLibrary.gunFireSmallSparks(x, y, angle);
+  TANK.main.addChild(obj.smoke);
+  TANK.main.addChild(obj.sparks);
+  return obj;
+};
+
+ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 8;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.blendMode = "source-over";
+  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.spawnOffsetMin = [-8, -8];
+  emitter.spawnOffsetMax = [8, 8];
+  emitter.spawnSpeedMin = 100;
+  emitter.spawnSpeedMax = 150;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 2;
+  emitter.spawnScaleMax = 5;
+  emitter.spawnPerSecond = 15;
+  emitter.spawnDuration = 0.2;
+  emitter.particleLifeMin = 4;
+  emitter.particleLifeMax = 7;
+  emitter.particleFrictionMin = 0.96;
+  emitter.particleFrictionMax = 0.98;
+  emitter.particleRotateSpeedMin = -0.25;
+  emitter.particleRotateSpeedMax = 0.25;
+  emitter.particleAlphaDecayMin = 0.99;
+  emitter.particleAlphaDecayMax = 0.995;
+  emitter.particleScaleDecayMin = 1.001;
+  emitter.particleScaleDecayMax = 1.003;
+  return e;
+};
+
+ParticleLibrary.gunFireSmallSparks = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 3;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.alignRotationToSpawnAngle = true;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnOffsetMin = [-5, -5];
+  emitter.spawnOffsetMax = [5, 5];
+  emitter.spawnSpeedMin = 250;
+  emitter.spawnSpeedMax = 350;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 0.5;
+  emitter.spawnScaleMax = 0.75;
+  emitter.spawnPerSecond = 200;
+  emitter.spawnDuration = 0.1;
+  emitter.particleLifeMin = 1;
+  emitter.particleLifeMax = 2;
+  emitter.particleFrictionMin = 0.92;
+  emitter.particleFrictionMax = 0.95;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  return e;
+};
+
 ParticleLibrary.gunFireMedium = function(x, y, angle)
 {
   var obj = {};
@@ -262,6 +336,36 @@ ParticleLibrary.damageMedium = function(x, y, angle)
   emitter.particleAlphaDecayMax = 0.99;
   emitter.particleScaleDecayMin = 0.96;
   emitter.particleScaleDecayMax = 0.98;
+  TANK.main.addChild(e);
+  return e;
+};
+
+ParticleLibrary.smallRailTrail = function()
+{
+  var e = TANK.createEntity(["ParticleEmitter"]);
+  var emitter = e.ParticleEmitter;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnPerSecond = 100;
+  emitter.particleLifeMin = 0.2;
+  emitter.particleLifeMax = 0.3;
+  emitter.spawnScaleMin = 0.5;
+  emitter.spawnScaleMax = 1;
+  emitter.particleAlphaDecayMin = 0.80;
+  emitter.particleAlphaDecayMax = 0.85;
+  TANK.main.addChild(e);
+  return e;
+};
+
+ParticleLibrary.mediumRailTrail = function()
+{
+  var e = TANK.createEntity(["ParticleEmitter"]);
+  var emitter = e.ParticleEmitter;
+  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.spawnPerSecond = 200;
+  emitter.particleLifeMin = 0.2;
+  emitter.particleLifeMax = 0.4;
+  emitter.particleAlphaDecayMin = 0.80;
+  emitter.particleAlphaDecayMax = 0.85;
   TANK.main.addChild(e);
   return e;
 };
