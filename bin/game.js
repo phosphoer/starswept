@@ -641,7 +641,7 @@ TANK.registerComponent("Bullet")
         obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], [t.x, t.y], this.owner);
         this._entity.Life.life = 0;
         this.stopListeningTo(this._entity, "collide");
-        obj.Ship.addDamage(testPos[0], testPos[1], 3 + Math.random() * 3);
+        obj.Ship.addDamage(testPos[0], testPos[1], this.damage * (30 + Math.random() * 30));
 
         // Spawn effect
         ParticleLibrary.damageMedium(t.x, t.y, t.rotation + Math.PI);
@@ -766,6 +766,11 @@ TANK.registerComponent("ControlPoint")
         this.faction = this.pendingFaction;
 
       this.pendingFaction = null;
+
+      if (oldFaction)
+        oldFaction.removeControlPoint(this);
+      if (this.faction)
+        this.faction.addControlPoint(this);
 
       if (!this.faction)
         console.log("Team " + oldFaction.team + " lost its control point");
@@ -998,7 +1003,7 @@ TANK.registerComponent("Game")
     name: "Build Fighter",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip("fighter");
+      that.factions[0].buyShip("fighter");
     }
   });
   this.barCommands.push(
@@ -1006,7 +1011,7 @@ TANK.registerComponent("Game")
     name: "Build Frigate",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip("frigate");
+      that.factions[0].buyShip("frigate");
     }
   });
 
@@ -1029,11 +1034,44 @@ TANK.registerComponent("Game")
     this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
   };
 
-  this.update = function(dt)
+  this.listenTo(TANK.main, "scanforplayership", function(faction, pos)
   {
-    // Update faction money count
-    this.topBarUI.set("items[0].name", "Funds - " + this.factions[0].money);
-  };
+    console.log("Looking for ship to transfer to...");
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var closestShip = null;
+    var minDist = Infinity;
+    if (!pos)
+      pos = [0, 0];
+    for (var i in ships)
+    {
+      if (ships[i].Ship.faction !== faction)
+        continue;
+
+      var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
+      var dist = TANK.Math2D.pointDistancePoint(pos, shipPos);
+      if (dist < minDist)
+      {
+        minDist = dist;
+        closestShip = ships[i];
+        console.log("Found ship " + i);
+      }
+    }
+
+    if (closestShip)
+    {
+      console.log("Transferring to ship " + closestShip._id);
+      // Transfer control to closest ship
+      closestShip.removeComponent("AIShip");
+      closestShip.removeComponent("AIWatch");
+      closestShip.addComponent("Player");
+    }
+    else
+    {
+      // If we couldn't find a ship to transfer control to, inform the game to wait for
+      // a new ship to be built
+      TANK.main.dispatchTimed(3, "scanforplayership", faction, pos);
+    }
+  });
 
   this.listenTo(TANK.main, "mousemove", function(e)
   {
@@ -1049,6 +1087,30 @@ TANK.registerComponent("Game")
     this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
   });
 
+  this.listenTo(TANK.main, "mousewheel", function(e)
+  {
+    var delta = e.wheelDelta;
+    TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
+    if (TANK.main.Renderer2D.camera.z < 1)
+      TANK.main.Renderer2D.camera.z = 1;
+  });
+
+  this.listenTo(TANK.main, "gesturechange", function(e)
+  {
+    if (e.scale)
+    {
+      this.zooming = true;
+      var scale = 1 / e.scale;
+      scale = Math.min(scale, 1.1);
+      scale = Math.max(scale, 0.9);
+      TANK.main.Renderer2D.camera.z *= scale;
+      if (TANK.main.Renderer2D.camera.z < 1)
+        TANK.main.Renderer2D.camera.z = 1;
+      if (TANK.main.Renderer2D.camera.z > 100)
+        TANK.main.Renderer2D.camera.z = 100;
+    }
+  });
+
   this.listenTo(TANK.main, "start", function()
   {
     var e = TANK.createEntity("Faction");
@@ -1057,7 +1119,7 @@ TANK.registerComponent("Game")
     this.factions.push(e.Faction);
     TANK.main.addChild(e);
 
-    e = TANK.createEntity("Faction");
+    e = TANK.createEntity("AIFaction");
     e.Faction.team = 1;
     e.Faction.color = "#d55";
     this.factions.push(e.Faction);
@@ -1080,6 +1142,12 @@ TANK.registerComponent("Game")
     e.Ship.faction = this.factions[0];
     TANK.main.addChild(e);
   });
+
+  this.update = function(dt)
+  {
+    // Update faction money count
+    this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
+  };
 });
 
 TANK.registerComponent("Glow")
@@ -1160,7 +1228,7 @@ Guns.smallRail = function()
   this.reloadTime = 1;
   this.reloadTimer = 0;
   this.range = 500;
-  this.damage = 0.1;
+  this.damage = 0.01;
   this.projectileSpeed = 900;
   this.projectileSize = 1;
   this.recoil = 2;
@@ -1792,7 +1860,13 @@ TANK.registerComponent("Planet")
 {
   this.zdepth = 0;
   this.radius = 128;
-  this.atmosColor = [140, 140, 255, 0.8];
+  this.atmosColor = 
+  [
+    Math.round(100 + Math.random() * 150), 
+    Math.round(100 + Math.random() * 150), 
+    Math.round(100 + Math.random() * 150), 
+    0.8
+  ];
   this.heights = [0, 0.3, 0.5, 0.6, 1];
   this.colors =
   [
@@ -2098,7 +2172,7 @@ TANK.registerComponent("Player")
     // Handle the beginning of a selection drag if the mouse down was outside
     // of the heading radius
     var distToPlayer = TANK.Math2D.pointDistancePoint([t.x, t.y], mousePos);
-    if (distToPlayer > this.headingRadiusScaled && !this.zooming)
+    if (distToPlayer > this.headingRadiusScaled && !TANK.main.Game.zooming)
     {
       this.selecting = true;
       this.selectPos = [mousePos[0], mousePos[1]];
@@ -2144,7 +2218,7 @@ TANK.registerComponent("Player")
       }
     }
 
-    this.zooming = false;
+    TANK.main.Game.zooming = false;
     this.mouseDown = false;
     this.fireButtonDown = false;
     this.selecting = false;
@@ -2183,30 +2257,6 @@ TANK.registerComponent("Player")
     this.shakeCamera(duration);
   });
 
-  this.listenTo(TANK.main, "mousewheel", function(e)
-  {
-    var delta = e.wheelDelta;
-    TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
-    if (TANK.main.Renderer2D.camera.z < 1)
-      TANK.main.Renderer2D.camera.z = 1;
-  });
-
-  this.listenTo(TANK.main, "gesturechange", function(e)
-  {
-    if (e.scale)
-    {
-      this.zooming = true;
-      var scale = 1 / e.scale;
-      scale = Math.min(scale, 1.1);
-      scale = Math.max(scale, 0.9);
-      TANK.main.Renderer2D.camera.z *= scale;
-      if (TANK.main.Renderer2D.camera.z < 1)
-        TANK.main.Renderer2D.camera.z = 1;
-      if (TANK.main.Renderer2D.camera.z > 100)
-        TANK.main.Renderer2D.camera.z = 100;
-    }
-  });
-
   this.listenTo(TANK.main, "doubleclick", function(e)
   {
     // If we double click a ship in the same faction, we can
@@ -2217,6 +2267,10 @@ TANK.registerComponent("Player")
         // Skip our own ship
         if (ships[i] === this._entity)
             continue;
+
+        // Skip ships not on our faction
+        if (ships[i].Ship.faction !== this._entity.Ship.faction)
+          continue;
 
         // Check if mouse is over the ship
         var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
@@ -2576,6 +2630,12 @@ TANK.registerComponent("Ship")
   // Explode the ship
   this.explode = function()
   {
+    // If we are the player, we should transfer player control to another ship
+    if (this._entity.Player)
+    {
+      TANK.main.dispatchTimed(1, "scanforplayership", this.faction, [t.x, t.y]);
+    }
+
     // Remove objects
     TANK.main.removeChild(this._entity);
     TANK.main.removeChild(this.exploder);

@@ -9,7 +9,13 @@ TANK.registerComponent("Planet")
 {
   this.zdepth = 0;
   this.radius = 128;
-  this.atmosColor = [140, 140, 255, 0.8];
+  this.atmosColor = 
+  [
+    Math.round(100 + Math.random() * 150), 
+    Math.round(100 + Math.random() * 150), 
+    Math.round(100 + Math.random() * 150), 
+    0.8
+  ];
   this.heights = [0, 0.3, 0.5, 0.6, 1];
   this.colors =
   [

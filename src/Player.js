@@ -82,7 +82,7 @@ TANK.registerComponent("Player")
     // Handle the beginning of a selection drag if the mouse down was outside
     // of the heading radius
     var distToPlayer = TANK.Math2D.pointDistancePoint([t.x, t.y], mousePos);
-    if (distToPlayer > this.headingRadiusScaled && !this.zooming)
+    if (distToPlayer > this.headingRadiusScaled && !TANK.main.Game.zooming)
     {
       this.selecting = true;
       this.selectPos = [mousePos[0], mousePos[1]];
@@ -128,7 +128,7 @@ TANK.registerComponent("Player")
       }
     }
 
-    this.zooming = false;
+    TANK.main.Game.zooming = false;
     this.mouseDown = false;
     this.fireButtonDown = false;
     this.selecting = false;
@@ -167,30 +167,6 @@ TANK.registerComponent("Player")
     this.shakeCamera(duration);
   });
 
-  this.listenTo(TANK.main, "mousewheel", function(e)
-  {
-    var delta = e.wheelDelta;
-    TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
-    if (TANK.main.Renderer2D.camera.z < 1)
-      TANK.main.Renderer2D.camera.z = 1;
-  });
-
-  this.listenTo(TANK.main, "gesturechange", function(e)
-  {
-    if (e.scale)
-    {
-      this.zooming = true;
-      var scale = 1 / e.scale;
-      scale = Math.min(scale, 1.1);
-      scale = Math.max(scale, 0.9);
-      TANK.main.Renderer2D.camera.z *= scale;
-      if (TANK.main.Renderer2D.camera.z < 1)
-        TANK.main.Renderer2D.camera.z = 1;
-      if (TANK.main.Renderer2D.camera.z > 100)
-        TANK.main.Renderer2D.camera.z = 100;
-    }
-  });
-
   this.listenTo(TANK.main, "doubleclick", function(e)
   {
     // If we double click a ship in the same faction, we can
@@ -201,6 +177,10 @@ TANK.registerComponent("Player")
         // Skip our own ship
         if (ships[i] === this._entity)
             continue;
+
+        // Skip ships not on our faction
+        if (ships[i].Ship.faction !== this._entity.Ship.faction)
+          continue;
 
         // Check if mouse is over the ship
         var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];

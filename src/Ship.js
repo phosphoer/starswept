@@ -145,6 +145,12 @@ TANK.registerComponent("Ship")
   // Explode the ship
   this.explode = function()
   {
+    // If we are the player, we should transfer player control to another ship
+    if (this._entity.Player)
+    {
+      TANK.main.dispatchTimed(1, "scanforplayership", this.faction, [t.x, t.y]);
+    }
+
     // Remove objects
     TANK.main.removeChild(this._entity);
     TANK.main.removeChild(this.exploder);

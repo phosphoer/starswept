@@ -49,7 +49,7 @@ TANK.registerComponent("Bullet")
         obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], [t.x, t.y], this.owner);
         this._entity.Life.life = 0;
         this.stopListeningTo(this._entity, "collide");
-        obj.Ship.addDamage(testPos[0], testPos[1], 3 + Math.random() * 3);
+        obj.Ship.addDamage(testPos[0], testPos[1], this.damage * (30 + Math.random() * 30));
 
         // Spawn effect
         ParticleLibrary.damageMedium(t.x, t.y, t.rotation + Math.PI);
