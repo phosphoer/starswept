@@ -68,7 +68,7 @@ TANK.registerComponent("Weapons")
       return;
     gun.reloadTimer = gun.reloadTime;
 
-    var pos = gun.worldPos
+    var pos = gun.worldPos;
 
     // Fire bullet
     var e = TANK.createEntity("Bullet");
@@ -80,10 +80,12 @@ TANK.registerComponent("Weapons")
     e.Life.life = gun.range / gun.projectileSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
+    e.Bullet.trailEffect = gun.trailEffect;
+    e.Bullet.size = gun.projectileSize;
     TANK.main.addChild(e);
 
     // Create effect
-    ParticleLibrary.gunFireMedium(pos[0], pos[1], t.rotation + gun.angle);
+    ParticleLibrary[gun.shootEffect](pos[0], pos[1], t.rotation + gun.angle);
 
     // Recoil
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
@@ -94,8 +96,8 @@ TANK.registerComponent("Weapons")
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < 1) dist = 1;
-    if (dist < window.innerWidth / 2)
-      TANK.main.dispatch("camerashake", 0.1 / (dist * 5));
+    if (dist < window.innerWidth / 2 && gun.screenShake > 0)
+      TANK.main.dispatch("camerashake", gun.screenShake / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)

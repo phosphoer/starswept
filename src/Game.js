@@ -32,7 +32,7 @@ TANK.registerComponent("Game")
     name: "Build Fighter",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip("fighter");
+      that.factions[0].buyShip("fighter");
     }
   });
   this.barCommands.push(
@@ -40,7 +40,7 @@ TANK.registerComponent("Game")
     name: "Build Frigate",
     activate: function()
     {
-      that.factions[0].controlPoints[0].buyShip("frigate");
+      that.factions[0].buyShip("frigate");
     }
   });
 
@@ -63,11 +63,44 @@ TANK.registerComponent("Game")
     this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
   };
 
-  this.update = function(dt)
+  this.listenTo(TANK.main, "scanforplayership", function(faction, pos)
   {
-    // Update faction money count
-    this.topBarUI.set("items[0].name", "Funds - " + this.factions[0].money);
-  };
+    console.log("Looking for ship to transfer to...");
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var closestShip = null;
+    var minDist = Infinity;
+    if (!pos)
+      pos = [0, 0];
+    for (var i in ships)
+    {
+      if (ships[i].Ship.faction !== faction)
+        continue;
+
+      var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
+      var dist = TANK.Math2D.pointDistancePoint(pos, shipPos);
+      if (dist < minDist)
+      {
+        minDist = dist;
+        closestShip = ships[i];
+        console.log("Found ship " + i);
+      }
+    }
+
+    if (closestShip)
+    {
+      console.log("Transferring to ship " + closestShip._id);
+      // Transfer control to closest ship
+      closestShip.removeComponent("AIShip");
+      closestShip.removeComponent("AIWatch");
+      closestShip.addComponent("Player");
+    }
+    else
+    {
+      // If we couldn't find a ship to transfer control to, inform the game to wait for
+      // a new ship to be built
+      TANK.main.dispatchTimed(3, "scanforplayership", faction, pos);
+    }
+  });
 
   this.listenTo(TANK.main, "mousemove", function(e)
   {
@@ -81,6 +114,30 @@ TANK.registerComponent("Game")
   this.listenTo(TANK.main, "touchstart", function(e)
   {
     this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
+  });
+
+  this.listenTo(TANK.main, "mousewheel", function(e)
+  {
+    var delta = e.wheelDelta;
+    TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
+    if (TANK.main.Renderer2D.camera.z < 1)
+      TANK.main.Renderer2D.camera.z = 1;
+  });
+
+  this.listenTo(TANK.main, "gesturechange", function(e)
+  {
+    if (e.scale)
+    {
+      this.zooming = true;
+      var scale = 1 / e.scale;
+      scale = Math.min(scale, 1.1);
+      scale = Math.max(scale, 0.9);
+      TANK.main.Renderer2D.camera.z *= scale;
+      if (TANK.main.Renderer2D.camera.z < 1)
+        TANK.main.Renderer2D.camera.z = 1;
+      if (TANK.main.Renderer2D.camera.z > 100)
+        TANK.main.Renderer2D.camera.z = 100;
+    }
   });
 
   this.listenTo(TANK.main, "start", function()
@@ -114,4 +171,10 @@ TANK.registerComponent("Game")
     e.Ship.faction = this.factions[0];
     TANK.main.addChild(e);
   });
+
+  this.update = function(dt)
+  {
+    // Update faction money count
+    this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
+  };
 });

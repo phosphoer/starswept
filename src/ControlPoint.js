@@ -54,6 +54,11 @@ TANK.registerComponent("ControlPoint")
 
       this.pendingFaction = null;
 
+      if (oldFaction)
+        oldFaction.removeControlPoint(this);
+      if (this.faction)
+        this.faction.addControlPoint(this);
+
       if (!this.faction)
         console.log("Team " + oldFaction.team + " lost its control point");
       else

@@ -13,10 +13,10 @@ Ships.fighter = function()
     front: "res/fighter-lit-front.png",
     back: "res/fighter-lit-back.png"
   };
-  this.maxTurnSpeed = 0.85;
+  this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
-  this.turnAccel = 1.8;
+  this.turnAccel = 2.0;
   this.health = 0.2;
   this.cost = 5;
   this.buildTime = 2;
@@ -25,7 +25,7 @@ Ships.fighter = function()
     front:
     [
       {
-        type: "mediumRail",
+        type: "smallRail",
         x: 19,
         y: 14
       }
