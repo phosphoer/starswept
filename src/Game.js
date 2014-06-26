@@ -7,6 +7,7 @@ TANK.registerComponent("Game")
   this.barCommands = [];
   this.topBarItems = [];
   this.mousePosWorld = [0, 0];
+  this.mousePosScreen = [0, 0];
   this.lightDir = Math.random() * Math.PI * 2;
 })
 
@@ -54,6 +55,7 @@ TANK.registerComponent("Game")
 
   this.updateMousePos = function(pos)
   {
+    this.mousePosScreen = [pos[0], pos[1]];
     this.mousePosWorld = pos;
     this.mousePosWorld[0] -= window.innerWidth / 2;
     this.mousePosWorld[1] -= window.innerHeight / 2;
@@ -148,7 +150,7 @@ TANK.registerComponent("Game")
     this.factions.push(e.Faction);
     TANK.main.addChild(e);
 
-    e = TANK.createEntity("AIFaction");
+    e = TANK.createEntity("Faction");
     e.Faction.team = 1;
     e.Faction.color = "#d55";
     this.factions.push(e.Faction);
