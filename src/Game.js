@@ -9,6 +9,9 @@ TANK.registerComponent("Game")
   this.mousePosWorld = [0, 0];
   this.mousePosScreen = [0, 0];
   this.lightDir = Math.random() * Math.PI * 2;
+
+  this.currentLevel = -1;
+  this.pendingLoad = false;
 })
 
 .initialize(function()
@@ -63,6 +66,54 @@ TANK.registerComponent("Game")
     this.mousePosWorld[1] *= TANK.main.Renderer2D.camera.z;
     this.mousePosWorld[0] += TANK.main.Renderer2D.camera.x;
     this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
+  };
+
+  this.loadLevelNow = function(index)
+  {
+    var level = Levels[index];
+
+    // Create faction entities
+    for (var i = 0; i < level.factions.length; ++i)
+    {
+      var e = level.factions[i].player ? TANK.createEntity("Faction") : TANK.createEntity("AIFaction");
+      e.Faction.team = level.factions[i].team;
+      e.Faction.color = level.factions[i].color;
+      this.factions.push(e.Faction);
+      TANK.main.addChild(e);
+    }
+
+    // Create control points
+    for (var i = 0; i < level.controlPoints.length; ++i)
+    {
+      var cp = level.controlPoints[i];
+      e = TANK.createEntity("ControlPoint");
+      e.Pos2D.x = cp.x;
+      e.Pos2D.y = cp.y;
+      this.factions[cp.faction].addControlPoint(e.ControlPoint);
+      TANK.main.addChild(e);
+    }
+
+    // Create ships
+    for (var i = 0; i < level.ships.length; ++i)
+    {
+      e = level.ships[i].player ? TANK.createEntity("Player") : TANK.createEntity("AIShip");
+      e.Pos2D.x = level.ships[i].x;
+      e.Pos2D.y = level.ships[i].y;
+      e.Ship.shipData = new Ships[level.ships[i].ship];
+      e.Ship.faction = this.factions[level.ships[i].faction];
+      TANK.main.addChild(e);
+    }
+  };
+
+  this.goToLevel = function(index)
+  {
+    // Send out a message to all existing level objects to be destroyed
+    TANK.main.dispatch("levelCleanup");
+    this.factions = [];
+
+    // Set current level marker and set a pending load
+    this.currentLevel = index;
+    this.pendingLoad = true;
   };
 
   this.listenTo(TANK.main, "scanforplayership", function(faction, pos)
@@ -144,38 +195,47 @@ TANK.registerComponent("Game")
 
   this.listenTo(TANK.main, "start", function()
   {
-    var e = TANK.createEntity("Faction");
-    e.Faction.team = 0;
-    e.Faction.color = "#5d5";
-    this.factions.push(e.Faction);
-    TANK.main.addChild(e);
+    // var e = TANK.createEntity("Faction");
+    // e.Faction.team = 0;
+    // e.Faction.color = "#5d5";
+    // this.factions.push(e.Faction);
+    // TANK.main.addChild(e);
 
-    e = TANK.createEntity("Faction");
-    e.Faction.team = 1;
-    e.Faction.color = "#d55";
-    this.factions.push(e.Faction);
-    TANK.main.addChild(e);
+    // e = TANK.createEntity("Faction");
+    // e.Faction.team = 1;
+    // e.Faction.color = "#d55";
+    // this.factions.push(e.Faction);
+    // TANK.main.addChild(e);
 
-    e = TANK.createEntity("ControlPoint");
-    this.factions[0].addControlPoint(e.ControlPoint);
-    TANK.main.addChild(e);
+    // e = TANK.createEntity("ControlPoint");
+    // this.factions[0].addControlPoint(e.ControlPoint);
+    // TANK.main.addChild(e);
 
-    e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 2000;
-    e.Pos2D.y = 2000;
-    this.factions[1].addControlPoint(e.ControlPoint);
-    TANK.main.addChild(e);
+    // e = TANK.createEntity("ControlPoint");
+    // e.Pos2D.x = 2000;
+    // e.Pos2D.y = 2000;
+    // this.factions[1].addControlPoint(e.ControlPoint);
+    // TANK.main.addChild(e);
 
-    e = TANK.createEntity("Player");
-    e.Pos2D.x = 0;
-    e.Pos2D.y = 0;
-    e.Ship.shipData = new Ships.frigate();
-    e.Ship.faction = this.factions[0];
-    TANK.main.addChild(e);
+    // e = TANK.createEntity("Player");
+    // e.Pos2D.x = 0;
+    // e.Pos2D.y = 0;
+    // e.Ship.shipData = new Ships.frigate();
+    // e.Ship.faction = this.factions[0];
+    // TANK.main.addChild(e);
+
+    this.goToLevel(0);
   });
 
   this.update = function(dt)
   {
+    // Load levels
+    if (this.pendingLoad)
+    {
+      this.loadLevelNow(this.currentLevel);
+      this.pendingLoad = false;
+    }
+
     // Update faction money count
     this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
   };

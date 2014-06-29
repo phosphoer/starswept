@@ -70,7 +70,7 @@ TANK.registerComponent("Player")
       var targets = TANK.main.getChildrenWithComponent("OrderTarget");
       for (var i in targets)
       {
-        if (targets[i].Clickable.checkClick(mousePos))
+        if (targets[i].Clickable.checkClick(TANK.main.Game.mousePosWorld))
         {
           this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(targets[i]);
           this.pendingTarget = targets[i];
