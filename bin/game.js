@@ -975,6 +975,7 @@ TANK.registerComponent("Game")
 {
   this.scaleFactor = 3;
   this.factions = [];
+  this.menuOptions = [];
   this.barCommands = [];
   this.topBarItems = [];
   this.mousePosWorld = [0, 0];
@@ -987,21 +988,22 @@ TANK.registerComponent("Game")
 
 .initialize(function()
 {
-  this.barUI = new Ractive(
-  {
-    el: "barContainer",
-    template: "#barTemplate",
-    data: {commands: this.barCommands}
-  });
-
-  this.topBarUI = new Ractive(
-  {
-    el: "topBarContainer",
-    template: "#topBarTemplate",
-    data: {items: this.topBarItems}
-  });
-
+  // Build main menu options
   var that = this;
+  for (var i = 0; i < Levels.length; ++i)
+  {
+    this.menuOptions.push(
+    {
+      name: Levels[i].name,
+      index: i,
+      activate: function()
+      {
+        that.goToLevel(this.index);
+      }
+    });
+  }
+
+  // Build up bar commands
   this.barCommands.push(
   {
     name: "Build Fighter",
@@ -1019,11 +1021,6 @@ TANK.registerComponent("Game")
     }
   });
 
-  this.barUI.on("activate", function(e)
-  {
-    e.context.activate();
-  });
-
   // Money counter
   this.topBarItems.push({name: ""});
 
@@ -1037,6 +1034,30 @@ TANK.registerComponent("Game")
     this.mousePosWorld[1] *= TANK.main.Renderer2D.camera.z;
     this.mousePosWorld[0] += TANK.main.Renderer2D.camera.x;
     this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
+  };
+
+  this.goToMainMenu = function()
+  {
+    if (this.topBarUI)
+      this.topBarUI.teardown();
+    if (this.barUI)
+      this.barUI.teardown();
+    this.topBarUI = null;
+    this.barUI = null;
+
+    // Build main menu ractive
+    this.menuUI = new Ractive(
+    {
+      el: "menuContainer",
+      template: "#menuTemplate",
+      data: {options: this.menuOptions}
+    });
+
+    // Set ractive event listeners
+    this.menuUI.on("activate", function(e)
+    {
+      e.context.activate();
+    });
   };
 
   this.loadLevelNow = function(index)
@@ -1081,10 +1102,33 @@ TANK.registerComponent("Game")
     // Send out a message to all existing level objects to be destroyed
     TANK.main.dispatch("levelCleanup");
     this.factions = [];
+    this.menuUI.teardown();
 
     // Set current level marker and set a pending load
     this.currentLevel = index;
     this.pendingLoad = true;
+
+    // Build bottom command bar ractive
+    this.barUI = new Ractive(
+    {
+      el: "barContainer",
+      template: "#barTemplate",
+      data: {commands: this.barCommands}
+    });
+
+    // Build top command bar ractive
+    this.topBarUI = new Ractive(
+    {
+      el: "topBarContainer",
+      template: "#topBarTemplate",
+      data: {items: this.topBarItems}
+    });
+
+    // Set ractive event listeners
+    this.barUI.on("activate", function(e)
+    {
+      e.context.activate();
+    });
   };
 
   this.listenTo(TANK.main, "scanforplayership", function(faction, pos)
@@ -1166,36 +1210,7 @@ TANK.registerComponent("Game")
 
   this.listenTo(TANK.main, "start", function()
   {
-    // var e = TANK.createEntity("Faction");
-    // e.Faction.team = 0;
-    // e.Faction.color = "#5d5";
-    // this.factions.push(e.Faction);
-    // TANK.main.addChild(e);
-
-    // e = TANK.createEntity("Faction");
-    // e.Faction.team = 1;
-    // e.Faction.color = "#d55";
-    // this.factions.push(e.Faction);
-    // TANK.main.addChild(e);
-
-    // e = TANK.createEntity("ControlPoint");
-    // this.factions[0].addControlPoint(e.ControlPoint);
-    // TANK.main.addChild(e);
-
-    // e = TANK.createEntity("ControlPoint");
-    // e.Pos2D.x = 2000;
-    // e.Pos2D.y = 2000;
-    // this.factions[1].addControlPoint(e.ControlPoint);
-    // TANK.main.addChild(e);
-
-    // e = TANK.createEntity("Player");
-    // e.Pos2D.x = 0;
-    // e.Pos2D.y = 0;
-    // e.Ship.shipData = new Ships.frigate();
-    // e.Ship.faction = this.factions[0];
-    // TANK.main.addChild(e);
-
-    this.goToLevel(0);
+    this.goToMainMenu();
   });
 
   this.update = function(dt)
@@ -1208,7 +1223,8 @@ TANK.registerComponent("Game")
     }
 
     // Update faction money count
-    this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
+    if (this.factions.length > 0)
+      this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
   };
 });
 

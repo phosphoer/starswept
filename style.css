@@ -10,6 +10,31 @@ html, body
   cursor: default;
 }
 
+.main-menu
+{
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.menu-options
+{
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.menu-option
+{
+  color: #ddd;
+  font-size: 18px;
+}
+
+.menu-option:hover
+{
+  background: rgba(255, 255, 255, 0.5);
+}
+
 .bar
 {
   box-sizing: border-box;
