@@ -48,9 +48,23 @@
       };
     </script>
 
+    <!-- Ractive containers -->
+    <div id="menuContainer"></div>
     <div id="barContainer"></div>
     <div id="topBarContainer"></div>
 
+    <!-- Main menu template -->
+    <script id="menuTemplate" type="text/ractive">
+      <div class="main-menu">
+        <div class="menu-options">
+          {{#options}}
+            <div class="menu-option" on-click="activate">{{name}}</div>
+          {{/options}}
+        </div>
+      </div>
+    </script>
+
+    <!-- Bottom command bar template -->
     <script id="barTemplate" type="text/ractive">
       <div class="bar">
         {{#commands}}
@@ -59,6 +73,7 @@
       </div>
     </script>
 
+    <!-- Top bar template -->
     <script id="topBarTemplate" type="text/ractive">
       <div class="top-bar">
         {{#items}}

@@ -363,6 +363,31 @@ TANK.registerComponent("Ship")
       ctx.drawImage(this.imageEngine, 0, 0);
     }
 
+    // Draw team indicator
+    if (camera.z < 8)
+    {
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = this.faction.color;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-5, -2.5);
+      ctx.lineTo(-2.5, -5);
+
+      ctx.moveTo(this.image.width, 0);
+      ctx.lineTo(this.image.width + 5, -2.5);
+      ctx.lineTo(this.image.width + 2.5, -5);
+
+      ctx.moveTo(this.image.width, this.image.height);
+      ctx.lineTo(this.image.width + 5, this.image.height + 2.5);
+      ctx.lineTo(this.image.width + 2.5, this.image.height + 5);
+
+      ctx.moveTo(0, this.image.height);
+      ctx.lineTo(-5, this.image.height + 2.5);
+      ctx.lineTo(-2.5, this.image.height + 5);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     // Draw selection box
     if (this.selected)
     {

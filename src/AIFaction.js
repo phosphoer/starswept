@@ -119,7 +119,7 @@ function AIProject(aiFaction)
     {
       for (var j = 0; j < aiFaction.idleShips.length; ++j)
       {
-        if (aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
+        if (aiFaction.idleShips[j] && aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
         {
           this.shipsRequired[i].assignedShip = aiFaction.idleShips[j];
           aiFaction.idleShips[j] = null;

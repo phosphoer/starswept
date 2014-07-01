@@ -330,7 +330,7 @@ function AIProject(aiFaction)
     {
       for (var j = 0; j < aiFaction.idleShips.length; ++j)
       {
-        if (aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
+        if (aiFaction.idleShips[j] && aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
         {
           this.shipsRequired[i].assignedShip = aiFaction.idleShips[j];
           aiFaction.idleShips[j] = null;
@@ -975,29 +975,35 @@ TANK.registerComponent("Game")
 {
   this.scaleFactor = 3;
   this.factions = [];
+  this.menuOptions = [];
   this.barCommands = [];
   this.topBarItems = [];
   this.mousePosWorld = [0, 0];
+  this.mousePosScreen = [0, 0];
   this.lightDir = Math.random() * Math.PI * 2;
+
+  this.currentLevel = -1;
+  this.pendingLoad = false;
 })
 
 .initialize(function()
 {
-  this.barUI = new Ractive(
-  {
-    el: "barContainer",
-    template: "#barTemplate",
-    data: {commands: this.barCommands}
-  });
-
-  this.topBarUI = new Ractive(
-  {
-    el: "topBarContainer",
-    template: "#topBarTemplate",
-    data: {items: this.topBarItems}
-  });
-
+  // Build main menu options
   var that = this;
+  for (var i = 0; i < Levels.length; ++i)
+  {
+    this.menuOptions.push(
+    {
+      name: Levels[i].name,
+      index: i,
+      activate: function()
+      {
+        that.goToLevel(this.index);
+      }
+    });
+  }
+
+  // Build up bar commands
   this.barCommands.push(
   {
     name: "Build Fighter",
@@ -1015,16 +1021,12 @@ TANK.registerComponent("Game")
     }
   });
 
-  this.barUI.on("activate", function(e)
-  {
-    e.context.activate();
-  });
-
   // Money counter
   this.topBarItems.push({name: ""});
 
   this.updateMousePos = function(pos)
   {
+    this.mousePosScreen = [pos[0], pos[1]];
     this.mousePosWorld = pos;
     this.mousePosWorld[0] -= window.innerWidth / 2;
     this.mousePosWorld[1] -= window.innerHeight / 2;
@@ -1032,6 +1034,101 @@ TANK.registerComponent("Game")
     this.mousePosWorld[1] *= TANK.main.Renderer2D.camera.z;
     this.mousePosWorld[0] += TANK.main.Renderer2D.camera.x;
     this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
+  };
+
+  this.goToMainMenu = function()
+  {
+    if (this.topBarUI)
+      this.topBarUI.teardown();
+    if (this.barUI)
+      this.barUI.teardown();
+    this.topBarUI = null;
+    this.barUI = null;
+
+    // Build main menu ractive
+    this.menuUI = new Ractive(
+    {
+      el: "menuContainer",
+      template: "#menuTemplate",
+      data: {options: this.menuOptions}
+    });
+
+    // Set ractive event listeners
+    this.menuUI.on("activate", function(e)
+    {
+      e.context.activate();
+    });
+  };
+
+  this.loadLevelNow = function(index)
+  {
+    var level = Levels[index];
+
+    // Create faction entities
+    for (var i = 0; i < level.factions.length; ++i)
+    {
+      var e = level.factions[i].player ? TANK.createEntity("Faction") : TANK.createEntity("AIFaction");
+      e.Faction.team = level.factions[i].team;
+      e.Faction.color = level.factions[i].color;
+      this.factions.push(e.Faction);
+      TANK.main.addChild(e);
+    }
+
+    // Create control points
+    for (var i = 0; i < level.controlPoints.length; ++i)
+    {
+      var cp = level.controlPoints[i];
+      e = TANK.createEntity("ControlPoint");
+      e.Pos2D.x = cp.x;
+      e.Pos2D.y = cp.y;
+      this.factions[cp.faction].addControlPoint(e.ControlPoint);
+      TANK.main.addChild(e);
+    }
+
+    // Create ships
+    for (var i = 0; i < level.ships.length; ++i)
+    {
+      e = level.ships[i].player ? TANK.createEntity("Player") : TANK.createEntity("AIShip");
+      e.Pos2D.x = level.ships[i].x;
+      e.Pos2D.y = level.ships[i].y;
+      e.Ship.shipData = new Ships[level.ships[i].ship];
+      e.Ship.faction = this.factions[level.ships[i].faction];
+      TANK.main.addChild(e);
+    }
+  };
+
+  this.goToLevel = function(index)
+  {
+    // Send out a message to all existing level objects to be destroyed
+    TANK.main.dispatch("levelCleanup");
+    this.factions = [];
+    this.menuUI.teardown();
+
+    // Set current level marker and set a pending load
+    this.currentLevel = index;
+    this.pendingLoad = true;
+
+    // Build bottom command bar ractive
+    this.barUI = new Ractive(
+    {
+      el: "barContainer",
+      template: "#barTemplate",
+      data: {commands: this.barCommands}
+    });
+
+    // Build top command bar ractive
+    this.topBarUI = new Ractive(
+    {
+      el: "topBarContainer",
+      template: "#topBarTemplate",
+      data: {items: this.topBarItems}
+    });
+
+    // Set ractive event listeners
+    this.barUI.on("activate", function(e)
+    {
+      e.context.activate();
+    });
   };
 
   this.listenTo(TANK.main, "scanforplayership", function(faction, pos)
@@ -1113,40 +1210,21 @@ TANK.registerComponent("Game")
 
   this.listenTo(TANK.main, "start", function()
   {
-    var e = TANK.createEntity("Faction");
-    e.Faction.team = 0;
-    e.Faction.color = "#5d5";
-    this.factions.push(e.Faction);
-    TANK.main.addChild(e);
-
-    e = TANK.createEntity("AIFaction");
-    e.Faction.team = 1;
-    e.Faction.color = "#d55";
-    this.factions.push(e.Faction);
-    TANK.main.addChild(e);
-
-    e = TANK.createEntity("ControlPoint");
-    this.factions[0].addControlPoint(e.ControlPoint);
-    TANK.main.addChild(e);
-
-    e = TANK.createEntity("ControlPoint");
-    e.Pos2D.x = 2000;
-    e.Pos2D.y = 2000;
-    this.factions[1].addControlPoint(e.ControlPoint);
-    TANK.main.addChild(e);
-
-    e = TANK.createEntity("Player");
-    e.Pos2D.x = 0;
-    e.Pos2D.y = 0;
-    e.Ship.shipData = new Ships.frigate();
-    e.Ship.faction = this.factions[0];
-    TANK.main.addChild(e);
+    this.goToMainMenu();
   });
 
   this.update = function(dt)
   {
+    // Load levels
+    if (this.pendingLoad)
+    {
+      this.loadLevelNow(this.currentLevel);
+      this.pendingLoad = false;
+    }
+
     // Update faction money count
-    this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
+    if (this.factions.length > 0)
+      this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
   };
 });
 
@@ -1254,6 +1332,27 @@ Guns.mediumRail = function()
   this.y = 0;
 };
 
+var Levels = [];
+
+Levels[0] = 
+{
+  name: "Sample Level",
+  factions: 
+  [
+    {player: true, team: 0, color: "#5d5"},
+    {player: false, team: 1, color: "#d55"}
+  ],
+  controlPoints: 
+  [
+    {x: 0, y: 0, faction: 0},
+    {x: 2000, y: 2000, faction: 1}
+  ],
+  ships:
+  [
+    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
+    {player: false, faction: 1, ship: "frigate", x: 2000, y: 2000}
+  ]
+};
 TANK.registerComponent("Life")
 
 .construct(function()
@@ -2098,6 +2197,7 @@ TANK.registerComponent("Player")
   this.shakeTime = 0;
   this.clickTimer = 1;
 
+  this.headingPos = [0, 0];
   this.headingLeft = false;
   this.headingRight = false;
   this.speedUp = false;
@@ -2138,13 +2238,12 @@ TANK.registerComponent("Player")
     this.clickTimer = 0;
 
     // Handle tapping a fire button
-    var mousePos = TANK.main.Game.mousePosWorld;
+    var mousePos = TANK.Math2D.subtract(TANK.main.Game.mousePosScreen, [window.innerWidth / 2, window.innerHeight / 2]);
     for (var i = 0; i < this.fireButtons.length; ++i)
     {
-      var pos = TANK.Math2D.rotate(this.fireButtons[i].pos, t.rotation);
-      pos = TANK.Math2D.scale(pos, TANK.main.Game.scaleFactor);
-      pos[0] += t.x;
-      pos[1] += t.y;
+      // var pos = TANK.Math2D.rotate(this.fireButtons[i].pos, t.rotation);
+      var pos = TANK.Math2D.scale(this.fireButtons[i].pos, TANK.main.Game.scaleFactor);
+      pos = TANK.Math2D.add(pos, this.headingPos);
       var dist = TANK.Math2D.pointDistancePoint(pos, mousePos);
       if (dist < this.fireButtons[i].radius * TANK.main.Game.scaleFactor)
       {
@@ -2160,7 +2259,7 @@ TANK.registerComponent("Player")
       var targets = TANK.main.getChildrenWithComponent("OrderTarget");
       for (var i in targets)
       {
-        if (targets[i].Clickable.checkClick(mousePos))
+        if (targets[i].Clickable.checkClick(TANK.main.Game.mousePosWorld))
         {
           this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(targets[i]);
           this.pendingTarget = targets[i];
@@ -2171,11 +2270,11 @@ TANK.registerComponent("Player")
 
     // Handle the beginning of a selection drag if the mouse down was outside
     // of the heading radius
-    var distToPlayer = TANK.Math2D.pointDistancePoint([t.x, t.y], mousePos);
-    if (distToPlayer > this.headingRadiusScaled && !TANK.main.Game.zooming)
+    var distToHUD = TANK.Math2D.pointDistancePoint(this.headingPos, mousePos);
+    if (distToHUD > this.headingRadiusScaled && !TANK.main.Game.zooming)
     {
       this.selecting = true;
-      this.selectPos = [mousePos[0], mousePos[1]];
+      this.selectPos = [TANK.main.Game.mousePosWorld[0], TANK.main.Game.mousePosWorld[1]];
       this.selectRadius = 0;
     }
   };
@@ -2228,20 +2327,26 @@ TANK.registerComponent("Player")
 
   this.mouseMoveHandler = function(e)
   {
+    // Handle changing heading
     if (this.mouseDown && !this.fireButtonDown && !this.selecting && !this.pendingTarget)
     {
-      var mousePos = TANK.main.Game.mousePosWorld;
+      var mousePos = TANK.Math2D.subtract(TANK.main.Game.mousePosScreen, [window.innerWidth / 2, window.innerHeight / 2]);
 
-      // Get heading
-      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], TANK.main.Game.mousePosWorld);
+      var dist = TANK.Math2D.pointDistancePoint(this.headingPos, mousePos);
       if (dist < this.headingRadiusScaled)
       {
-        var newHeading = Math.atan2(mousePos[1] - t.y, mousePos[0] - t.x);
-        ship.heading = newHeading;
+        // Ignore if we are too close to center
+        if (dist > this.headingRadiusScaled * 0.1)
+        {
+          // Get heading
+          var newHeading = Math.atan2(mousePos[1] - this.headingPos[1], mousePos[0] - this.headingPos[0]);
+          ship.heading = newHeading;
 
-        // Get speed
-        ship.desiredSpeed = ((dist - this.speedStartScaled) /
-                            (this.headingRadiusScaled - this.speedStartScaled)) * ship.shipData.maxSpeed;
+          // Get speed
+          ship.desiredSpeed = (dist / this.headingRadiusScaled) * ship.shipData.maxSpeed;
+        }
+        else
+          ship.desiredSpeed = 0;
       }
     }
   };
@@ -2348,17 +2453,15 @@ TANK.registerComponent("Player")
     }
 
     // Calculate HUD size
-    this.headingRadius = Math.max(ship.image.width, ship.image.height) * 0.75;
-    this.speedStart = this.headingRadius * 0.25;
+    this.headingRadius = 50;
     this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
-    this.speedStartScaled = this.speedStart * TANK.main.Game.scaleFactor;
-
+    this.headingPos = [window.innerWidth / 2 - this.headingRadiusScaled - 30, window.innerHeight / 2 - this.headingRadiusScaled - 60];
     this.fireButtons =
     [
-      {side: "left", pos: [0, -ship.image.height * 0.75], radius: 6},
-      {side: "right", pos: [0, ship.image.height * 0.75], radius: 6},
-      {side: "front", pos: [ship.image.width * 0.75, 0], radius: 6},
-      {side: "back", pos: [-ship.image.width * 0.75, 0], radius: 6},
+      {side: "left", pos: [0, -this.headingRadius * 0.75], radius: 6},
+      {side: "right", pos: [0, this.headingRadius * 0.75], radius: 6},
+      {side: "front", pos: [this.headingRadius * 0.75, 0], radius: 6},
+      {side: "back", pos: [-this.headingRadius * 0.75, 0], radius: 6},
     ];
 
     // Heading controls
@@ -2411,6 +2514,7 @@ TANK.registerComponent("Player")
       ctx.restore();
     }
 
+    // Draw context order text
     if (this.pendingOrder)
     {
       var mousePos = TANK.main.Game.mousePosWorld;
@@ -2423,12 +2527,10 @@ TANK.registerComponent("Player")
       ctx.restore();
     }
 
-    if (camera.z > 5)
-      return;
-
     // Draw player HUD
     ctx.save();
-    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(camera.z, camera.z);
+    ctx.translate(this.headingPos[0], this.headingPos[1]);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
 
     // Draw compass
@@ -2437,6 +2539,10 @@ TANK.registerComponent("Player")
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(0, 0, this.headingRadius, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, this.headingRadius * 0.1, Math.PI * 2, false);
     ctx.closePath();
     ctx.stroke();
 
@@ -2451,11 +2557,11 @@ TANK.registerComponent("Player")
     ctx.strokeStyle = "rgba(100, 100, 250, 0.8)";
     ctx.lineWidth = 1.5;
     var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
-    var startPos = [Math.cos(ship.heading) * this.speedStart, Math.sin(ship.heading) * this.speedStart];
+    var startPos = [Math.cos(ship.heading), Math.sin(ship.heading)];
     ctx.beginPath();
     ctx.moveTo(startPos[0], startPos[1]);
-    ctx.lineTo(startPos[0] + Math.cos(ship.heading) * (this.headingRadius - this.speedStart) * speedPercent,
-               startPos[1] + Math.sin(ship.heading) * (this.headingRadius - this.speedStart) * speedPercent);
+    ctx.lineTo(startPos[0] + Math.cos(ship.heading) * (this.headingRadius) * speedPercent,
+               startPos[1] + Math.sin(ship.heading) * (this.headingRadius) * speedPercent);
     ctx.closePath();
     ctx.stroke();
 
@@ -2471,7 +2577,6 @@ TANK.registerComponent("Player")
     }
 
     // Draw weapon buttons
-    ctx.rotate(t.rotation);
     ctx.fillStyle = "rgba(255, 80, 80, 0.5)";
 
     // Front Back
@@ -2846,6 +2951,31 @@ TANK.registerComponent("Ship")
     {
       ctx.globalAlpha = this.thrustAlpha;
       ctx.drawImage(this.imageEngine, 0, 0);
+    }
+
+    // Draw team indicator
+    if (camera.z < 8)
+    {
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = this.faction.color;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-5, -2.5);
+      ctx.lineTo(-2.5, -5);
+
+      ctx.moveTo(this.image.width, 0);
+      ctx.lineTo(this.image.width + 5, -2.5);
+      ctx.lineTo(this.image.width + 2.5, -5);
+
+      ctx.moveTo(this.image.width, this.image.height);
+      ctx.lineTo(this.image.width + 5, this.image.height + 2.5);
+      ctx.lineTo(this.image.width + 2.5, this.image.height + 5);
+
+      ctx.moveTo(0, this.image.height);
+      ctx.lineTo(-5, this.image.height + 2.5);
+      ctx.lineTo(-2.5, this.image.height + 5);
+      ctx.closePath();
+      ctx.fill();
     }
 
     // Draw selection box
