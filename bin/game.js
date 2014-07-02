@@ -983,38 +983,39 @@ TANK.registerComponent("Game")
 
 .construct(function()
 {
+  // Game scale factor
   this.scaleFactor = 3;
+
+  // Current existing factions
   this.factions = [];
+
+  // Menu options
   this.menuOptions = [];
+  this.levelOptions = [];
+
+  // Command options
   this.barCommands = [];
   this.topBarItems = [];
+
+  // Mouse positions
   this.mousePosWorld = [0, 0];
   this.mousePosScreen = [0, 0];
+
+  // Global light direction
   this.lightDir = Math.random() * Math.PI * 2;
 
+  // Level settings
   this.currentLevel = -1;
   this.pendingLoad = false;
 })
 
 .initialize(function()
 {
-  // Build main menu options
   var that = this;
-  for (var i = 0; i < Levels.length; ++i)
-  {
-    this.menuOptions.push(
-    {
-      name: Levels[i].name,
-      index: i,
-      activate: function()
-      {
-        that.menuUI.teardown();
-        that.goToLevel(this.index);
-      }
-    });
-  }
 
+  //
   // Build up bar commands
+  //
   this.barCommands.push(
   {
     name: "Build Fighter",
@@ -1035,6 +1036,9 @@ TANK.registerComponent("Game")
   // Money counter
   this.topBarItems.push({name: ""});
 
+  //
+  // Update the mouse world position
+  //
   this.updateMousePos = function(pos)
   {
     this.mousePosScreen = [pos[0], pos[1]];
@@ -1047,9 +1051,60 @@ TANK.registerComponent("Game")
     this.mousePosWorld[1] += TANK.main.Renderer2D.camera.y;
   };
 
+  //
+  // Move to the main menu state
+  //
   this.goToMainMenu = function()
   {
     TANK.main.dispatch("levelEnd");
+
+    var save = localStorage["save"];
+
+    // Build menu options
+    this.menuOptions.push(
+    {
+      name: "New Game",
+      activate: function()
+      {
+        that.menuUI.teardown();
+        that.goToLevel(0);
+      }
+    });
+    if (save)
+    {
+      this.menuOptions.push(
+      {
+        name: "Continue",
+        activate: function()
+        {
+          that.menuUI.teardown();
+          that.goToLevel(0);
+        }
+      });
+      this.menuOptions.push(
+      {
+        name: "Level Select",
+        activate: function()
+        {
+          that.menuUI.teardown();
+          that.goToLevelSelect();
+        }
+      });
+    }
+    this.menuOptions.push(
+    {
+      name: "Options",
+      activate: function()
+      {
+      }
+    });
+    this.menuOptions.push(
+    {
+      name: "Quit",
+      activate: function()
+      {
+      }
+    });
 
     // Build main menu ractive
     this.menuUI = new Ractive(
@@ -1066,6 +1121,48 @@ TANK.registerComponent("Game")
     });
   };
 
+  //
+  // Move to level select screen
+  //
+  this.goToLevelSelect = function()
+  {
+    TANK.main.dispatch("levelEnd");
+
+    var save = localStorage["save"];
+
+    // Build level options
+    for (var i = 0; i < +save.currentLevel; ++i)
+    {
+      this.levelOptions.push(
+      {
+        name: Levels[i].name,
+        index: i,
+        activate: function()
+        {
+          that.menuUI.teardown();
+          that.goToLevel(this.index);
+        }
+      });
+    }
+
+    // Build level select
+    this.menuUI = new Ractive(
+    {
+      el: "menuContainer",
+      template: "#levelTemplate",
+      data: {options: this.levelOptions}
+    });
+
+    // Set ractive event listeners
+    this.menuUI.on("activate", function(e)
+    {
+      e.context.activate();
+    });
+  };
+
+  //
+  // Show the lose screen menu
+  //
   this.showLoseScreen = function()
   {
     if (this.popupUI)
@@ -1127,6 +1224,8 @@ TANK.registerComponent("Game")
       e.Ship.faction = this.factions[level.ships[i].faction];
       TANK.main.addChild(e);
     }
+
+    this.lightDir = level.lightDir;
 
     TANK.main.dispatch("levelStart");
   };
@@ -1427,6 +1526,7 @@ var Levels = [];
 Levels[0] = 
 {
   name: "Sample Level",
+  lightDir: 1.5,
   factions: 
   [
     {player: true, team: 0, color: "#5d5"},

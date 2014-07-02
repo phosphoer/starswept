@@ -87,9 +87,21 @@
     <!-- Main menu template -->
     <script id='menuTemplate' type='text/ractive'>
       <div class='main-menu'>
+        <div class='menu-title'>Space Game</div>
         <div class='menu-options'>
           {{#options}}
             <div class='menu-option' on-click='activate'>{{name}}</div>
+          {{/options}}
+        </div>
+      </div>
+    </script>
+
+    <!-- Level menu template -->
+    <script id='levelTemplate' type='text/ractive'>
+      <div class='level-menu'>
+        <div class='level-options'>
+          {{#options}}
+            <div class='level-option' on-click='activate'>{{name}}</div>
           {{/options}}
         </div>
       </div>

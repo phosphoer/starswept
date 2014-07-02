@@ -3,6 +3,7 @@ var Levels = [];
 Levels[0] = 
 {
   name: "Sample Level",
+  lightDir: 1.5,
   factions: 
   [
     {player: true, team: 0, color: "#5d5"},
