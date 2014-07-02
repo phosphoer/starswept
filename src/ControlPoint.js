@@ -87,6 +87,11 @@ TANK.registerComponent("ControlPoint")
     return false;
   };
 
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+
   this.draw = function(ctx, camera)
   {
     if (camera.z >= 8)

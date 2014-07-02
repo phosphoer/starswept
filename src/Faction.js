@@ -11,6 +11,11 @@ TANK.registerComponent("Faction")
 
 .initialize(function()
 {
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+  
   this.listenTo(this._entity, "buyship", function(ship, callback, data)
   {
     this.buyShip(ship, callback, data);

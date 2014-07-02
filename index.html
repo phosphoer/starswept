@@ -3,14 +3,14 @@
   <head>
     <title>A New Sky</title>
     <meta content='initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
-    <link rel="stylesheet" href="style.css" />
+    <link rel='stylesheet' href='style.css' />
 
     <!-- Include TANK here -->
-    <script src="lib/jquery.min.js"></script>
-    <script src="lib/perlin.js"></script>
-    <script src="lib/tank.js"></script>
-    <script src="lib/components.js"></script>
-    <script src="bin/game.js"></script>
+    <script src='lib/jquery.min.js'></script>
+    <script src='lib/perlin.js'></script>
+    <script src='lib/tank.js'></script>
+    <script src='lib/components.js'></script>
+    <script src='bin/game.js'></script>
   </head>
   <body>
     <style>
@@ -24,15 +24,15 @@
     }
     </style>
 
-    <div id="stage" class="fullscreen" tabIndex="0" style="touch-action: none;">
-      <canvas id="canvas" class="fullscreen"></canvas>
+    <div id='stage' class='fullscreen' tabIndex='0' style='touch-action: none;'>
+      <canvas id='canvas' class='fullscreen'></canvas>
     </div>
 
     <!-- Schedule our main entry point function to get called -->
-    <script type="text/javascript">
-      window.addEventListener("load", main);
+    <script type='text/javascript'>
+      window.addEventListener('load', main);
 
-      var canvas = document.getElementById("canvas");
+      var canvas = document.getElementById('canvas');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       window.onresize = function()
@@ -49,39 +49,82 @@
     </script>
 
     <!-- Ractive containers -->
-    <div id="menuContainer"></div>
-    <div id="barContainer"></div>
-    <div id="topBarContainer"></div>
+    <div id='popupContainer'></div>
+    <div id='menuContainer'></div>
+    <div id='barContainer'></div>
+    <div id='topBarContainer'></div>
+
+    <!-- Win screen template -->
+    <script id='winTemplate' type='text/ractive'>
+      <div class='popup-window'>
+        <div class='popup-title'>You win!</div>
+        <div class='popup-info'>Time - 0</div>
+        <div class='popup-info'>Ships built - 0</div>
+        <div class='popup-info'>Ships lost - 0</div>
+        <div class='popup-info'>Ships destroyed - 0</div>
+        <div class='popup-footer'>
+          <div class='popup-button' on-click='mainMenu'>Main Menu</div>
+          <div class='popup-button' on-click='nextLevel'>Next Level</div>
+        </div>
+      </div>
+    </script>
+
+    <!-- Lose screen template -->
+    <script id='loseTemplate' type='text/ractive'>
+      <div class='popup-window'>
+        <div class='popup-title'>You lost</div>
+        <div class='popup-info'>Time - 0</div>
+        <div class='popup-info'>Ships built - 0</div>
+        <div class='popup-info'>Ships lost - 0</div>
+        <div class='popup-info'>Ships destroyed - 0</div>
+        <div class='popup-footer'>
+          <div class='popup-button' on-click='mainMenu'>Main Menu</div>
+          <div class='popup-button' on-click='retry'>Retry</div>
+        </div>
+      </div>
+    </script>
 
     <!-- Main menu template -->
-    <script id="menuTemplate" type="text/ractive">
-      <div class="main-menu">
-        <div class="menu-options">
+    <script id='menuTemplate' type='text/ractive'>
+      <div class='main-menu'>
+        <div class='menu-title'>Space Game</div>
+        <div class='menu-options'>
           {{#options}}
-            <div class="menu-option" on-click="activate">{{name}}</div>
+            <div class='menu-option' on-click='activate'>{{name}}</div>
+          {{/options}}
+        </div>
+      </div>
+    </script>
+
+    <!-- Level menu template -->
+    <script id='levelTemplate' type='text/ractive'>
+      <div class='level-menu'>
+        <div class='level-options'>
+          {{#options}}
+            <div class='level-option' on-click='activate'>{{name}}</div>
           {{/options}}
         </div>
       </div>
     </script>
 
     <!-- Bottom command bar template -->
-    <script id="barTemplate" type="text/ractive">
-      <div class="bar">
+    <script id='barTemplate' type='text/ractive'>
+      <div class='bar'>
         {{#commands}}
-          <div class='bar-button' on-click="activate">{{name}}</div>
+          <div class='bar-button' on-click='activate'>{{name}}</div>
         {{/commands}}
       </div>
     </script>
 
     <!-- Top bar template -->
-    <script id="topBarTemplate" type="text/ractive">
-      <div class="top-bar">
+    <script id='topBarTemplate' type='text/ractive'>
+      <div class='top-bar'>
         {{#items}}
           <div class='bar-item'>{{name}}</div>
         {{/items}}
       </div>
     </script>
 
-    <script src="lib/ractive.js"></script>
+    <script src='lib/ractive.js'></script>
   </body>
 </html>
