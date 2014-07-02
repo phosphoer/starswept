@@ -27,7 +27,7 @@ Levels[1] =
   lightDir: 0.5,
   factions: 
   [
-    {player: true, team: 0, color: "#5d5"},
+    {player: false, team: 0, color: "#5d5"},
     {player: false, team: 1, color: "#d55"}
   ],
   controlPoints: 
@@ -38,7 +38,7 @@ Levels[1] =
   ],
   ships:
   [
-    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
+    {player: false, faction: 0, ship: "frigate", x: 0, y: 0},
     {player: false, faction: 1, ship: "frigate", x: 5000, y: 5000}
   ]
 };

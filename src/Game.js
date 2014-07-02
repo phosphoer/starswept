@@ -26,6 +26,8 @@ TANK.registerComponent("Game")
   // Level settings
   this.currentLevel = -1;
   this.pendingLoad = false;
+
+  this.aiArenaMode = false;
 })
 
 .initialize(function()
@@ -308,7 +310,10 @@ TANK.registerComponent("Game")
   //
   this.listenTo(TANK.main, "start", function()
   {
-    this.goToMainMenu();
+    if (this.aiArenaMode)
+      this.goToLevel(1);
+    else
+      this.goToMainMenu();
   });
 
   //
@@ -316,43 +321,46 @@ TANK.registerComponent("Game")
   //
   this.listenTo(TANK.main, "levelStart", function(index)
   {
-    // Save the game
-    if (!localStorage["save"])
+    if (!this.aiArenaMode)
     {
-      var save = {};
-      save.currentLevel = index;
-      localStorage["save"] = JSON.stringify(save);
+      // Save the game
+      if (!localStorage["save"])
+      {
+        var save = {};
+        save.currentLevel = index;
+        localStorage["save"] = JSON.stringify(save);
+      }
+      else
+      {
+        var save = JSON.parse(localStorage["save"]);
+        save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
+        localStorage["save"] = JSON.stringify(save);
+      }
+
+      // Build bottom command bar ractive
+      this.barUI = new Ractive(
+      {
+        el: "barContainer",
+        template: "#barTemplate",
+        data: {commands: this.barCommands}
+      });
+
+      // Build top command bar ractive
+      this.topBarUI = new Ractive(
+      {
+        el: "topBarContainer",
+        template: "#topBarTemplate",
+        data: {items: this.topBarItems}
+      });
+
+      // Set ractive event listeners
+      this.barUI.on("activate", function(e)
+      {
+        e.context.activate();
+      });
+
+      TANK.main.dispatchTimed(3, "scanForEndCondition");
     }
-    else
-    {
-      var save = JSON.parse(localStorage["save"]);
-      save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
-      localStorage["save"] = JSON.stringify(save);
-    }
-
-    // Build bottom command bar ractive
-    this.barUI = new Ractive(
-    {
-      el: "barContainer",
-      template: "#barTemplate",
-      data: {commands: this.barCommands}
-    });
-
-    // Build top command bar ractive
-    this.topBarUI = new Ractive(
-    {
-      el: "topBarContainer",
-      template: "#topBarTemplate",
-      data: {items: this.topBarItems}
-    });
-
-    // Set ractive event listeners
-    this.barUI.on("activate", function(e)
-    {
-      e.context.activate();
-    });
-
-    TANK.main.dispatchTimed(3, "scanForEndCondition");
   });
 
   //
@@ -510,7 +518,19 @@ TANK.registerComponent("Game")
     }
 
     // Update faction money count
-    if (this.factions.length > 0)
+    if (this.factions.length > 0 && this.topBarUI)
       this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
+
+    if (this.aiArenaMode)
+    {
+      if (TANK.main.Input.isDown(TANK.Key.W))
+        TANK.main.Renderer2D.camera.y -= dt * 1000;
+      if (TANK.main.Input.isDown(TANK.Key.S))
+        TANK.main.Renderer2D.camera.y += dt * 1000;
+      if (TANK.main.Input.isDown(TANK.Key.A))
+        TANK.main.Renderer2D.camera.x -= dt * 1000;
+      if (TANK.main.Input.isDown(TANK.Key.D))
+        TANK.main.Renderer2D.camera.x += dt * 1000;
+    }
   };
 });
