@@ -28,11 +28,48 @@ html, body
 {
   color: #ddd;
   font-size: 18px;
+  padding: 5px;
 }
 
 .menu-option:hover
 {
   background: rgba(255, 255, 255, 0.5);
+}
+
+.popup-window
+{
+  position: absolute;
+  width: 50%;
+  left: 25%;
+  top: 25%;
+  padding: 10px;
+  background: rgba(30, 30, 30, 0.9);
+  color: #ddd;
+  font-size: 18px;
+}
+
+.popup-footer
+{
+  padding-top: 20px;
+  padding-bottom: 10px;
+}
+
+.popup-title
+{
+  font-size: 32px;
+  text-align: center;
+}
+
+.popup-button
+{
+  background: #333;
+  padding: 5px;
+  font-size: 24px;
+}
+
+.popup-button:hover
+{
+  background: #555;
 }
 
 .bar

@@ -800,6 +800,11 @@ TANK.registerComponent("ControlPoint")
     return false;
   };
 
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+
   this.draw = function(ctx, camera)
   {
     if (camera.z >= 8)
@@ -923,6 +928,11 @@ TANK.registerComponent("Faction")
 
 .initialize(function()
 {
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+  
   this.listenTo(this._entity, "buyship", function(ship, callback, data)
   {
     this.buyShip(ship, callback, data);
@@ -998,6 +1008,7 @@ TANK.registerComponent("Game")
       index: i,
       activate: function()
       {
+        that.menuUI.teardown();
         that.goToLevel(this.index);
       }
     });
@@ -1038,12 +1049,7 @@ TANK.registerComponent("Game")
 
   this.goToMainMenu = function()
   {
-    if (this.topBarUI)
-      this.topBarUI.teardown();
-    if (this.barUI)
-      this.barUI.teardown();
-    this.topBarUI = null;
-    this.barUI = null;
+    TANK.main.dispatch("levelEnd");
 
     // Build main menu ractive
     this.menuUI = new Ractive(
@@ -1057,6 +1063,32 @@ TANK.registerComponent("Game")
     this.menuUI.on("activate", function(e)
     {
       e.context.activate();
+    });
+  };
+
+  this.showLoseScreen = function()
+  {
+    if (this.popupUI)
+      this.popupUI.teardown();
+
+    this.popupUI = new Ractive(
+    {
+      el: "popupContainer",
+      template: "#loseTemplate",
+    });
+
+    this.popupUI.on("mainMenu", function()
+    {
+      that.popupUI.teardown();
+      that.popupUI = null;
+      that.goToMainMenu();
+    });
+
+    this.popupUI.on("retry", function()
+    {
+      that.popupUI.teardown();
+      that.popupUI = null;
+      that.goToLevel(that.currentLevel);
     });
   };
 
@@ -1095,19 +1127,22 @@ TANK.registerComponent("Game")
       e.Ship.faction = this.factions[level.ships[i].faction];
       TANK.main.addChild(e);
     }
+
+    TANK.main.dispatch("levelStart");
   };
 
   this.goToLevel = function(index)
   {
     // Send out a message to all existing level objects to be destroyed
-    TANK.main.dispatch("levelCleanup");
-    this.factions = [];
-    this.menuUI.teardown();
+    TANK.main.dispatch("levelEnd");
 
     // Set current level marker and set a pending load
     this.currentLevel = index;
     this.pendingLoad = true;
+  };
 
+  this.listenTo(TANK.main, "levelStart", function()
+  {
     // Build bottom command bar ractive
     this.barUI = new Ractive(
     {
@@ -1129,7 +1164,22 @@ TANK.registerComponent("Game")
     {
       e.context.activate();
     });
-  };
+
+    TANK.main.dispatchTimed(3, "scanForEndCondition");
+  });
+
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    this.factions = [];
+
+    // Remove command bars
+    if (this.topBarUI)
+      this.topBarUI.teardown();
+    if (this.barUI)
+      this.barUI.teardown();
+    this.topBarUI = null;
+    this.barUI = null;
+  });
 
   this.listenTo(TANK.main, "scanforplayership", function(faction, pos)
   {
@@ -1168,6 +1218,46 @@ TANK.registerComponent("Game")
       // a new ship to be built
       TANK.main.dispatchTimed(3, "scanforplayership", faction, pos);
     }
+  });
+
+  this.listenTo(TANK.main, "scanForEndCondition", function()
+  {
+    var win = true;
+    var lose = true;
+
+    // Check if the player owns any or all control points
+    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+    for (var i in controlPoints)
+    {
+      if (controlPoints[i].ControlPoint.faction === this.factions[0])
+        lose = false;
+      else
+        win = false;
+    }
+
+    // Check if there are any friendly or enemy ships left
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    for (var i in ships)
+    {
+      if (ships[i].Ship.faction === this.factions[0])
+        lose = false;
+      else
+        win = false;
+    }
+
+    if (win)
+    {
+      this.goToMainMenu();
+      return;
+    }
+
+    if (lose)
+    {
+      this.showLoseScreen();
+      return;
+    }
+
+    TANK.main.dispatchTimed(3, "scanForEndCondition");
   });
 
   this.listenTo(TANK.main, "mousemove", function(e)
@@ -2754,6 +2844,11 @@ TANK.registerComponent("Ship")
     if (dist < window.innerWidth / 2)
       TANK.main.dispatch("camerashake", 0.5);
   };
+
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
 
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)

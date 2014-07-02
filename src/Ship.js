@@ -165,6 +165,11 @@ TANK.registerComponent("Ship")
       TANK.main.dispatch("camerashake", 0.5);
   };
 
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+
   // Damage response
   this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
   {
