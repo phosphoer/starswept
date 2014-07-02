@@ -216,6 +216,7 @@ TANK.registerComponent("AIFaction")
 .includes("Faction")
 .construct(function()
 {
+  this.name = "original";
   this.currentCaptureTarget = null;
   this.projects = [];
 
@@ -243,6 +244,11 @@ TANK.registerComponent("AIFaction")
     return Math.max(Math.round(numShips * 1.5), 1);
   };
 
+  this.say = function(message)
+  {
+    console.log("AI " + this.name + "(" + faction.team + "): " + message);
+  };
+
   this.update = function(dt)
   {
     // Find idle ships
@@ -254,7 +260,7 @@ TANK.registerComponent("AIFaction")
       var ships = TANK.main.getChildrenWithComponent("AIShip");
       for (var i in ships)
       {
-        if (ships[i].AIShip.idle)
+        if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
           this.idleShips.push(ships[i]);
       }
     } 
@@ -262,14 +268,14 @@ TANK.registerComponent("AIFaction")
     // If we don't have a current capture target, find one and create a project for it
     if (!this.currentCaptureTarget)
     {
-      console.log("AI: No capture target, picking a new one...");
+      this.say("No capture target, picking a new one...");
       var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
       for (var i in controlPoints)
       {
         var e = controlPoints[i];
         if (!e.ControlPoint.faction || e.ControlPoint.faction.team !== faction.team)
         {
-          console.log("AI: Found capture target, assigning ships...");
+          this.say("Found capture target, assigning ships...");
           this.currentCaptureTarget = e;
           var threat = this.calculateControlPointThreat(this.currentCaptureTarget);
           var captureProject = new AIProject(this);
@@ -308,6 +314,8 @@ function AIProject(aiFaction)
   this.inProgress = false;
   this.complete = false;
 
+  var faction = aiFaction._entity.Faction;
+
   this.completeCondition = function()
   {
     return false;
@@ -338,7 +346,7 @@ function AIProject(aiFaction)
         }
       }
     }
-    console.log("AI: Found " + aiFaction.idleShips.length + " idle ships...");
+    aiFaction.say("Found " + aiFaction.idleShips.length + " idle ships...");
     aiFaction.idleShips = aiFaction.idleShips.filter(function(val) {return val !== null;});
 
     // Queue ships for construction to fill remaining places
@@ -348,10 +356,10 @@ function AIProject(aiFaction)
       if (!this.shipsRequired[i].assignedShip)
       {
         ++this.shipsQueued;
-        console.log("AI: Queued ship for build...");
+        aiFaction.say("Queued ship for build...");
         aiFaction._entity.Faction.buyShip(this.shipsRequired[i].type, function(e, requiredShip)
         {
-          console.log("AI: ...Ship for target complete");
+          aiFaction.say("...Ship for target complete");
           requiredShip.assignedShip = e;
         }, this.shipsRequired[i]);
       }
@@ -1007,6 +1015,8 @@ TANK.registerComponent("Game")
   // Level settings
   this.currentLevel = -1;
   this.pendingLoad = false;
+
+  this.aiArenaMode = true;
 })
 
 .initialize(function()
@@ -1229,7 +1239,7 @@ TANK.registerComponent("Game")
     // Create faction entities
     for (var i = 0; i < level.factions.length; ++i)
     {
-      var e = level.factions[i].player ? TANK.createEntity("Faction") : TANK.createEntity("AIFaction");
+      var e = TANK.createEntity(level.factions[i].ai);
       e.Faction.team = level.factions[i].team;
       e.Faction.color = level.factions[i].color;
       this.factions.push(e.Faction);
@@ -1289,7 +1299,10 @@ TANK.registerComponent("Game")
   //
   this.listenTo(TANK.main, "start", function()
   {
-    this.goToMainMenu();
+    if (this.aiArenaMode)
+      this.goToLevel(1);
+    else
+      this.goToMainMenu();
   });
 
   //
@@ -1297,43 +1310,46 @@ TANK.registerComponent("Game")
   //
   this.listenTo(TANK.main, "levelStart", function(index)
   {
-    // Save the game
-    if (!localStorage["save"])
+    if (!this.aiArenaMode)
     {
-      var save = {};
-      save.currentLevel = index;
-      localStorage["save"] = JSON.stringify(save);
+      // Save the game
+      if (!localStorage["save"])
+      {
+        var save = {};
+        save.currentLevel = index;
+        localStorage["save"] = JSON.stringify(save);
+      }
+      else
+      {
+        var save = JSON.parse(localStorage["save"]);
+        save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
+        localStorage["save"] = JSON.stringify(save);
+      }
+
+      // Build bottom command bar ractive
+      this.barUI = new Ractive(
+      {
+        el: "barContainer",
+        template: "#barTemplate",
+        data: {commands: this.barCommands}
+      });
+
+      // Build top command bar ractive
+      this.topBarUI = new Ractive(
+      {
+        el: "topBarContainer",
+        template: "#topBarTemplate",
+        data: {items: this.topBarItems}
+      });
+
+      // Set ractive event listeners
+      this.barUI.on("activate", function(e)
+      {
+        e.context.activate();
+      });
+
+      TANK.main.dispatchTimed(3, "scanForEndCondition");
     }
-    else
-    {
-      var save = JSON.parse(localStorage["save"]);
-      save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
-      localStorage["save"] = JSON.stringify(save);
-    }
-
-    // Build bottom command bar ractive
-    this.barUI = new Ractive(
-    {
-      el: "barContainer",
-      template: "#barTemplate",
-      data: {commands: this.barCommands}
-    });
-
-    // Build top command bar ractive
-    this.topBarUI = new Ractive(
-    {
-      el: "topBarContainer",
-      template: "#topBarTemplate",
-      data: {items: this.topBarItems}
-    });
-
-    // Set ractive event listeners
-    this.barUI.on("activate", function(e)
-    {
-      e.context.activate();
-    });
-
-    TANK.main.dispatchTimed(3, "scanForEndCondition");
   });
 
   //
@@ -1491,8 +1507,20 @@ TANK.registerComponent("Game")
     }
 
     // Update faction money count
-    if (this.factions.length > 0)
+    if (this.factions.length > 0 && this.topBarUI)
       this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
+
+    if (this.aiArenaMode)
+    {
+      if (TANK.main.Input.isDown(TANK.Key.W))
+        TANK.main.Renderer2D.camera.y -= dt * 1000;
+      if (TANK.main.Input.isDown(TANK.Key.S))
+        TANK.main.Renderer2D.camera.y += dt * 1000;
+      if (TANK.main.Input.isDown(TANK.Key.A))
+        TANK.main.Renderer2D.camera.x -= dt * 1000;
+      if (TANK.main.Input.isDown(TANK.Key.D))
+        TANK.main.Renderer2D.camera.x += dt * 1000;
+    }
   };
 });
 
@@ -1608,8 +1636,8 @@ Levels[0] =
   lightDir: 1.5,
   factions: 
   [
-    {player: true, team: 0, color: "#5d5"},
-    {player: false, team: 1, color: "#d55"}
+    {ai: "Faction", team: 0, color: "#5d5"},
+    {ai: "AIFaction", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
@@ -1629,8 +1657,8 @@ Levels[1] =
   lightDir: 0.5,
   factions: 
   [
-    {player: true, team: 0, color: "#5d5"},
-    {player: false, team: 1, color: "#d55"}
+    {ai: "AIFaction", team: 0, color: "#5d5"},
+    {ai: "AIFaction", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
@@ -1640,8 +1668,6 @@ Levels[1] =
   ],
   ships:
   [
-    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
-    {player: false, faction: 1, ship: "frigate", x: 5000, y: 5000}
   ]
 };
 TANK.registerComponent("Life")

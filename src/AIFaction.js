@@ -5,6 +5,7 @@ TANK.registerComponent("AIFaction")
 .includes("Faction")
 .construct(function()
 {
+  this.name = "original";
   this.currentCaptureTarget = null;
   this.projects = [];
 
@@ -32,6 +33,11 @@ TANK.registerComponent("AIFaction")
     return Math.max(Math.round(numShips * 1.5), 1);
   };
 
+  this.say = function(message)
+  {
+    console.log("AI " + this.name + "(" + faction.team + "): " + message);
+  };
+
   this.update = function(dt)
   {
     // Find idle ships
@@ -43,7 +49,7 @@ TANK.registerComponent("AIFaction")
       var ships = TANK.main.getChildrenWithComponent("AIShip");
       for (var i in ships)
       {
-        if (ships[i].AIShip.idle)
+        if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
           this.idleShips.push(ships[i]);
       }
     } 
@@ -51,14 +57,14 @@ TANK.registerComponent("AIFaction")
     // If we don't have a current capture target, find one and create a project for it
     if (!this.currentCaptureTarget)
     {
-      console.log("AI: No capture target, picking a new one...");
+      this.say("No capture target, picking a new one...");
       var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
       for (var i in controlPoints)
       {
         var e = controlPoints[i];
         if (!e.ControlPoint.faction || e.ControlPoint.faction.team !== faction.team)
         {
-          console.log("AI: Found capture target, assigning ships...");
+          this.say("Found capture target, assigning ships...");
           this.currentCaptureTarget = e;
           var threat = this.calculateControlPointThreat(this.currentCaptureTarget);
           var captureProject = new AIProject(this);
@@ -97,6 +103,8 @@ function AIProject(aiFaction)
   this.inProgress = false;
   this.complete = false;
 
+  var faction = aiFaction._entity.Faction;
+
   this.completeCondition = function()
   {
     return false;
@@ -127,7 +135,7 @@ function AIProject(aiFaction)
         }
       }
     }
-    console.log("AI: Found " + aiFaction.idleShips.length + " idle ships...");
+    aiFaction.say("Found " + aiFaction.idleShips.length + " idle ships...");
     aiFaction.idleShips = aiFaction.idleShips.filter(function(val) {return val !== null;});
 
     // Queue ships for construction to fill remaining places
@@ -137,10 +145,10 @@ function AIProject(aiFaction)
       if (!this.shipsRequired[i].assignedShip)
       {
         ++this.shipsQueued;
-        console.log("AI: Queued ship for build...");
+        aiFaction.say("Queued ship for build...");
         aiFaction._entity.Faction.buyShip(this.shipsRequired[i].type, function(e, requiredShip)
         {
-          console.log("AI: ...Ship for target complete");
+          aiFaction.say("...Ship for target complete");
           requiredShip.assignedShip = e;
         }, this.shipsRequired[i]);
       }
