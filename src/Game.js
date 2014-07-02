@@ -27,7 +27,7 @@ TANK.registerComponent("Game")
   this.currentLevel = -1;
   this.pendingLoad = false;
 
-  this.aiArenaMode = false;
+  this.aiArenaMode = true;
 })
 
 .initialize(function()
@@ -250,7 +250,7 @@ TANK.registerComponent("Game")
     // Create faction entities
     for (var i = 0; i < level.factions.length; ++i)
     {
-      var e = level.factions[i].player ? TANK.createEntity("Faction") : TANK.createEntity("AIFaction");
+      var e = TANK.createEntity(level.factions[i].ai);
       e.Faction.team = level.factions[i].team;
       e.Faction.color = level.factions[i].color;
       this.factions.push(e.Faction);

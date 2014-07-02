@@ -1016,7 +1016,7 @@ TANK.registerComponent("Game")
   this.currentLevel = -1;
   this.pendingLoad = false;
 
-  this.aiArenaMode = false;
+  this.aiArenaMode = true;
 })
 
 .initialize(function()
@@ -1239,7 +1239,7 @@ TANK.registerComponent("Game")
     // Create faction entities
     for (var i = 0; i < level.factions.length; ++i)
     {
-      var e = level.factions[i].player ? TANK.createEntity("Faction") : TANK.createEntity("AIFaction");
+      var e = TANK.createEntity(level.factions[i].ai);
       e.Faction.team = level.factions[i].team;
       e.Faction.color = level.factions[i].color;
       this.factions.push(e.Faction);
@@ -1636,8 +1636,8 @@ Levels[0] =
   lightDir: 1.5,
   factions: 
   [
-    {player: true, team: 0, color: "#5d5"},
-    {player: false, team: 1, color: "#d55"}
+    {ai: "Faction", team: 0, color: "#5d5"},
+    {ai: "AIFaction", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
@@ -1657,8 +1657,8 @@ Levels[1] =
   lightDir: 0.5,
   factions: 
   [
-    {player: false, team: 0, color: "#5d5"},
-    {player: false, team: 1, color: "#d55"}
+    {ai: "AIFaction", team: 0, color: "#5d5"},
+    {ai: "AIFaction", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
@@ -1668,8 +1668,6 @@ Levels[1] =
   ],
   ships:
   [
-    {player: false, faction: 0, ship: "frigate", x: 0, y: 0},
-    {player: false, faction: 1, ship: "frigate", x: 5000, y: 5000}
   ]
 };
 TANK.registerComponent("Life")
