@@ -18,19 +18,34 @@ TANK.registerComponent("AIFaction")
   var faction = this._entity.Faction;
   var that = this;
 
-  this.calculateControlPointThreat = function(e)
+  this.calculateThreatAtPos = function(pos, radius, targetFaction)
   {
-    // Find how many enemy ships are near the planet
     var ships = TANK.main.getChildrenWithComponent("Ship");
-    var numShips = 0;
+    var threat = 0;
     for (var i in ships)
     {
-      var dist = TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [ships[i].Pos2D.x, ships[i].Pos2D.y]);
-      if (dist < 700 && ships[i].Ship.faction.team !== faction.team)
-        ++numShips;
+      if (targetFaction && ships[i].Ship.faction !== targetFaction)
+        continue;
+      else if (!targetFaction && ships[i].Ship.faction === faction)
+        continue;
+
+      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
+      if (dist < radius)
+        threat += ships[i].Ship.shipData.threat;
     }
 
-    return Math.max(Math.round(numShips * 1.5), 1);
+    return threat;
+  };
+
+  this.findIdleShips = function()
+  {
+    this.idleShips = [];
+    var ships = TANK.main.getChildrenWithComponent("AIShip");
+    for (var i in ships)
+    {
+      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
+        this.idleShips.push(ships[i]);
+    }
   };
 
   this.say = function(message)
@@ -44,14 +59,8 @@ TANK.registerComponent("AIFaction")
     this.idleShipScanTimer -= dt;
     if (this.idleShipScanTimer <= 0)
     {
-      this.idleShips = [];
       this.idleShipScanTimer = this.idleShipScanTime;
-      var ships = TANK.main.getChildrenWithComponent("AIShip");
-      for (var i in ships)
-      {
-        if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
-          this.idleShips.push(ships[i]);
-      }
+      this.findIdleShips();
     } 
 
     // If we don't have a current capture target, find one and create a project for it
@@ -66,11 +75,11 @@ TANK.registerComponent("AIFaction")
         {
           this.say("Found capture target, assigning ships...");
           this.currentCaptureTarget = e;
-          var threat = this.calculateControlPointThreat(this.currentCaptureTarget);
+          var pos = [this.currentCaptureTarget.Pos2D.x, this.currentCaptureTarget.Pos2D.y];
+          var threat = this.calculateThreatAtPos(pos, 700, e.ControlPoint.faction);
           var captureProject = new AIProject(this);
           captureProject.target = e;
-          captureProject.order = "AIDefend";
-          captureProject.buildCombatGroup(threat);
+          captureProject.buildCombatGroup((threat + 1) * 1.5);
           captureProject.acquireShips();
           captureProject.completeCondition = function()
           {
@@ -92,107 +101,5 @@ TANK.registerComponent("AIFaction")
     this.projects = this.projects.filter(function(val) {return val !== null;});
   };
 });
-
-function AIProject(aiFaction)
-{
-  this.target = null;
-  this.order = "";
-  this.shipsQueued = 0;
-  this.shipsRequired = [];
-  this.ready = false;
-  this.inProgress = false;
-  this.complete = false;
-
-  var faction = aiFaction._entity.Faction;
-
-  this.completeCondition = function()
-  {
-    return false;
-  };
-
-  this.buildCombatGroup = function(num)
-  {
-    this.shipsRequired = [];
-    for (var i = 0; i < num; ++i)
-    {
-      var ship = {type: "frigate"};
-      this.shipsRequired.push(ship);
-    }
-  };
-
-  this.acquireShips = function()
-  {
-    // Assign any existing idle ships
-    for (var i = 0; i < this.shipsRequired.length; ++i)
-    {
-      for (var j = 0; j < aiFaction.idleShips.length; ++j)
-      {
-        if (aiFaction.idleShips[j] && aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
-        {
-          this.shipsRequired[i].assignedShip = aiFaction.idleShips[j];
-          aiFaction.idleShips[j] = null;
-          break;
-        }
-      }
-    }
-    aiFaction.say("Found " + aiFaction.idleShips.length + " idle ships...");
-    aiFaction.idleShips = aiFaction.idleShips.filter(function(val) {return val !== null;});
-
-    // Queue ships for construction to fill remaining places
-    var that = this;
-    for (var i = 0; i < this.shipsRequired.length; ++i)
-    {
-      if (!this.shipsRequired[i].assignedShip)
-      {
-        ++this.shipsQueued;
-        aiFaction.say("Queued ship for build...");
-        aiFaction._entity.Faction.buyShip(this.shipsRequired[i].type, function(e, requiredShip)
-        {
-          aiFaction.say("...Ship for target complete");
-          requiredShip.assignedShip = e;
-        }, this.shipsRequired[i]);
-      }
-    }
-  };
-
-  this.update = function(dt)
-  {
-    // Check if the project is ready
-    if (!this.inProgress && this.shipsRequired.length > 0)
-    {
-      this.ready = true;
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        if (!this.shipsRequired[i].assignedShip)
-          this.ready = false;
-      }
-    }
-
-    // Once the project is ready, assign allocated ships to the target
-    if (this.ready && !this.inProgress)
-    {
-      this.inProgress = true;
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        this.shipsRequired[i].assignedShip.AIShip.giveContextOrder(this.target);
-      }
-    }
-
-    // Check if the project is complete
-    this.complete = this.completeCondition();
-    if (this.complete)
-    {
-      // If so, cancel all orders for the assigned ships
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        var item = this.shipsRequired[i];
-        if (item.assignedShip && TANK.main.getChild(item.assignedShip._id))
-        {
-          item.assignedShip.AIShip.clearOrders();
-        }
-      }
-    }
-  };
-};
 
 })();

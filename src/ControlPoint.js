@@ -141,9 +141,9 @@ TANK.registerComponent("ControlPoint")
     }
 
     // Process build queue
-    for (var i = 0; i < this.queuedShips.length; ++i)
+    if (this.queuedShips.length > 0)
     {
-      var item = this.queuedShips[i];
+      var item = this.queuedShips[0];
       item.time -= dt;
       if (item.time <= 0)
       {
@@ -154,8 +154,7 @@ TANK.registerComponent("ControlPoint")
         e.Pos2D.y = t.y - 400 + Math.random() * 800;
         TANK.main.addChild(e);
 
-        this.queuedShips.splice(i, 1);
-        --i;
+        this.queuedShips.splice(0, 1);
 
         if (item.callback)
           item.callback(e, item.data);
