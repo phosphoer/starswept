@@ -19,7 +19,8 @@ Ships.fighter = function()
   this.turnAccel = 2.0;
   this.health = 0.2;
   this.cost = 5;
-  this.buildTime = 2;
+  this.buildTime = 5;
+  this.threat = 1;
   this.guns =
   {
     front:
@@ -87,7 +88,8 @@ Ships.frigate = function()
   this.turnAccel = 1.2;
   this.health = 1;
   this.cost = 30;
-  this.buildTime = 5;
+  this.buildTime = 15;
+  this.threat = 10;
   this.guns =
   {
     left:

@@ -229,19 +229,34 @@ TANK.registerComponent("AIFaction")
   var faction = this._entity.Faction;
   var that = this;
 
-  this.calculateControlPointThreat = function(e)
+  this.calculateThreatAtPos = function(pos, radius, targetFaction)
   {
-    // Find how many enemy ships are near the planet
     var ships = TANK.main.getChildrenWithComponent("Ship");
-    var numShips = 0;
+    var threat = 0;
     for (var i in ships)
     {
-      var dist = TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [ships[i].Pos2D.x, ships[i].Pos2D.y]);
-      if (dist < 700 && ships[i].Ship.faction.team !== faction.team)
-        ++numShips;
+      if (targetFaction && ships[i].Ship.faction !== targetFaction)
+        continue;
+      else if (!targetFaction && ships[i].Ship.faction === faction)
+        continue;
+
+      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
+      if (dist < radius)
+        threat += ships[i].Ship.shipData.threat;
     }
 
-    return Math.max(Math.round(numShips * 1.5), 1);
+    return threat;
+  };
+
+  this.findIdleShips = function()
+  {
+    this.idleShips = [];
+    var ships = TANK.main.getChildrenWithComponent("AIShip");
+    for (var i in ships)
+    {
+      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
+        this.idleShips.push(ships[i]);
+    }
   };
 
   this.say = function(message)
@@ -255,14 +270,8 @@ TANK.registerComponent("AIFaction")
     this.idleShipScanTimer -= dt;
     if (this.idleShipScanTimer <= 0)
     {
-      this.idleShips = [];
       this.idleShipScanTimer = this.idleShipScanTime;
-      var ships = TANK.main.getChildrenWithComponent("AIShip");
-      for (var i in ships)
-      {
-        if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
-          this.idleShips.push(ships[i]);
-      }
+      this.findIdleShips();
     } 
 
     // If we don't have a current capture target, find one and create a project for it
@@ -277,11 +286,11 @@ TANK.registerComponent("AIFaction")
         {
           this.say("Found capture target, assigning ships...");
           this.currentCaptureTarget = e;
-          var threat = this.calculateControlPointThreat(this.currentCaptureTarget);
+          var pos = [this.currentCaptureTarget.Pos2D.x, this.currentCaptureTarget.Pos2D.y];
+          var threat = this.calculateThreatAtPos(pos, 700, e.ControlPoint.faction);
           var captureProject = new AIProject(this);
           captureProject.target = e;
-          captureProject.order = "AIDefend";
-          captureProject.buildCombatGroup(threat);
+          captureProject.buildCombatGroup((threat + 1) * 1.5);
           captureProject.acquireShips();
           captureProject.completeCondition = function()
           {
@@ -304,10 +313,148 @@ TANK.registerComponent("AIFaction")
   };
 });
 
+})();
+(function()
+{
+
+TANK.registerComponent("AIFaction2")
+.includes("Faction")
+.construct(function()
+{
+  this.name = "new";
+  this.projects = [];
+
+  this.idleShipScanTime = 5;
+  this.idleShipScanTimer = 0;
+  this.idleShips = [];
+
+  this.attackTarget = null;
+  this.attackStrength = 1;
+  this.attackTime = 10;
+  this.attackTimer = 0;
+
+  this.defenseIncreaseTimer = 25;
+  this.defenseTime = 5;
+  this.defenseTimer = 0;
+  this.defenseStrength = 1;
+  this.defenseProjects = {};
+})
+.initialize(function()
+{
+  var faction = this._entity.Faction;
+  var that = this;
+
+  this.calculateThreatAtPos = function(pos, radius, targetFaction)
+  {
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var threat = 0;
+    for (var i in ships)
+    {
+      if (targetFaction && ships[i].Ship.faction !== targetFaction)
+        continue;
+      else if (!targetFaction && ships[i].Ship.faction === faction)
+        continue;
+
+      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
+      if (dist < radius)
+        threat += ships[i].Ship.shipData.threat;
+    }
+
+    return threat;
+  };
+
+  this.findIdleShips = function()
+  {
+    this.idleShips = [];
+    var ships = TANK.main.getChildrenWithComponent("AIShip");
+    for (var i in ships)
+    {
+      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
+        this.idleShips.push(ships[i]);
+    }
+  };
+
+  this.say = function(message)
+  {
+    console.log("AI " + this.name + "(" + faction.team + "): " + message);
+  };
+
+  this.update = function(dt)
+  {
+    // We should have a defense project for each owned control point
+    this.defenseTimer -= dt;
+    if (this.defenseTimer <= 0)
+    {
+      this.defenseTimer = this.defenseTime;
+      for (var i = 0; i < faction.controlPoints.length; ++i)
+      {
+        var cp = faction.controlPoints[i];
+        
+        // If there isn't a project for this point, create one
+        if (!this.defenseProjects[cp._entity._id])
+        {
+          var project = new AIProject(this);
+          project.target = cp._entity;
+          project.buildCombatGroup(this.defenseStrength);
+          project.acquireShips();
+          var that = this;
+          project.completeCondition = function()
+          {
+            if (!TANK.main.getChild(this.target._id) || this.target.ControlPoint.faction !== faction)
+            {
+              delete that.defenseProjects[this.target._id];
+              return true;
+            }
+            return false;
+          };
+          this.projects.push(project);
+          this.defenseProjects[cp._entity._id] = project;
+        }
+        // Otherwise, update the project with the current defense strength
+        else
+        {
+          this.defenseProjects[cp._entity._id].buildShipsForThreat(this.defenseStrength);
+          this.defenseProjects[cp._entity._id].refresh();
+        }
+      }
+    }
+
+    // Increase defense strength over time
+    this.defenseIncreaseTimer -= dt;
+    if (this.defenseIncreaseTimer < 0)
+    {
+      var choice = Math.random();
+      if (choice < 0.5)
+        this.defenseStrength += Math.random() * 5;
+      else
+        this.defenseStrength += 10 * (Math.random() * 3.1);
+      this.defenseIncreaseTimer = (15 + Math.random() * 15) * this.defenseStrength;
+    }
+
+    // Find idle ships
+    this.idleShipScanTimer -= dt;
+    if (this.idleShipScanTimer <= 0)
+    {
+      this.idleShipScanTimer = this.idleShipScanTime;
+      this.findIdleShips();
+    } 
+
+    // Update existing projects
+    for (var i = 0; i < this.projects.length; ++i)
+    {
+      this.projects[i].update(dt);
+      if (this.projects[i].complete)
+        this.projects[i] = null;
+    }
+    this.projects = this.projects.filter(function(val) {return val !== null;});
+  };
+});
+
+
+})();
 function AIProject(aiFaction)
 {
   this.target = null;
-  this.order = "";
   this.shipsQueued = 0;
   this.shipsRequired = [];
   this.ready = false;
@@ -321,13 +468,51 @@ function AIProject(aiFaction)
     return false;
   };
 
-  this.buildCombatGroup = function(num)
+  this.buildCombatGroup = function(threat)
   {
-    this.shipsRequired = [];
-    for (var i = 0; i < num; ++i)
+    var tries = 50;
+    var selectedShip = null;
+    do
     {
-      var ship = {type: "frigate"};
-      this.shipsRequired.push(ship);
+      --tries;
+
+      // Find the ship with the closest threat level
+      selectedShip = null;
+      var highestThreat = 0;
+      for (var i in Ships)
+      {
+        var shipData = new Ships[i];
+        if (shipData.threat <= threat && shipData.threat > highestThreat)
+        {
+          highestThreat = shipData.threat;
+          selectedShip = i;
+        }
+      }
+
+      // Add the selected ship
+      if (selectedShip)
+      {
+        threat -= highestThreat;
+        this.shipsRequired.push({type: selectedShip});
+      }
+    } while (threat > 0 && selectedShip);
+  };
+
+  this.buildShipsForThreat = function(threat)
+  {
+    // Find current strength
+    var currentStrength = 0;
+    for (var i = 0; i < this.shipsRequired.length; ++i)
+    {
+      var shipData = new Ships[this.shipsRequired[i].type]();
+      currentStrength += shipData.threat;
+    }
+
+    // Add ships to match threat
+    if (currentStrength < threat)
+    {
+      var diff = threat - currentStrength;
+      this.buildCombatGroup(diff);
     }
   };
 
@@ -338,7 +523,7 @@ function AIProject(aiFaction)
     {
       for (var j = 0; j < aiFaction.idleShips.length; ++j)
       {
-        if (aiFaction.idleShips[j] && aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
+        if (!this.shipsRequired[i].assignedShip && aiFaction.idleShips[j] && aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
         {
           this.shipsRequired[i].assignedShip = aiFaction.idleShips[j];
           aiFaction.idleShips[j] = null;
@@ -366,6 +551,13 @@ function AIProject(aiFaction)
     }
   };
 
+  this.refresh = function()
+  {
+    this.inProgress = false;
+    this.ready = false;
+    this.acquireShips();
+  };
+
   this.update = function(dt)
   {
     // Check if the project is ready
@@ -390,7 +582,7 @@ function AIProject(aiFaction)
     }
 
     // Check if the project is complete
-    this.complete = this.completeCondition();
+    this.complete = this.completeCondition.call(this);
     if (this.complete)
     {
       // If so, cancel all orders for the assigned ships
@@ -405,8 +597,6 @@ function AIProject(aiFaction)
     }
   };
 };
-
-})();
 TANK.registerComponent("AIShip")
 
 .includes(["Ship"])
@@ -862,9 +1052,9 @@ TANK.registerComponent("ControlPoint")
     }
 
     // Process build queue
-    for (var i = 0; i < this.queuedShips.length; ++i)
+    if (this.queuedShips.length > 0)
     {
-      var item = this.queuedShips[i];
+      var item = this.queuedShips[0];
       item.time -= dt;
       if (item.time <= 0)
       {
@@ -875,8 +1065,7 @@ TANK.registerComponent("ControlPoint")
         e.Pos2D.y = t.y - 400 + Math.random() * 800;
         TANK.main.addChild(e);
 
-        this.queuedShips.splice(i, 1);
-        --i;
+        this.queuedShips.splice(0, 1);
 
         if (item.callback)
           item.callback(e, item.data);
@@ -1602,7 +1791,7 @@ Guns.smallRail = function()
   this.reloadTime = 1;
   this.reloadTimer = 0;
   this.range = 500;
-  this.damage = 0.01;
+  this.damage = 0.05;
   this.projectileSpeed = 900;
   this.projectileSize = 1;
   this.recoil = 2;
@@ -1658,7 +1847,7 @@ Levels[1] =
   factions: 
   [
     {ai: "AIFaction", team: 0, color: "#5d5"},
-    {ai: "AIFaction", team: 1, color: "#d55"}
+    {ai: "AIFaction2", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
@@ -3333,7 +3522,8 @@ Ships.fighter = function()
   this.turnAccel = 2.0;
   this.health = 0.2;
   this.cost = 5;
-  this.buildTime = 2;
+  this.buildTime = 5;
+  this.threat = 1;
   this.guns =
   {
     front:
@@ -3401,7 +3591,8 @@ Ships.frigate = function()
   this.turnAccel = 1.2;
   this.health = 1;
   this.cost = 30;
-  this.buildTime = 5;
+  this.buildTime = 15;
+  this.threat = 10;
   this.guns =
   {
     left:
