@@ -27,7 +27,7 @@ TANK.registerComponent("Game")
   this.currentLevel = -1;
   this.pendingLoad = false;
 
-  this.aiArenaMode = true;
+  this.aiArenaMode = false;
 })
 
 .initialize(function()
@@ -37,22 +37,19 @@ TANK.registerComponent("Game")
   //
   // Build up bar commands
   //
-  this.barCommands.push(
+  for (var i in Ships)
   {
-    name: "Build Fighter",
-    activate: function()
+    var shipData = new Ships[i]();
+    this.barCommands.push(
     {
-      that.factions[0].buyShip("fighter");
-    }
-  });
-  this.barCommands.push(
-  {
-    name: "Build Frigate",
-    activate: function()
-    {
-      that.factions[0].buyShip("frigate");
-    }
-  });
+      name: "Build " + shipData.name,
+      shipType: i,
+      activate: function()
+      {
+        that.factions[0].buyShip(this.shipType);
+      }
+    });
+  }
 
   // Money counter
   this.topBarItems.push({name: ""});

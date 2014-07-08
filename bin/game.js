@@ -1205,7 +1205,7 @@ TANK.registerComponent("Game")
   this.currentLevel = -1;
   this.pendingLoad = false;
 
-  this.aiArenaMode = true;
+  this.aiArenaMode = false;
 })
 
 .initialize(function()
@@ -1215,22 +1215,19 @@ TANK.registerComponent("Game")
   //
   // Build up bar commands
   //
-  this.barCommands.push(
+  for (var i in Ships)
   {
-    name: "Build Fighter",
-    activate: function()
+    var shipData = new Ships[i]();
+    this.barCommands.push(
     {
-      that.factions[0].buyShip("fighter");
-    }
-  });
-  this.barCommands.push(
-  {
-    name: "Build Frigate",
-    activate: function()
-    {
-      that.factions[0].buyShip("frigate");
-    }
-  });
+      name: "Build " + shipData.name,
+      shipType: i,
+      activate: function()
+      {
+        that.factions[0].buyShip(this.shipType);
+      }
+    });
+  }
 
   // Money counter
   this.topBarItems.push({name: ""});
@@ -1826,7 +1823,7 @@ Levels[0] =
   factions: 
   [
     {ai: "Faction", team: 0, color: "#5d5"},
-    {ai: "AIFaction", team: 1, color: "#d55"}
+    {ai: "Faction", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
@@ -1835,7 +1832,7 @@ Levels[0] =
   ],
   ships:
   [
-    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
+    {player: true, faction: 0, ship: "bomber", x: 0, y: 0},
     {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
   ]
 };
@@ -3563,6 +3560,67 @@ Ships.fighter = function()
     },
     {
       x: 13, y: 15, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      states:
+      {
+        on: {alpha: 0.5},
+        off: {alpha: 0.2}
+      }
+    }
+  ];
+};
+
+Ships.bomber = function()
+{
+  this.type = "bomber";
+  this.name = "Bomber";
+  this.image = "res/bomber.png";
+  this.imageEngine = "res/bomber-engine.png";
+  this.imageLighting =
+  {
+    left: "res/bomber-lit-left.png",
+    right: "res/bomber-lit-right.png",
+    front: "res/bomber-lit-front.png",
+    back: "res/bomber-lit-back.png"
+  };
+  this.maxTurnSpeed = 1.0;
+  this.maxSpeed = 250;
+  this.accel = 35;
+  this.turnAccel = 2.0;
+  this.health = 0.2;
+  this.cost = 5;
+  this.buildTime = 5;
+  this.threat = 1;
+  this.guns =
+  {
+  },
+  this.lights =
+  [
+    {
+      x: 16, y: 20, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 9, y: 24, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 15, y: 38, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 49, y: 23, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
