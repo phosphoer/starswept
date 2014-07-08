@@ -7,7 +7,7 @@ Levels[0] =
   factions: 
   [
     {ai: "Faction", team: 0, color: "#5d5"},
-    {ai: "AIFaction", team: 1, color: "#d55"}
+    {ai: "Faction", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
@@ -16,7 +16,7 @@ Levels[0] =
   ],
   ships:
   [
-    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
+    {player: true, faction: 0, ship: "bomber", x: 0, y: 0},
     {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
   ]
 };
