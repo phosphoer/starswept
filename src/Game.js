@@ -138,6 +138,27 @@ TANK.registerComponent("Game")
     {
       e.context.activate();
     });
+
+    // Build main menu scene
+    this.lightDir = Math.random() * Math.PI * 2;
+
+    var planet = TANK.createEntity("Planet");
+    planet.Pos2D.x = 0;
+    planet.Pos2D.y = -400;
+    TANK.main.addChild(planet);
+
+    var moon = TANK.createEntity("Planet");
+    moon.Pos2D.x = -400;
+    moon.Pos2D.y = 400;
+    moon.Planet.radius = 48;
+    TANK.main.addChild(moon);
+
+    var ship = TANK.createEntity("Ship");
+    ship.Pos2D.x = 300;
+    ship.Pos2D.y = 200;
+    ship.Ship.shipData = new Ships.bomber();
+    ship.Ship.faction = null;
+    TANK.main.addChild(ship);
   };
 
   //
@@ -145,8 +166,6 @@ TANK.registerComponent("Game")
   //
   this.goToLevelSelect = function()
   {
-    TANK.main.dispatch("levelEnd");
-
     var save = JSON.parse(localStorage["save"]);
 
     // Build level options

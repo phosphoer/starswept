@@ -172,6 +172,11 @@ TANK.registerComponent("Planet")
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+
   this.draw = function(ctx, camera, dt)
   {
     if (camera.z >= 8)

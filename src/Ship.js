@@ -309,8 +309,8 @@ TANK.registerComponent("Ship")
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
     for (var i = 0; i < this.lightBuffers.length; ++i)
     {
-      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i;
-      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
+      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i - Math.PI / 2;
+      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
       if (this.mainBuffer.context.globalAlpha > 0)
         this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
     }
@@ -349,7 +349,7 @@ TANK.registerComponent("Ship")
     }
 
     // Draw team indicator
-    if (camera.z < 8)
+    if (camera.z < 8 && this.faction)
     {
       ctx.globalAlpha = 1;
       ctx.fillStyle = this.faction.color;

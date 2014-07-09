@@ -62,14 +62,14 @@ Ships.fighter = function()
 Ships.bomber = function()
 {
   this.name = "Bomber";
-  this.maxTurnSpeed = 1.0;
-  this.maxSpeed = 250;
+  this.maxTurnSpeed = 0.8;
+  this.maxSpeed = 200;
   this.accel = 35;
-  this.turnAccel = 2.0;
-  this.health = 0.2;
-  this.cost = 5;
-  this.buildTime = 5;
-  this.threat = 1;
+  this.turnAccel = 1.6;
+  this.health = 0.4;
+  this.cost = 15;
+  this.buildTime = 10;
+  this.threat = 3;
   this.guns =
   {
   },
@@ -215,7 +215,7 @@ for (var i in Ships)
   {
     this.prototype.imageNormals.onload = function()
     {
-      this.prototype.lightBuffers = Lightr.bake(6, this.prototype.image, this.prototype.imageNormals);
+      this.prototype.lightBuffers = Lightr.bake(8, this.prototype.image, this.prototype.imageNormals);
     }.bind(this);
   }.bind(ship);
 }
