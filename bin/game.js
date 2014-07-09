@@ -1199,7 +1199,7 @@ TANK.registerComponent("Game")
   this.mousePosScreen = [0, 0];
 
   // Global light direction
-  this.lightDir = Math.random() * Math.PI * 2;
+  this.lightDir = 0;
 
   // Level settings
   this.currentLevel = -1;
@@ -1823,7 +1823,7 @@ Levels[0] =
   factions: 
   [
     {ai: "Faction", team: 0, color: "#5d5"},
-    {ai: "Faction", team: 1, color: "#d55"}
+    {ai: "AIFaction", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
@@ -1872,6 +1872,144 @@ TANK.registerComponent("Life")
       this._entity._parent.removeChild(this._entity);
   };
 });
+(function(api)
+{
+
+// The 'z' position of the light source
+api.lightHeight = 0.5;
+
+// The ambient light color
+api.ambientLight = [0.1, 0.1, 0.1];
+
+// The minimum light intensity to show
+api.minLightIntensity = 0.0;
+
+// The light source color
+api.lightDiffuse = [1, 1, 1];
+
+// Bake the lighting for a given diffuse and normal map
+// Returns an array of canvases
+api.bake = function(numDirs, diffuseMap, normalMap)
+{
+  var canvasDiffuse = createCanvas(diffuseMap.width, diffuseMap.height);
+  var canvasNormals = createCanvas(normalMap.width, normalMap.height);
+
+  var contextDiffuse = canvasDiffuse.getContext('2d');
+  var contextNormals = canvasNormals.getContext('2d');
+
+  contextDiffuse.drawImage(diffuseMap, 0, 0);
+  contextNormals.drawImage(normalMap, 0, 0);
+
+  var bufferDiffuse = contextDiffuse.getImageData(0, 0, diffuseMap.width, diffuseMap.height);
+  var bufferNormals = contextNormals.getImageData(0, 0, normalMap.width, normalMap.height);
+
+  var bakedImages = [];
+  var normals = [];
+
+  // Calculate normals of normal map
+  for (var x = 0; x < bufferNormals.width; ++x)
+  {
+    normals[x] = [];
+    for (var y = 0; y < bufferNormals.height; ++y)
+    {
+      normals[x][y] = [];
+      var normal = normals[x][y];
+      var index = (x + y * bufferNormals.width) * 4;
+
+      // Extract normal and transform 0-255 to -1 - 1
+      normal[0] = ((bufferNormals.data[index + 0] / 255) - 0.5) * 2;
+      normal[1] = ((bufferNormals.data[index + 1] / 255) - 0.5) * 2;
+      normal[2] = ((bufferNormals.data[index + 2] / 255) - 0.5) * 2;
+
+      // Normalize the vector
+      var len = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+      normal[0] /= len;
+      normal[1] /= len;
+      normal[2] /= len;
+    }
+  }
+
+  function bakeDirection(dir)
+  {
+    // Build buffer for light map
+    var canvas = createCanvas(diffuseMap.width, diffuseMap.height); 
+    var context = canvas.getContext('2d');
+    var buffer = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Build light vector
+    var lightDir = [Math.cos(dir), Math.sin(dir), api.lightHeight];
+
+    // For every pixel
+    for (var x = 0; x < bufferNormals.width; ++x)
+    {
+      for (var y = 0; y < bufferNormals.height; ++y)
+      {
+        // Get normal and diffuse color
+        // Diffuse rgb is normalized to 0-1 for calculations
+        var normal = normals[x][y];
+        var index = (x + y * bufferNormals.width) * 4;
+        var diffuse = 
+        [
+          bufferDiffuse.data[index + 0], 
+          bufferDiffuse.data[index + 1], 
+          bufferDiffuse.data[index + 2], 
+          bufferDiffuse.data[index + 3]
+        ];
+        diffuse[0] /= 255;
+        diffuse[1] /= 255;
+        diffuse[2] /= 255;
+
+        // Calculate n dot l lighting component
+        var intensity = normal[0] * lightDir[0] + normal[1] * lightDir[1] + normal[2] * lightDir[2];
+        intensity = Math.min(1, intensity);
+        intensity = Math.max(api.minLightIntensity, intensity);
+
+        // Build output pixel
+        var out = 
+        [
+          intensity * diffuse[0] * api.lightDiffuse[0] + api.ambientLight[0], 
+          intensity * diffuse[1] * api.lightDiffuse[1] + api.ambientLight[1], 
+          intensity * diffuse[2] * api.lightDiffuse[2] + api.ambientLight[2], 
+          diffuse[3]
+        ];
+
+        // Rescale rgb to 0-255 range
+        out[0] = Math.floor(out[0] * 255);
+        out[1] = Math.floor(out[1] * 255);
+        out[2] = Math.floor(out[2] * 255);
+
+        // Set the pixel
+        buffer.data[index + 0] = out[0];
+        buffer.data[index + 1] = out[1];
+        buffer.data[index + 2] = out[2];
+        buffer.data[index + 3] = out[3];
+      }
+    }
+
+    // Apply the changes and return the canvas
+    context.putImageData(buffer, 0, 0);
+    return canvas;
+  }
+
+  // Run the bake routine for every angle division
+  for (var i = 0; i < numDirs; ++i)
+  {
+    var lightDir = (Math.PI * 2 / numDirs) * i;
+    bakedImages.push(bakeDirection(lightDir));
+  }
+
+  return bakedImages;
+}
+
+function createCanvas(width, height)
+{
+  var canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+})(this.Lightr = this.Lightr || {});
 TANK.registerComponent("Lights")
 
 .includes("Pos2D")
@@ -3099,14 +3237,8 @@ TANK.registerComponent("Ship")
 {
   this.zdepth = 2;
   this.image = new Image();
+  this.imageNormals = new Image();
   this.imageEngine = new Image();
-  this.imageLighting =
-  {
-    left: new Image(),
-    right: new Image(),
-    front: new Image(),
-    back: new Image()
-  };
   this.imageLoaded = false;
 
   this.thrustOn = false;
@@ -3134,9 +3266,9 @@ TANK.registerComponent("Ship")
 
   // Get some data from ship
   this.image.src = this.shipData.image;
+  if (this.shipData.imageNormals)
+    this.imageNormals.src = this.shipData.imageNormals;
   this.imageEngine.src = this.shipData.imageEngine;
-  for (var i in this.imageLighting)
-    this.imageLighting[i].src = this.shipData.imageLighting[i];
   this.health = this.shipData.health;
 
   // Create texture buffers
@@ -3170,7 +3302,13 @@ TANK.registerComponent("Ship")
     that.collisionBuffer.createBuffer(that.image.width, that.image.height);
     that.collisionBuffer.context.drawImage(that.image, 0, 0);
     that.collisionBuffer.readBuffer();
+
+    that.imageNormals.onload = function()
+    {
+      that.lightBuffers = Lightr.bake(8, that.image, that.imageNormals);
+    };
   });
+
 
   // Add weapons
   for (var gunSide in this.shipData.guns)
@@ -3416,17 +3554,13 @@ TANK.registerComponent("Ship")
 
     // Draw lighting
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI / 2), Math.sin(t.rotation + Math.PI / 2)]));
-    this.mainBuffer.context.drawImage(this.imageLighting.right, 0, 0);
-
-    this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation - Math.PI / 2), Math.sin(t.rotation - Math.PI / 2)]));
-    this.mainBuffer.context.drawImage(this.imageLighting.left, 0, 0);
-
-    this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation), Math.sin(t.rotation)]));
-    this.mainBuffer.context.drawImage(this.imageLighting.front, 0, 0);
-
-    this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI), Math.sin(t.rotation + Math.PI)]));
-    this.mainBuffer.context.drawImage(this.imageLighting.back, 0, 0);
+    for (var i = 0; i < this.lightBuffers.length; ++i)
+    {
+      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i;
+      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
+      if (this.mainBuffer.context.globalAlpha > 0)
+        this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
+    }
 
     // Draw damage buffer
     this.mainBuffer.context.globalAlpha = 1;
@@ -3439,7 +3573,7 @@ TANK.registerComponent("Ship")
 
   this.draw = function(ctx, camera)
   {
-    if (!this.imageLoaded)
+    if (!this.imageLoaded || !this.lightBuffers)
       return;
 
     ctx.save();
@@ -3506,13 +3640,7 @@ Ships.fighter = function()
   this.name = "Fighter";
   this.image = "res/fighter.png";
   this.imageEngine = "res/fighter-engine.png";
-  this.imageLighting =
-  {
-    left: "res/fighter-lit-left.png",
-    right: "res/fighter-lit-right.png",
-    front: "res/fighter-lit-front.png",
-    back: "res/fighter-lit-back.png"
-  };
+  this.imageNormals = "res/fighter-normals.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -3575,13 +3703,7 @@ Ships.bomber = function()
   this.name = "Bomber";
   this.image = "res/bomber.png";
   this.imageEngine = "res/bomber-engine.png";
-  this.imageLighting =
-  {
-    left: "res/bomber-lit-left.png",
-    right: "res/bomber-lit-right.png",
-    front: "res/bomber-lit-front.png",
-    back: "res/bomber-lit-back.png"
-  };
+  this.imageNormals = "res/bomber-normals.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -3636,13 +3758,7 @@ Ships.frigate = function()
   this.name = "Frigate";
   this.image = "res/frigate.png";
   this.imageEngine = "res/frigate-engine.png";
-  this.imageLighting =
-  {
-    left: "res/frigate-lit-left.png",
-    right: "res/frigate-lit-right.png",
-    front: "res/frigate-lit-front.png",
-    back: "res/frigate-lit-back.png"
-  };
+  this.imageNormals = "res/frigate-normals.png";
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;
@@ -3985,6 +4101,10 @@ function main()
 
   TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
   TANK.main.Input.context = document.querySelector("#stage");
+
+  // Configure Lightr
+  Lightr.minLightIntensity = 0.2;
+  Lightr.lightDiffuse = [0.8, 0.8, 1];
 
   TANK.start();
 }
