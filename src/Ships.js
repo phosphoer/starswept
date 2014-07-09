@@ -75,6 +75,7 @@ Ships.bomber = function()
   this.name = "Bomber";
   this.image = "res/bomber.png";
   this.imageEngine = "res/bomber-engine.png";
+  this.imageNormals = "res/bomber-normals.png";
   this.imageLighting =
   {
     left: "res/bomber-lit-left.png",

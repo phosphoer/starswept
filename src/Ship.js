@@ -6,6 +6,7 @@ TANK.registerComponent("Ship")
 {
   this.zdepth = 2;
   this.image = new Image();
+  this.imageNormals = new Image();
   this.imageEngine = new Image();
   this.imageLighting =
   {
@@ -41,6 +42,8 @@ TANK.registerComponent("Ship")
 
   // Get some data from ship
   this.image.src = this.shipData.image;
+  if (this.shipData.imageNormals)
+    this.imageNormals.src = this.shipData.imageNormals;
   this.imageEngine.src = this.shipData.imageEngine;
   for (var i in this.imageLighting)
     this.imageLighting[i].src = this.shipData.imageLighting[i];
@@ -77,7 +80,13 @@ TANK.registerComponent("Ship")
     that.collisionBuffer.createBuffer(that.image.width, that.image.height);
     that.collisionBuffer.context.drawImage(that.image, 0, 0);
     that.collisionBuffer.readBuffer();
+
+    that.imageNormals.onload = function()
+    {
+      that.lightBuffers = Lightr.bake(that.image, that.imageNormals, 8);
+    };
   });
+
 
   // Add weapons
   for (var gunSide in this.shipData.guns)
@@ -323,17 +332,30 @@ TANK.registerComponent("Ship")
 
     // Draw lighting
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI / 2), Math.sin(t.rotation + Math.PI / 2)]));
-    this.mainBuffer.context.drawImage(this.imageLighting.right, 0, 0);
 
-    this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation - Math.PI / 2), Math.sin(t.rotation - Math.PI / 2)]));
-    this.mainBuffer.context.drawImage(this.imageLighting.left, 0, 0);
+    if (this.shipData.imageNormals)
+    {
+      for (var i = 0; i < this.lightBuffers.length; ++i)
+      {
+        var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i;
+        this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
+        this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
+      }
+    }
+    else
+    {
+      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI / 2), Math.sin(t.rotation + Math.PI / 2)]));
+      this.mainBuffer.context.drawImage(this.imageLighting.right, 0, 0);
 
-    this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation), Math.sin(t.rotation)]));
-    this.mainBuffer.context.drawImage(this.imageLighting.front, 0, 0);
+      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation - Math.PI / 2), Math.sin(t.rotation - Math.PI / 2)]));
+      this.mainBuffer.context.drawImage(this.imageLighting.left, 0, 0);
 
-    this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI), Math.sin(t.rotation + Math.PI)]));
-    this.mainBuffer.context.drawImage(this.imageLighting.back, 0, 0);
+      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation), Math.sin(t.rotation)]));
+      this.mainBuffer.context.drawImage(this.imageLighting.front, 0, 0);
+
+      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI), Math.sin(t.rotation + Math.PI)]));
+      this.mainBuffer.context.drawImage(this.imageLighting.back, 0, 0);
+    }
 
     // Draw damage buffer
     this.mainBuffer.context.globalAlpha = 1;

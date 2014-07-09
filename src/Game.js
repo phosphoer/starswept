@@ -21,7 +21,7 @@ TANK.registerComponent("Game")
   this.mousePosScreen = [0, 0];
 
   // Global light direction
-  this.lightDir = Math.random() * Math.PI * 2;
+  this.lightDir = 0;
 
   // Level settings
   this.currentLevel = -1;
@@ -311,6 +311,9 @@ TANK.registerComponent("Game")
       this.goToLevel(1);
     else
       this.goToMainMenu();
+
+    var test = TANK.createEntity("LightingTest");
+    TANK.main.addChild(test);
   });
 
   //
