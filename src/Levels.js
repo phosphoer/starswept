@@ -7,7 +7,7 @@ Levels[0] =
   factions: 
   [
     {ai: "Faction", team: 0, color: "#5d5"},
-    {ai: "AIFaction", team: 1, color: "#d55"}
+    {ai: "Faction", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
