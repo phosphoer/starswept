@@ -998,11 +998,6 @@ TANK.registerComponent("ControlPoint")
     return false;
   };
 
-  this.listenTo(TANK.main, "levelEnd", function()
-  {
-    TANK.main.removeChild(this._entity);
-  });
-
   this.draw = function(ctx, camera)
   {
     if (camera.z >= 8)
@@ -1316,6 +1311,27 @@ TANK.registerComponent("Game")
     {
       e.context.activate();
     });
+
+    // Build main menu scene
+    this.lightDir = Math.random() * Math.PI * 2;
+
+    var planet = TANK.createEntity("Planet");
+    planet.Pos2D.x = 0;
+    planet.Pos2D.y = -400;
+    TANK.main.addChild(planet);
+
+    var moon = TANK.createEntity("Planet");
+    moon.Pos2D.x = -400;
+    moon.Pos2D.y = 400;
+    moon.Planet.radius = 48;
+    TANK.main.addChild(moon);
+
+    var ship = TANK.createEntity("Ship");
+    ship.Pos2D.x = 300;
+    ship.Pos2D.y = 200;
+    ship.Ship.shipData = new Ships.bomber();
+    ship.Ship.faction = null;
+    TANK.main.addChild(ship);
   };
 
   //
@@ -1323,8 +1339,6 @@ TANK.registerComponent("Game")
   //
   this.goToLevelSelect = function()
   {
-    TANK.main.dispatch("levelEnd");
-
     var save = JSON.parse(localStorage["save"]);
 
     // Build level options
@@ -2763,6 +2777,11 @@ TANK.registerComponent("Planet")
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
+  this.listenTo(TANK.main, "levelEnd", function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+
   this.draw = function(ctx, camera, dt)
   {
     if (camera.z >= 8)
@@ -3540,8 +3559,8 @@ TANK.registerComponent("Ship")
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
     for (var i = 0; i < this.lightBuffers.length; ++i)
     {
-      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i;
-      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
+      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i - Math.PI / 2;
+      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
       if (this.mainBuffer.context.globalAlpha > 0)
         this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
     }
@@ -3580,7 +3599,7 @@ TANK.registerComponent("Ship")
     }
 
     // Draw team indicator
-    if (camera.z < 8)
+    if (camera.z < 8 && this.faction)
     {
       ctx.globalAlpha = 1;
       ctx.fillStyle = this.faction.color;
@@ -3680,14 +3699,14 @@ Ships.fighter = function()
 Ships.bomber = function()
 {
   this.name = "Bomber";
-  this.maxTurnSpeed = 1.0;
-  this.maxSpeed = 250;
+  this.maxTurnSpeed = 0.8;
+  this.maxSpeed = 200;
   this.accel = 35;
-  this.turnAccel = 2.0;
-  this.health = 0.2;
-  this.cost = 5;
-  this.buildTime = 5;
-  this.threat = 1;
+  this.turnAccel = 1.6;
+  this.health = 0.4;
+  this.cost = 15;
+  this.buildTime = 10;
+  this.threat = 3;
   this.guns =
   {
   },
@@ -3833,7 +3852,7 @@ for (var i in Ships)
   {
     this.prototype.imageNormals.onload = function()
     {
-      this.prototype.lightBuffers = Lightr.bake(6, this.prototype.image, this.prototype.imageNormals);
+      this.prototype.lightBuffers = Lightr.bake(8, this.prototype.image, this.prototype.imageNormals);
     }.bind(this);
   }.bind(ship);
 }
