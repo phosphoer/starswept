@@ -83,7 +83,7 @@ TANK.registerComponent("Ship")
 
     that.imageNormals.onload = function()
     {
-      that.lightBuffers = Lightr.bake(that.image, that.imageNormals, 8);
+      that.lightBuffers = Lightr.bake(8, that.image, that.imageNormals);
     };
   });
 

@@ -311,9 +311,6 @@ TANK.registerComponent("Game")
       this.goToLevel(1);
     else
       this.goToMainMenu();
-
-    var test = TANK.createEntity("LightingTest");
-    TANK.main.addChild(test);
   });
 
   //
