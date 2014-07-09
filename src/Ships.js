@@ -2,11 +2,7 @@ var Ships = {};
 
 Ships.fighter = function()
 {
-  this.type = "fighter";
   this.name = "Fighter";
-  this.image = "res/fighter.png";
-  this.imageEngine = "res/fighter-engine.png";
-  this.imageNormals = "res/fighter-normals.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -65,11 +61,7 @@ Ships.fighter = function()
 
 Ships.bomber = function()
 {
-  this.type = "bomber";
   this.name = "Bomber";
-  this.image = "res/bomber.png";
-  this.imageEngine = "res/bomber-engine.png";
-  this.imageNormals = "res/bomber-normals.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -120,11 +112,7 @@ Ships.bomber = function()
 
 Ships.frigate = function()
 {
-  this.type = "frigate";
   this.name = "Frigate";
-  this.image = "res/frigate.png";
-  this.imageEngine = "res/frigate-engine.png";
-  this.imageNormals = "res/frigate-normals.png";
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;
@@ -206,3 +194,28 @@ Ships.frigate = function()
     }
   ];
 };
+
+// Configure Lightr
+Lightr.minLightIntensity = 0.2;
+Lightr.lightDiffuse = [0.8, 0.8, 1];
+
+// Load ship images
+for (var i in Ships)
+{
+  var ship = Ships[i];
+  ship.prototype.type = i;
+  ship.prototype.image = new Image();
+  ship.prototype.imageEngine = new Image();
+  ship.prototype.imageNormals = new Image();
+  ship.prototype.image.src = "res/" + i + ".png";
+  ship.prototype.imageEngine.src = "res/" + i + "-engine.png";
+  ship.prototype.imageNormals.src = "res/" + i + "-normals.png";
+
+  ship.prototype.image.onload = function()
+  {
+    this.prototype.imageNormals.onload = function()
+    {
+      this.prototype.lightBuffers = Lightr.bake(6, this.prototype.image, this.prototype.imageNormals);
+    }.bind(this);
+  }.bind(ship);
+}

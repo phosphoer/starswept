@@ -3236,10 +3236,6 @@ TANK.registerComponent("Ship")
 .construct(function()
 {
   this.zdepth = 2;
-  this.image = new Image();
-  this.imageNormals = new Image();
-  this.imageEngine = new Image();
-  this.imageLoaded = false;
 
   this.thrustOn = false;
   this.thrustAlpha = 0;
@@ -3265,10 +3261,10 @@ TANK.registerComponent("Ship")
   this._entity.Collider2D.collidesWith = ["bullets"];
 
   // Get some data from ship
-  this.image.src = this.shipData.image;
-  if (this.shipData.imageNormals)
-    this.imageNormals.src = this.shipData.imageNormals;
-  this.imageEngine.src = this.shipData.imageEngine;
+  this.image = this.shipData.__proto__.image;
+  this.imageEngine = this.shipData.__proto__.imageEngine;
+  this.imageNormals = this.shipData.__proto__.imageNormals;
+  this.lightBuffers = this.shipData.__proto__.lightBuffers;
   this.health = this.shipData.health;
 
   // Create texture buffers
@@ -3277,37 +3273,25 @@ TANK.registerComponent("Ship")
   this.decalBuffer = new PixelBuffer();
   this.collisionBuffer = new PixelBuffer();
 
-  // Wait for main image to load
-  var that = this;
-  this.image.addEventListener("load", function()
-  {
-    that.imageLoaded = true;
+  // Set sizes for things
+  this._entity.Lights.lights = this.shipData.lights;
+  this._entity.Lights.width = this.image.width;
+  this._entity.Lights.height = this.image.height;
+  this._entity.Lights.redrawLights();
+  this._entity.Collider2D.width = this.image.width * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.height = this.image.height * TANK.main.Game.scaleFactor;
+  this._entity.Clickable.width = this.image.width * TANK.main.Game.scaleFactor;
+  this._entity.Clickable.height = this.image.height * TANK.main.Game.scaleFactor;
+  this._entity.Weapons.width = this.image.width;
+  this._entity.Weapons.height = this.image.height;
 
-    // Set sizes for things
-    that._entity.Lights.lights = that.shipData.lights;
-    that._entity.Lights.width = that.image.width;
-    that._entity.Lights.height = that.image.height;
-    that._entity.Lights.redrawLights();
-    that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
-    that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
-    that._entity.Clickable.width = that.image.width * TANK.main.Game.scaleFactor;
-    that._entity.Clickable.height = that.image.height * TANK.main.Game.scaleFactor;
-    that._entity.Weapons.width = that.image.width;
-    that._entity.Weapons.height = that.image.height;
-
-    // Setup texture buffers
-    that.mainBuffer.createBuffer(that.image.width, that.image.height);
-    that.damageBuffer.createBuffer(that.image.width, that.image.height);
-    that.decalBuffer.createBuffer(that.image.width, that.image.height);
-    that.collisionBuffer.createBuffer(that.image.width, that.image.height);
-    that.collisionBuffer.context.drawImage(that.image, 0, 0);
-    that.collisionBuffer.readBuffer();
-
-    that.imageNormals.onload = function()
-    {
-      that.lightBuffers = Lightr.bake(8, that.image, that.imageNormals);
-    };
-  });
+  // Setup texture buffers
+  this.mainBuffer.createBuffer(this.image.width, this.image.height);
+  this.damageBuffer.createBuffer(this.image.width, this.image.height);
+  this.decalBuffer.createBuffer(this.image.width, this.image.height);
+  this.collisionBuffer.createBuffer(this.image.width, this.image.height);
+  this.collisionBuffer.context.drawImage(this.image, 0, 0);
+  this.collisionBuffer.readBuffer();
 
 
   // Add weapons
@@ -3573,7 +3557,7 @@ TANK.registerComponent("Ship")
 
   this.draw = function(ctx, camera)
   {
-    if (!this.imageLoaded || !this.lightBuffers)
+    if (!this.lightBuffers)
       return;
 
     ctx.save();
@@ -3636,11 +3620,7 @@ var Ships = {};
 
 Ships.fighter = function()
 {
-  this.type = "fighter";
   this.name = "Fighter";
-  this.image = "res/fighter.png";
-  this.imageEngine = "res/fighter-engine.png";
-  this.imageNormals = "res/fighter-normals.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -3699,11 +3679,7 @@ Ships.fighter = function()
 
 Ships.bomber = function()
 {
-  this.type = "bomber";
   this.name = "Bomber";
-  this.image = "res/bomber.png";
-  this.imageEngine = "res/bomber-engine.png";
-  this.imageNormals = "res/bomber-normals.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -3754,11 +3730,7 @@ Ships.bomber = function()
 
 Ships.frigate = function()
 {
-  this.type = "frigate";
   this.name = "Frigate";
-  this.image = "res/frigate.png";
-  this.imageEngine = "res/frigate-engine.png";
-  this.imageNormals = "res/frigate-normals.png";
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;
@@ -3840,6 +3812,31 @@ Ships.frigate = function()
     }
   ];
 };
+
+// Configure Lightr
+Lightr.minLightIntensity = 0.2;
+Lightr.lightDiffuse = [0.8, 0.8, 1];
+
+// Load ship images
+for (var i in Ships)
+{
+  var ship = Ships[i];
+  ship.prototype.type = i;
+  ship.prototype.image = new Image();
+  ship.prototype.imageEngine = new Image();
+  ship.prototype.imageNormals = new Image();
+  ship.prototype.image.src = "res/" + i + ".png";
+  ship.prototype.imageEngine.src = "res/" + i + "-engine.png";
+  ship.prototype.imageNormals.src = "res/" + i + "-normals.png";
+
+  ship.prototype.image.onload = function()
+  {
+    this.prototype.imageNormals.onload = function()
+    {
+      this.prototype.lightBuffers = Lightr.bake(6, this.prototype.image, this.prototype.imageNormals);
+    }.bind(this);
+  }.bind(ship);
+}
 
 TANK.registerComponent("StarField")
 
@@ -4101,10 +4098,6 @@ function main()
 
   TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
   TANK.main.Input.context = document.querySelector("#stage");
-
-  // Configure Lightr
-  Lightr.minLightIntensity = 0.2;
-  Lightr.lightDiffuse = [0.8, 0.8, 1];
 
   TANK.start();
 }
