@@ -3239,13 +3239,6 @@ TANK.registerComponent("Ship")
   this.image = new Image();
   this.imageNormals = new Image();
   this.imageEngine = new Image();
-  this.imageLighting =
-  {
-    left: new Image(),
-    right: new Image(),
-    front: new Image(),
-    back: new Image()
-  };
   this.imageLoaded = false;
 
   this.thrustOn = false;
@@ -3276,8 +3269,6 @@ TANK.registerComponent("Ship")
   if (this.shipData.imageNormals)
     this.imageNormals.src = this.shipData.imageNormals;
   this.imageEngine.src = this.shipData.imageEngine;
-  for (var i in this.imageLighting)
-    this.imageLighting[i].src = this.shipData.imageLighting[i];
   this.health = this.shipData.health;
 
   // Create texture buffers
@@ -3563,29 +3554,12 @@ TANK.registerComponent("Ship")
 
     // Draw lighting
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-
-    if (this.shipData.imageNormals)
+    for (var i = 0; i < this.lightBuffers.length; ++i)
     {
-      for (var i = 0; i < this.lightBuffers.length; ++i)
-      {
-        var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i;
-        this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
+      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i;
+      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
+      if (this.mainBuffer.context.globalAlpha > 0)
         this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
-      }
-    }
-    else
-    {
-      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI / 2), Math.sin(t.rotation + Math.PI / 2)]));
-      this.mainBuffer.context.drawImage(this.imageLighting.right, 0, 0);
-
-      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation - Math.PI / 2), Math.sin(t.rotation - Math.PI / 2)]));
-      this.mainBuffer.context.drawImage(this.imageLighting.left, 0, 0);
-
-      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation), Math.sin(t.rotation)]));
-      this.mainBuffer.context.drawImage(this.imageLighting.front, 0, 0);
-
-      this.mainBuffer.context.globalAlpha = Math.max(0, TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + Math.PI), Math.sin(t.rotation + Math.PI)]));
-      this.mainBuffer.context.drawImage(this.imageLighting.back, 0, 0);
     }
 
     // Draw damage buffer
@@ -3599,7 +3573,7 @@ TANK.registerComponent("Ship")
 
   this.draw = function(ctx, camera)
   {
-    if (!this.imageLoaded)
+    if (!this.imageLoaded || !this.lightBuffers)
       return;
 
     ctx.save();
@@ -3666,13 +3640,7 @@ Ships.fighter = function()
   this.name = "Fighter";
   this.image = "res/fighter.png";
   this.imageEngine = "res/fighter-engine.png";
-  this.imageLighting =
-  {
-    left: "res/fighter-lit-left.png",
-    right: "res/fighter-lit-right.png",
-    front: "res/fighter-lit-front.png",
-    back: "res/fighter-lit-back.png"
-  };
+  this.imageNormals = "res/fighter-normals.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -3736,13 +3704,6 @@ Ships.bomber = function()
   this.image = "res/bomber.png";
   this.imageEngine = "res/bomber-engine.png";
   this.imageNormals = "res/bomber-normals.png";
-  this.imageLighting =
-  {
-    left: "res/bomber-lit-left.png",
-    right: "res/bomber-lit-right.png",
-    front: "res/bomber-lit-front.png",
-    back: "res/bomber-lit-back.png"
-  };
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -3797,13 +3758,7 @@ Ships.frigate = function()
   this.name = "Frigate";
   this.image = "res/frigate.png";
   this.imageEngine = "res/frigate-engine.png";
-  this.imageLighting =
-  {
-    left: "res/frigate-lit-left.png",
-    right: "res/frigate-lit-right.png",
-    front: "res/frigate-lit-front.png",
-    back: "res/frigate-lit-back.png"
-  };
+  this.imageNormals = "res/frigate-normals.png";
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;

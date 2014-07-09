@@ -6,13 +6,7 @@ Ships.fighter = function()
   this.name = "Fighter";
   this.image = "res/fighter.png";
   this.imageEngine = "res/fighter-engine.png";
-  this.imageLighting =
-  {
-    left: "res/fighter-lit-left.png",
-    right: "res/fighter-lit-right.png",
-    front: "res/fighter-lit-front.png",
-    back: "res/fighter-lit-back.png"
-  };
+  this.imageNormals = "res/fighter-normals.png";
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -76,13 +70,6 @@ Ships.bomber = function()
   this.image = "res/bomber.png";
   this.imageEngine = "res/bomber-engine.png";
   this.imageNormals = "res/bomber-normals.png";
-  this.imageLighting =
-  {
-    left: "res/bomber-lit-left.png",
-    right: "res/bomber-lit-right.png",
-    front: "res/bomber-lit-front.png",
-    back: "res/bomber-lit-back.png"
-  };
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -137,13 +124,7 @@ Ships.frigate = function()
   this.name = "Frigate";
   this.image = "res/frigate.png";
   this.imageEngine = "res/frigate-engine.png";
-  this.imageLighting =
-  {
-    left: "res/frigate-lit-left.png",
-    right: "res/frigate-lit-right.png",
-    front: "res/frigate-lit-front.png",
-    back: "res/frigate-lit-back.png"
-  };
+  this.imageNormals = "res/frigate-normals.png";
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;
