@@ -5,10 +5,6 @@ TANK.registerComponent("Ship")
 .construct(function()
 {
   this.zdepth = 2;
-  this.image = new Image();
-  this.imageNormals = new Image();
-  this.imageEngine = new Image();
-  this.imageLoaded = false;
 
   this.thrustOn = false;
   this.thrustAlpha = 0;
@@ -34,10 +30,10 @@ TANK.registerComponent("Ship")
   this._entity.Collider2D.collidesWith = ["bullets"];
 
   // Get some data from ship
-  this.image.src = this.shipData.image;
-  if (this.shipData.imageNormals)
-    this.imageNormals.src = this.shipData.imageNormals;
-  this.imageEngine.src = this.shipData.imageEngine;
+  this.image = this.shipData.__proto__.image;
+  this.imageEngine = this.shipData.__proto__.imageEngine;
+  this.imageNormals = this.shipData.__proto__.imageNormals;
+  this.lightBuffers = this.shipData.__proto__.lightBuffers;
   this.health = this.shipData.health;
 
   // Create texture buffers
@@ -46,37 +42,25 @@ TANK.registerComponent("Ship")
   this.decalBuffer = new PixelBuffer();
   this.collisionBuffer = new PixelBuffer();
 
-  // Wait for main image to load
-  var that = this;
-  this.image.addEventListener("load", function()
-  {
-    that.imageLoaded = true;
+  // Set sizes for things
+  this._entity.Lights.lights = this.shipData.lights;
+  this._entity.Lights.width = this.image.width;
+  this._entity.Lights.height = this.image.height;
+  this._entity.Lights.redrawLights();
+  this._entity.Collider2D.width = this.image.width * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.height = this.image.height * TANK.main.Game.scaleFactor;
+  this._entity.Clickable.width = this.image.width * TANK.main.Game.scaleFactor;
+  this._entity.Clickable.height = this.image.height * TANK.main.Game.scaleFactor;
+  this._entity.Weapons.width = this.image.width;
+  this._entity.Weapons.height = this.image.height;
 
-    // Set sizes for things
-    that._entity.Lights.lights = that.shipData.lights;
-    that._entity.Lights.width = that.image.width;
-    that._entity.Lights.height = that.image.height;
-    that._entity.Lights.redrawLights();
-    that._entity.Collider2D.width = that.image.width * TANK.main.Game.scaleFactor;
-    that._entity.Collider2D.height = that.image.height * TANK.main.Game.scaleFactor;
-    that._entity.Clickable.width = that.image.width * TANK.main.Game.scaleFactor;
-    that._entity.Clickable.height = that.image.height * TANK.main.Game.scaleFactor;
-    that._entity.Weapons.width = that.image.width;
-    that._entity.Weapons.height = that.image.height;
-
-    // Setup texture buffers
-    that.mainBuffer.createBuffer(that.image.width, that.image.height);
-    that.damageBuffer.createBuffer(that.image.width, that.image.height);
-    that.decalBuffer.createBuffer(that.image.width, that.image.height);
-    that.collisionBuffer.createBuffer(that.image.width, that.image.height);
-    that.collisionBuffer.context.drawImage(that.image, 0, 0);
-    that.collisionBuffer.readBuffer();
-
-    that.imageNormals.onload = function()
-    {
-      that.lightBuffers = Lightr.bake(8, that.image, that.imageNormals);
-    };
-  });
+  // Setup texture buffers
+  this.mainBuffer.createBuffer(this.image.width, this.image.height);
+  this.damageBuffer.createBuffer(this.image.width, this.image.height);
+  this.decalBuffer.createBuffer(this.image.width, this.image.height);
+  this.collisionBuffer.createBuffer(this.image.width, this.image.height);
+  this.collisionBuffer.context.drawImage(this.image, 0, 0);
+  this.collisionBuffer.readBuffer();
 
 
   // Add weapons
@@ -342,7 +326,7 @@ TANK.registerComponent("Ship")
 
   this.draw = function(ctx, camera)
   {
-    if (!this.imageLoaded || !this.lightBuffers)
+    if (!this.lightBuffers)
       return;
 
     ctx.save();
