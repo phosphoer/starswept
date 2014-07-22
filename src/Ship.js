@@ -306,6 +306,7 @@ TANK.registerComponent("Ship")
     this.mainBuffer.context.drawImage(this.image, 0, 0);
 
     // Draw lighting
+    this.lightBuffers = this.shipData.__proto__.lightBuffers;
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
     for (var i = 0; i < this.lightBuffers.length; ++i)
     {

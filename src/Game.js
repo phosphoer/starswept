@@ -296,7 +296,10 @@ TANK.registerComponent("Game")
       TANK.main.addChild(e);
     }
 
+    // Other level attributes
     this.lightDir = level.lightDir;
+    Lightr.lightDiffuse = level.lightDiffuse;
+    bakeShipLighting();
 
     TANK.main.dispatch("levelStart", index);
   };

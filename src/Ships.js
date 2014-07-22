@@ -219,3 +219,12 @@ for (var i in Ships)
     }.bind(this);
   }.bind(ship);
 }
+
+var bakeShipLighting = function()
+{
+  for (var i in Ships)
+  {
+    var ship = Ships[i];
+    ship.prototype.lightBuffers = Lightr.bake(8, ship.prototype.image, ship.prototype.imageNormals);
+  }
+};

@@ -4,6 +4,7 @@ Levels[0] =
 {
   name: "Sample Level",
   lightDir: 1.5,
+  lightDiffuse: [0.8, 1, 1],
   factions: 
   [
     {ai: "Faction", team: 0, color: "#5d5"},
@@ -25,6 +26,7 @@ Levels[1] =
 {
   name: "Triangle",
   lightDir: 0.5,
+  lightDiffuse: [0.9, 1, 1],
   factions: 
   [
     {ai: "AIFaction", team: 0, color: "#5d5"},
