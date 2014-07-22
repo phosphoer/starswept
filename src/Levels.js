@@ -26,7 +26,7 @@ Levels[1] =
 {
   name: "Triangle",
   lightDir: 0.5,
-  lightDiffuse: [0.9, 1, 1],
+  lightDiffuse: [1, 1, 0.9],
   factions: 
   [
     {ai: "AIFaction", team: 0, color: "#5d5"},
