@@ -27,7 +27,7 @@ TANK.registerComponent("Game")
   this.currentLevel = -1;
   this.pendingLoad = false;
 
-  this.aiArenaMode = false;
+  this.aiArenaMode = true;
 })
 
 .initialize(function()

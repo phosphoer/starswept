@@ -39,7 +39,7 @@ TANK.registerComponent("AIShip")
     // Go to a control point
     else if (target.ControlPoint)
     {
-      if (target.ControlPoint.faction.team !== ship.faction.team)
+      if (!target.ControlPoint.faction || target.ControlPoint.faction.team !== ship.faction.team)
         return "Capture";
       else
         return "Defend";
@@ -69,7 +69,7 @@ TANK.registerComponent("AIShip")
     else if (target.ControlPoint)
     {
       this.clearOrders();
-      if (target.ControlPoint.faction.team !== ship.faction.team)
+      if (!target.ControlPoint.faction || target.ControlPoint.faction.team !== ship.faction.team)
         this.addOrder(new Action.AIDefend(this._entity, target));
       else
         this.addOrder(new Action.AIDefend(this._entity, target));

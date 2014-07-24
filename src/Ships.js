@@ -11,6 +11,7 @@ Ships.fighter = function()
   this.cost = 5;
   this.buildTime = 5;
   this.threat = 1;
+  this.optimalAngle = 0;
   this.guns =
   {
     front:
@@ -70,6 +71,7 @@ Ships.bomber = function()
   this.cost = 15;
   this.buildTime = 10;
   this.threat = 3;
+  this.optimalAngle = 0;
   this.guns =
   {
   },
@@ -121,6 +123,7 @@ Ships.frigate = function()
   this.cost = 30;
   this.buildTime = 15;
   this.threat = 10;
+  this.optimalAngle = Math.PI / 2;
   this.guns =
   {
     left:

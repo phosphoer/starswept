@@ -25,6 +25,7 @@ Action.AIAttack = function(e, target)
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
     var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 
     // We should move to engage the target
@@ -45,7 +46,7 @@ Action.AIAttack = function(e, target)
     else
     {
       // Aim at a right angle to the direction to the target, to target with a broadside
-      ship.heading = targetDir + Math.PI / 2;
+      ship.heading = targetDir + ship.shipData.optimalAngle;
 
       // Slow down to half speed while circling
       ship.setSpeedPercent(0.5);
