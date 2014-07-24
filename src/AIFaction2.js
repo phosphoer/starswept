@@ -180,7 +180,7 @@ TANK.registerComponent("AIFaction2")
           this.attackStrength += Math.random() * 5;
         else
           this.attackStrength += 10 * (Math.random() * 3.1);
-        this.attackTime *= 1.5;
+        this.attackTime *= 1.1;
         this.attackTime += Math.random() * 20;
         this.attackTime = Math.round(this.attackTime);
         this.attackStrength = Math.round(this.attackStrength);

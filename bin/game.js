@@ -497,7 +497,7 @@ TANK.registerComponent("AIFaction2")
           this.attackStrength += Math.random() * 5;
         else
           this.attackStrength += 10 * (Math.random() * 3.1);
-        this.attackTime *= 1.5;
+        this.attackTime *= 1.1;
         this.attackTime += Math.random() * 20;
         this.attackTime = Math.round(this.attackTime);
         this.attackStrength = Math.round(this.attackStrength);
@@ -524,6 +524,74 @@ TANK.registerComponent("AIFaction2")
   };
 });
 
+
+})();
+(function()
+{
+
+TANK.registerComponent("AIFaction3")
+.includes("Faction")
+.construct(function()
+{
+  this.name = "trevor";
+
+  this.idleShipScanTime = 5;
+  this.idleShipScanTimer = 0;
+  this.idleShips = [];
+})
+.initialize(function()
+{
+  var faction = this._entity.Faction;
+  var that = this;
+
+  this.calculateThreatAtPos = function(pos, radius, targetFaction)
+  {
+    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var threat = 0;
+    for (var i in ships)
+    {
+      if (targetFaction && ships[i].Ship.faction !== targetFaction)
+        continue;
+      else if (!targetFaction && ships[i].Ship.faction === faction)
+        continue;
+
+      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
+      if (dist < radius)
+        threat += ships[i].Ship.shipData.threat;
+    }
+
+    return threat;
+  };
+
+  this.findIdleShips = function()
+  {
+    this.idleShips = [];
+    var ships = TANK.main.getChildrenWithComponent("AIShip");
+    for (var i in ships)
+    {
+      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
+        this.idleShips.push(ships[i]);
+    }
+  };
+
+  this.say = function(message)
+  {
+    console.log("AI " + this.name + "(" + faction.team + "): " + message);
+  };
+
+  this.update = function(dt)
+  {
+    // Find idle ships
+    this.idleShipScanTimer -= dt;
+    if (this.idleShipScanTimer <= 0)
+    {
+      this.idleShipScanTimer = this.idleShipScanTime;
+      this.findIdleShips();
+    } 
+
+
+  };
+});
 
 })();
 function AIProject(aiFaction)
@@ -980,9 +1048,9 @@ TANK.registerComponent("Clickable")
     return TANK.Math2D.pointInAABB(pos, [t.x, t.y], [this.width, this.height]);
   };
 });
-TANK.registerComponent("ControlPoint")
+TANK.registerComponent('ControlPoint')
 
-.includes(["Planet", "OrderTarget"])
+.includes(['Planet', 'OrderTarget'])
 
 .construct(function()
 {
@@ -991,10 +1059,11 @@ TANK.registerComponent("ControlPoint")
   this.value = 10;
   this.moneyTime = 5;
   this.moneyTimer = 0;
+  this.scanTimer = 0;
   this.pendingFaction = null;
   this.capturePercent = 0;
   this.captureDistance = 500;
-  this.passiveCapture = 0.05
+  this.passiveCapture = 0.05;
   this.queuedShips = [];
 })
 
@@ -1042,9 +1111,9 @@ TANK.registerComponent("ControlPoint")
         this.faction.addControlPoint(this);
 
       if (!this.faction)
-        console.log("Team " + oldFaction.team + " lost its control point");
+        console.log('Team ' + oldFaction.team + ' lost its control point');
       else
-        console.log("Team " + this.faction.team + " gained a control point");
+        console.log('Team ' + this.faction.team + ' gained a control point');
     }
 
     // If our capture percent reaches 0, lose the pending faction
@@ -1075,7 +1144,7 @@ TANK.registerComponent("ControlPoint")
     {
       // Draw strategic icon
       ctx.save();
-      ctx.fillStyle = this.faction ? this.faction.color : "#555";
+      ctx.fillStyle = this.faction ? this.faction.color : '#555';
       ctx.lineWidth = 2;
       ctx.translate(t.x - camera.x, t.y - camera.y);
 
@@ -1089,13 +1158,13 @@ TANK.registerComponent("ControlPoint")
     {
       // Draw queue
       ctx.save();
-      ctx.fillStyle = "#ddd";
-      ctx.font =  20 * camera.z + "px sans-serif";
+      ctx.fillStyle = '#ddd';
+      ctx.font =  20 * camera.z + 'px sans-serif';
       ctx.translate(t.x - camera.x, t.y - camera.y);
       for (var i = 0; i < this.queuedShips.length; ++i)
       {
         var timeRemaining = Math.round(this.queuedShips[i].time);
-        ctx.fillText(this.queuedShips[i].shipData.name + " - " + timeRemaining + " seconds", 400, -400 + i * 40);
+        ctx.fillText(this.queuedShips[i].shipData.name + ' - ' + timeRemaining + ' seconds', 400, -400 + i * 40);
       }
       ctx.restore();
     }
@@ -1117,6 +1186,24 @@ TANK.registerComponent("ControlPoint")
         this.faction.money += this.value;
     }
 
+    // Scan for nearby friendly ships that would prevent capturing
+    this.scanTimer -= dt;
+    if (this.scanTimer < 0 && this.faction)
+    {
+      this.scanTimer = 3;
+      this.friendliesNearby = false;
+      var ships = TANK.main.getChildrenWithComponent('Ship');
+      for (var i in ships)
+      {
+        var e = ships[i];
+        if (TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [t.x, t.y]) < this.captureDistance)
+        {
+          this.friendliesNearby = true;
+          break;
+        }
+      }
+    }
+
     // Process build queue
     if (this.queuedShips.length > 0)
     {
@@ -1124,7 +1211,7 @@ TANK.registerComponent("ControlPoint")
       item.time -= dt;
       if (item.time <= 0)
       {
-        var e = TANK.createEntity("AIShip");
+        var e = TANK.createEntity('AIShip');
         e.Ship.faction = this.faction;
         e.Ship.shipData = item.shipData;
         e.Pos2D.x = t.x - 400 + Math.random() * 800;
@@ -1322,7 +1409,7 @@ TANK.registerComponent("Game")
   this.currentLevel = -1;
   this.pendingLoad = false;
 
-  this.aiArenaMode = true;
+  this.aiArenaMode = false;
 })
 
 .initialize(function()
@@ -1963,7 +2050,7 @@ Levels[0] =
   factions: 
   [
     {ai: "Faction", team: 0, color: "#5d5"},
-    {ai: "Faction", team: 1, color: "#d55"}
+    {ai: "AIFaction2", team: 1, color: "#d55"}
   ],
   controlPoints: 
   [
