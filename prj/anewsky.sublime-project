@@ -3,7 +3,8 @@
 	[
 		{
 			"follow_symlinks": true,
-			"path": "/Users/david/Documents/Game Projects/ANewSky"
+			"path": "../",
+      "folder_exclude_patterns": ["node_modules", "bin"]
 		}
 	]
 }
