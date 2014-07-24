@@ -29,7 +29,7 @@ Levels[1] =
   lightDiffuse: [1, 1, 0.9],
   factions: 
   [
-    {ai: "AIFaction2", team: 0, color: "#5d5"},
+    {ai: "Faction", team: 0, color: "#5d5"},
     {ai: "AIFaction2", team: 1, color: "#d55"}
   ],
   controlPoints: 

@@ -74,6 +74,14 @@ Ships.bomber = function()
   this.optimalAngle = 0;
   this.guns =
   {
+    front:
+    [
+      {
+        type: "mediumRocket",
+        x: 36,
+        y: 28
+      }
+    ]
   },
   this.lights =
   [

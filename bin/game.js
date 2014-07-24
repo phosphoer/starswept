@@ -1001,6 +1001,9 @@ TANK.registerComponent("Bullet")
   {
     this.trailEmitter.Pos2D.x = t.x;
     this.trailEmitter.Pos2D.y = t.y;
+
+    this._entity.Velocity.x += Math.cos(t.rotation) * this.accel * dt;
+    this._entity.Velocity.y += Math.sin(t.rotation) * this.accel * dt;
   };
 
   this.draw = function(ctx, camera)
@@ -1057,7 +1060,7 @@ TANK.registerComponent('ControlPoint')
   this.zdepth = 0;
   this.faction = null;
   this.value = 10;
-  this.moneyTime = 5;
+  this.moneyTime = 10;
   this.moneyTimer = 0;
   this.scanTimer = 0;
   this.pendingFaction = null;
@@ -1461,6 +1464,7 @@ TANK.registerComponent("Game")
     var save = localStorage["save"];
 
     // Build menu options
+    this.menuOptions = [];
     this.menuOptions.push(
     {
       name: "New Game",
@@ -2016,6 +2020,7 @@ Guns.smallRail = function()
   this.range = 500;
   this.damage = 0.05;
   this.projectileSpeed = 900;
+  this.projectileAccel = 0;
   this.projectileSize = 1;
   this.recoil = 2;
   this.x = 0;
@@ -2034,6 +2039,27 @@ Guns.mediumRail = function()
   this.range = 800;
   this.damage = 0.1;
   this.projectileSpeed = 800;
+  this.projectileAccel = 0;
+  this.projectileSize = 3;
+  this.recoil = 7;
+  this.x = 0;
+  this.y = 0;
+};
+
+Guns.mediumRocket = function()
+{
+  this.image = new Image();
+  this.image.src = "res/small-rail.png";
+  this.shootEffect = "gunFireMedium";
+  this.trailEffect = "mediumRailTrail";
+  this.screenShake = 0.5;
+  this.reloadTime = 3;
+  this.reloadTimer = 0;
+  this.range = 800;
+  this.damage = 0.2;
+  this.projectileLife = 5;
+  this.projectileSpeed = 200;
+  this.projectileAccel = 50;
   this.projectileSize = 3;
   this.recoil = 7;
   this.x = 0;
@@ -2071,7 +2097,7 @@ Levels[1] =
   lightDiffuse: [1, 1, 0.9],
   factions: 
   [
-    {ai: "AIFaction2", team: 0, color: "#5d5"},
+    {ai: "Faction", team: 0, color: "#5d5"},
     {ai: "AIFaction2", team: 1, color: "#d55"}
   ],
   controlPoints: 
@@ -3926,6 +3952,14 @@ Ships.bomber = function()
   this.optimalAngle = 0;
   this.guns =
   {
+    front:
+    [
+      {
+        type: "mediumRocket",
+        x: 36,
+        y: 28
+      }
+    ]
   },
   this.lights =
   [
@@ -4244,11 +4278,12 @@ TANK.registerComponent("Weapons")
     e.Pos2D.rotation = t.rotation + gun.angle;
     e.Velocity.x = Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
     e.Velocity.y = Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
-    e.Life.life = gun.range / gun.projectileSpeed;
+    e.Life.life = gun.projectileLife || gun.range / gun.projectileSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
     e.Bullet.trailEffect = gun.trailEffect;
     e.Bullet.size = gun.projectileSize;
+    e.Bullet.accel = gun.projectileAccel;
     TANK.main.addChild(e);
 
     // Create effect

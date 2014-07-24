@@ -79,6 +79,7 @@ TANK.registerComponent("Game")
     var save = localStorage["save"];
 
     // Build menu options
+    this.menuOptions = [];
     this.menuOptions.push(
     {
       name: "New Game",
