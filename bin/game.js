@@ -1059,7 +1059,7 @@ TANK.registerComponent('ControlPoint')
 {
   this.zdepth = 0;
   this.faction = null;
-  this.value = 10;
+  this.value = 5;
   this.moneyTime = 10;
   this.moneyTimer = 0;
   this.scanTimer = 0;
@@ -1325,7 +1325,7 @@ TANK.registerComponent("Faction")
 {
   this.team = 0;
   this.color = "#666";
-  this.money = 50;
+  this.money = 10;
   this.controlPoints = [];
   this.shipsToBuy = [];
 })
