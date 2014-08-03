@@ -206,6 +206,34 @@ Ships.frigate = function()
   ];
 };
 
+// Ships.alien = function()
+// {
+//   this.name = "Alien";
+//   this.maxTurnSpeed = 0.35;
+//   this.maxSpeed = 150;
+//   this.accel = 15;
+//   this.turnAccel = 1.2;
+//   this.health = 1;
+//   this.cost = 30;
+//   this.buildTime = 15;
+//   this.threat = 10;
+//   this.optimalAngle = Math.PI / 2;
+//   this.guns =
+//   {
+//   },
+//   this.lights =
+//   [
+//     {
+//       x: 10, y: 33, colorA: [255, 200, 255], colorB: [255, 140, 255], state: "off", isEngine: true,
+//       states:
+//       {
+//         on: {radius: 10, alpha: 0.8},
+//         off: {radius: 6, alpha: 0.3}
+//       }
+//     }
+//   ];
+// };
+
 // Configure Lightr
 Lightr.minLightIntensity = 0.2;
 Lightr.lightDiffuse = [0.8, 0.8, 1];
