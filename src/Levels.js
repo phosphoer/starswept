@@ -3,6 +3,7 @@ var Levels = [];
 Levels[0] = 
 {
   name: "Sample Level",
+  difficulty: 1,
   lightDir: 1.5,
   lightDiffuse: [0.8, 1, 1],
   factions: 
@@ -25,6 +26,7 @@ Levels[0] =
 Levels[1] = 
 {
   name: "Triangle",
+  difficulty: 2,
   lightDir: 0.5,
   lightDiffuse: [1, 1, 0.9],
   factions: 

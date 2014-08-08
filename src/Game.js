@@ -1,4 +1,4 @@
-TANK.registerComponent("Game")
+TANK.registerComponent('Game')
 
 .construct(function()
 {
@@ -42,7 +42,7 @@ TANK.registerComponent("Game")
     var shipData = new Ships[i]();
     this.barCommands.push(
     {
-      name: "Build " + shipData.name,
+      name: 'Build ' + shipData.name,
       shipType: i,
       activate: function()
       {
@@ -52,7 +52,7 @@ TANK.registerComponent("Game")
   }
 
   // Money counter
-  this.topBarItems.push({name: ""});
+  this.topBarItems.push({name: ''});
 
   //
   // Update the mouse world position
@@ -74,26 +74,27 @@ TANK.registerComponent("Game")
   //
   this.goToMainMenu = function()
   {
-    TANK.main.dispatch("levelEnd");
+    TANK.main.removeComponent('CampaignMap');
+    TANK.main.dispatch('levelEnd');
 
-    var save = localStorage["save"];
+    var save = localStorage['save'];
 
     // Build menu options
     this.menuOptions = [];
     this.menuOptions.push(
     {
-      name: "New Game",
+      name: 'New Game',
       activate: function()
       {
         that.menuUI.teardown();
-        that.goToLevel(0);
+        that.goToCampaignMap();
       }
     });
     if (save)
     {
       this.menuOptions.push(
       {
-        name: "Continue",
+        name: 'Continue',
         activate: function()
         {
           var saveData = JSON.parse(save);
@@ -101,26 +102,17 @@ TANK.registerComponent("Game")
           that.goToLevel(saveData.currentLevel);
         }
       });
-      this.menuOptions.push(
-      {
-        name: "Level Select",
-        activate: function()
-        {
-          that.menuUI.teardown();
-          that.goToLevelSelect();
-        }
-      });
     }
     this.menuOptions.push(
     {
-      name: "Options",
+      name: 'Options',
       activate: function()
       {
       }
     });
     this.menuOptions.push(
     {
-      name: "Quit",
+      name: 'Quit',
       activate: function()
       {
       }
@@ -129,13 +121,13 @@ TANK.registerComponent("Game")
     // Build main menu ractive
     this.menuUI = new Ractive(
     {
-      el: "menuContainer",
-      template: "#menuTemplate",
+      el: 'menuContainer',
+      template: '#menuTemplate',
       data: {options: this.menuOptions}
     });
 
     // Set ractive event listeners
-    this.menuUI.on("activate", function(e)
+    this.menuUI.on('activate', function(e)
     {
       e.context.activate();
     });
@@ -143,60 +135,23 @@ TANK.registerComponent("Game")
     // Build main menu scene
     this.lightDir = Math.random() * Math.PI * 2;
 
-    var planet = TANK.createEntity("Planet");
+    var planet = TANK.createEntity('Planet');
     planet.Pos2D.x = 0;
     planet.Pos2D.y = -400;
     TANK.main.addChild(planet);
 
-    var moon = TANK.createEntity("Planet");
+    var moon = TANK.createEntity('Planet');
     moon.Pos2D.x = -400;
     moon.Pos2D.y = 400;
     moon.Planet.radius = 48;
     TANK.main.addChild(moon);
 
-    var ship = TANK.createEntity("Ship");
+    var ship = TANK.createEntity('Ship');
     ship.Pos2D.x = 300;
     ship.Pos2D.y = 200;
     ship.Ship.shipData = new Ships.bomber();
     ship.Ship.faction = null;
     TANK.main.addChild(ship);
-  };
-
-  //
-  // Move to level select screen
-  //
-  this.goToLevelSelect = function()
-  {
-    var save = JSON.parse(localStorage["save"]);
-
-    // Build level options
-    for (var i = 0; i <= +save.currentLevel; ++i)
-    {
-      this.levelOptions.push(
-      {
-        name: Levels[i].name,
-        index: i,
-        activate: function()
-        {
-          that.menuUI.teardown();
-          that.goToLevel(this.index);
-        }
-      });
-    }
-
-    // Build level select
-    this.menuUI = new Ractive(
-    {
-      el: "menuContainer",
-      template: "#levelTemplate",
-      data: {options: this.levelOptions}
-    });
-
-    // Set ractive event listeners
-    this.menuUI.on("activate", function(e)
-    {
-      e.context.activate();
-    });
   };
 
   //
@@ -209,18 +164,18 @@ TANK.registerComponent("Game")
 
     this.popupUI = new Ractive(
     {
-      el: "popupContainer",
-      template: "#winTemplate",
+      el: 'popupContainer',
+      template: '#winTemplate',
     });
 
-    this.popupUI.on("mainMenu", function()
+    this.popupUI.on('mainMenu', function()
     {
       that.popupUI.teardown();
       that.popupUI = null;
       that.goToMainMenu();
     });
 
-    this.popupUI.on("nextLevel", function()
+    this.popupUI.on('nextLevel', function()
     {
       that.popupUI.teardown();
       that.popupUI = null;
@@ -238,18 +193,18 @@ TANK.registerComponent("Game")
 
     this.popupUI = new Ractive(
     {
-      el: "popupContainer",
-      template: "#loseTemplate",
+      el: 'popupContainer',
+      template: '#loseTemplate',
     });
 
-    this.popupUI.on("mainMenu", function()
+    this.popupUI.on('mainMenu', function()
     {
       that.popupUI.teardown();
       that.popupUI = null;
       that.goToMainMenu();
     });
 
-    this.popupUI.on("retry", function()
+    this.popupUI.on('retry', function()
     {
       that.popupUI.teardown();
       that.popupUI = null;
@@ -260,10 +215,8 @@ TANK.registerComponent("Game")
   //
   // Load a new level
   //
-  this.loadLevelNow = function(index)
+  this.loadLevelNow = function(level)
   {
-    var level = Levels[index];
-
     // Create faction entities
     for (var i = 0; i < level.factions.length; ++i)
     {
@@ -278,7 +231,7 @@ TANK.registerComponent("Game")
     for (var i = 0; i < level.controlPoints.length; ++i)
     {
       var cp = level.controlPoints[i];
-      e = TANK.createEntity("ControlPoint");
+      e = TANK.createEntity('ControlPoint');
       e.Pos2D.x = cp.x;
       e.Pos2D.y = cp.y;
       if (cp.faction >= 0)
@@ -289,7 +242,7 @@ TANK.registerComponent("Game")
     // Create ships
     for (var i = 0; i < level.ships.length; ++i)
     {
-      e = level.ships[i].player ? TANK.createEntity("Player") : TANK.createEntity("AIShip");
+      e = level.ships[i].player ? TANK.createEntity('Player') : TANK.createEntity('AIShip');
       e.Pos2D.x = level.ships[i].x;
       e.Pos2D.y = level.ships[i].y;
       e.Ship.shipData = new Ships[level.ships[i].ship];
@@ -302,33 +255,36 @@ TANK.registerComponent("Game")
     Lightr.lightDiffuse = level.lightDiffuse;
     bakeShipLighting();
 
-    TANK.main.dispatch("levelStart", index);
+    TANK.main.dispatch('levelStart', level);
   };
 
   // 
   // Begin transition to new level
   //
-  this.goToLevel = function(index)
+  this.goToLevel = function(level)
   {
-    // Go to main menu if level is outside range
-    if (index >= Levels.length)
-    {
-      this.goToMainMenu();
-      return;
-    }
-
     // Send out a message to all existing level objects to be destroyed
-    TANK.main.dispatch("levelEnd");
+    TANK.main.removeComponent('CampaignMap');
+    TANK.main.dispatch('levelEnd');
 
     // Set current level marker and set a pending load
-    this.currentLevel = index;
+    this.currentLevel = level;
     this.pendingLoad = true;
+  };
+
+  //
+  // Go to campaign map
+  //
+  this.goToCampaignMap = function()
+  {
+    TANK.main.dispatch('levelEnd');
+    TANK.main.addComponent('CampaignMap');
   };
 
   //
   // Game start handler
   //
-  this.listenTo(TANK.main, "start", function()
+  this.listenTo(TANK.main, 'start', function()
   {
     if (this.aiArenaMode)
       this.goToLevel(1);
@@ -339,54 +295,54 @@ TANK.registerComponent("Game")
   //
   // Level start handler
   //
-  this.listenTo(TANK.main, "levelStart", function(index)
+  this.listenTo(TANK.main, 'levelStart', function(index)
   {
     if (!this.aiArenaMode)
     {
       // Save the game
-      if (!localStorage["save"])
+      if (!localStorage['save'])
       {
         var save = {};
         save.currentLevel = index;
-        localStorage["save"] = JSON.stringify(save);
+        localStorage['save'] = JSON.stringify(save);
       }
       else
       {
-        var save = JSON.parse(localStorage["save"]);
+        var save = JSON.parse(localStorage['save']);
         save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
-        localStorage["save"] = JSON.stringify(save);
+        localStorage['save'] = JSON.stringify(save);
       }
 
       // Build bottom command bar ractive
       this.barUI = new Ractive(
       {
-        el: "barContainer",
-        template: "#barTemplate",
+        el: 'barContainer',
+        template: '#barTemplate',
         data: {commands: this.barCommands}
       });
 
       // Build top command bar ractive
       this.topBarUI = new Ractive(
       {
-        el: "topBarContainer",
-        template: "#topBarTemplate",
+        el: 'topBarContainer',
+        template: '#topBarTemplate',
         data: {items: this.topBarItems}
       });
 
       // Set ractive event listeners
-      this.barUI.on("activate", function(e)
+      this.barUI.on('activate', function(e)
       {
         e.context.activate();
       });
 
-      TANK.main.dispatchTimed(3, "scanForEndCondition");
+      TANK.main.dispatchTimed(3, 'scanForEndCondition');
     }
   });
 
   //
   // Level end handler
   //
-  this.listenTo(TANK.main, "levelEnd", function()
+  this.listenTo(TANK.main, 'levelEnd', function()
   {
     this.factions = [];
 
@@ -402,10 +358,10 @@ TANK.registerComponent("Game")
   //
   // Look for a ship for player to transfer to while dead
   //
-  this.listenTo(TANK.main, "scanforplayership", function(faction, pos)
+  this.listenTo(TANK.main, 'scanforplayership', function(faction, pos)
   {
-    console.log("Looking for ship to transfer to...");
-    var ships = TANK.main.getChildrenWithComponent("Ship");
+    console.log('Looking for ship to transfer to...');
+    var ships = TANK.main.getChildrenWithComponent('Ship');
     var closestShip = null;
     var minDist = Infinity;
     if (!pos)
@@ -421,36 +377,36 @@ TANK.registerComponent("Game")
       {
         minDist = dist;
         closestShip = ships[i];
-        console.log("Found ship " + i);
+        console.log('Found ship ' + i);
       }
     }
 
     if (closestShip)
     {
-      console.log("Transferring to ship " + closestShip._id);
+      console.log('Transferring to ship ' + closestShip._id);
       // Transfer control to closest ship
-      closestShip.removeComponent("AIShip");
-      closestShip.removeComponent("AIWatch");
-      closestShip.addComponent("Player");
+      closestShip.removeComponent('AIShip');
+      closestShip.removeComponent('AIWatch');
+      closestShip.addComponent('Player');
     }
     else
     {
       // If we couldn't find a ship to transfer control to, inform the game to wait for
       // a new ship to be built
-      TANK.main.dispatchTimed(3, "scanforplayership", faction, pos);
+      TANK.main.dispatchTimed(3, 'scanforplayership', faction, pos);
     }
   });
 
   // 
   // Check for level end condition
   //
-  this.listenTo(TANK.main, "scanForEndCondition", function()
+  this.listenTo(TANK.main, 'scanForEndCondition', function()
   {
     var win = true;
     var lose = true;
 
     // Check if the player owns any or all control points
-    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+    var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
     for (var i in controlPoints)
     {
       if (controlPoints[i].ControlPoint.faction === this.factions[0])
@@ -460,7 +416,7 @@ TANK.registerComponent("Game")
     }
 
     // Check if there are any friendly or enemy ships left
-    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var ships = TANK.main.getChildrenWithComponent('Ship');
     for (var i in ships)
     {
       if (ships[i].Ship.faction === this.factions[0])
@@ -481,35 +437,37 @@ TANK.registerComponent("Game")
       return;
     }
 
-    TANK.main.dispatchTimed(3, "scanForEndCondition");
+    TANK.main.dispatchTimed(3, 'scanForEndCondition');
   });
 
   //
   // Input handlers
   //
-  this.listenTo(TANK.main, "mousemove", function(e)
+  this.listenTo(TANK.main, 'mousemove', function(e)
   {
     this.updateMousePos([e.x, e.y]);
   });
 
-  this.listenTo(TANK.main, "touchmove", function(e)
+  this.listenTo(TANK.main, 'touchmove', function(e)
   {
     this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
   });
-  this.listenTo(TANK.main, "touchstart", function(e)
+  this.listenTo(TANK.main, 'touchstart', function(e)
   {
     this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
   });
 
-  this.listenTo(TANK.main, "mousewheel", function(e)
+  this.listenTo(TANK.main, 'mousewheel', function(e)
   {
     var delta = e.wheelDelta;
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
-    if (TANK.main.Renderer2D.camera.z < 1)
-      TANK.main.Renderer2D.camera.z = 1;
+    if (TANK.main.Renderer2D.camera.z < 0.5)
+      TANK.main.Renderer2D.camera.z = 0.5;
+    if (TANK.main.Renderer2D.camera.z > 12)
+      TANK.main.Renderer2D.camera.z = 12;
   });
 
-  this.listenTo(TANK.main, "gesturechange", function(e)
+  this.listenTo(TANK.main, 'gesturechange', function(e)
   {
     if (e.scale)
     {
@@ -539,7 +497,7 @@ TANK.registerComponent("Game")
 
     // Update faction money count
     if (this.factions.length > 0 && this.topBarUI)
-      this.topBarUI.set("items[0].name", "Funds: " + this.factions[0].money);
+      this.topBarUI.set('items[0].name', 'Funds: ' + this.factions[0].money);
 
     if (this.aiArenaMode)
     {
