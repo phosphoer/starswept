@@ -300,18 +300,18 @@ TANK.registerComponent('Game')
     if (!this.aiArenaMode)
     {
       // Save the game
-      if (!localStorage['save'])
-      {
-        var save = {};
-        save.currentLevel = index;
-        localStorage['save'] = JSON.stringify(save);
-      }
-      else
-      {
-        var save = JSON.parse(localStorage['save']);
-        save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
-        localStorage['save'] = JSON.stringify(save);
-      }
+      // if (!localStorage['save'])
+      // {
+      //   var save = {};
+      //   save.currentLevel = index;
+      //   localStorage['save'] = JSON.stringify(save);
+      // }
+      // else
+      // {
+      //   var save = JSON.parse(localStorage['save']);
+      //   save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
+      //   localStorage['save'] = JSON.stringify(save);
+      // }
 
       // Build bottom command bar ractive
       this.barUI = new Ractive(

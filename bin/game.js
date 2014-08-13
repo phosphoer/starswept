@@ -1031,30 +1031,102 @@ TANK.registerComponent("CampaignMap")
 .construct(function()
 {
   this.zdepth = 0;
+  this.size = 400;
+  this.minDist = 100;
 })
 
 .initialize(function()
 {
+  var that = this;
   TANK.main.Renderer2D.add(this);
 
   this.systems = [];
-  this.systems[0] = 
-  {
-    level: Levels[0],
-    pos: [0, 0],
-    radius: 30,
-    owned: true
-  };
-  this.systems[1] = 
-  {
-    level: Levels[1],
-    pos: [0, -100],
-    radius: 30,
-    owned: false
-  };
 
-  this.systems[0].edges = [this.systems[1]];
-  this.systems[1].edges = [this.systems[0]];
+  // Generate systems
+  for (var i = 0; i < 10; ++i)
+  {
+    this.systems.push(
+    {
+      level: Levels[0],
+      pos: 
+      [
+        -this.size + Math.random() * this.size * 2, 
+        -this.size + Math.random() * this.size * 2
+      ],
+      radius: 20,
+      edges: [],
+      owned: false
+    });
+
+    // Ensure systems are far apart
+    var system = this.systems[i];
+    var angle = Math.random() * Math.PI * 2;
+    for (;;)
+    {
+      var minDist = this.systems.reduce(function(prev, cur)
+      {
+        if (cur === system)
+          return prev;
+        return Math.min(prev, TANK.Math2D.pointDistancePoint(system.pos, cur.pos));
+      }, Infinity);
+
+      if (minDist > this.minDist)
+        break;
+
+      system.pos[0] += Math.cos(angle) * 10;
+      system.pos[1] += Math.sin(angle) * 10;
+    }
+  }
+
+  // Make edges
+  function makeEdgesFromNode(node, visited)
+  {
+    visited.push(node);
+    var searchRadius = 100;
+    var searching = true;
+    while (searching)
+    {
+      for (var i = 0; i < that.systems.length; ++i)
+      {
+        var system = that.systems[i];
+        if (system === node)
+          continue;
+
+        var dist = TANK.Math2D.pointDistancePoint(node.pos, system.pos);
+        if (dist < searchRadius && visited.indexOf(system) < 0)
+        {
+          node.edges.push(system);
+          system.edges.push(node);
+          makeEdgesFromNode(system, visited);
+          return;
+        }
+      }
+      searchRadius += 10;
+
+      if (visited.length === that.systems.length)
+        return;
+    }
+  };
+  makeEdgesFromNode(this.systems[0], []);
+
+  // Move nodes away from edges
+  this.systems.forEach(function(system)
+  {
+    system.edges.forEach(function(systemB)
+    {
+      this.systems.forEach(function(s)
+      {
+        if (s === system || s === systemB)
+          return;
+
+        var dist = TANK.Math2D.pointDistanceLine(s.pos, system.pos, systemB.pos, true);
+        if (dist < 50)
+        {
+          s.bad = true;
+        }
+      }.bind(this));
+    }.bind(this));
+  }.bind(this));
 
   this.listenTo(TANK.main, 'mousedown', function(e)
   {
@@ -1076,26 +1148,30 @@ TANK.registerComponent("CampaignMap")
     // Draw edges
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(this.systems[0].pos[0], this.systems[0].pos[1]);
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
-      ctx.lineTo(system.pos[0], system.pos[1]);
+      for (var j = 0; j < system.edges.length; ++j)
+      {
+        var systemB = system.edges[j];
+        ctx.beginPath();
+        ctx.moveTo(system.pos[0], system.pos[1]);
+        ctx.lineTo(systemB.pos[0], systemB.pos[1]);
+        ctx.stroke();
+        ctx.closePath();
+      }
     }
-    ctx.stroke();
-    ctx.closePath();
 
     // Draw systems
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#fff';
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
+      ctx.fillStyle = system.bad ? '#f55' : '#fff';
       ctx.beginPath();
       ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
-      system.owned ? ctx.fill() : ctx.stroke();
+      ctx.fill();
       ctx.closePath();
+      ctx.stroke();
     }
 
     ctx.restore();
@@ -1761,18 +1837,18 @@ TANK.registerComponent('Game')
     if (!this.aiArenaMode)
     {
       // Save the game
-      if (!localStorage['save'])
-      {
-        var save = {};
-        save.currentLevel = index;
-        localStorage['save'] = JSON.stringify(save);
-      }
-      else
-      {
-        var save = JSON.parse(localStorage['save']);
-        save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
-        localStorage['save'] = JSON.stringify(save);
-      }
+      // if (!localStorage['save'])
+      // {
+      //   var save = {};
+      //   save.currentLevel = index;
+      //   localStorage['save'] = JSON.stringify(save);
+      // }
+      // else
+      // {
+      //   var save = JSON.parse(localStorage['save']);
+      //   save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
+      //   localStorage['save'] = JSON.stringify(save);
+      // }
 
       // Build bottom command bar ractive
       this.barUI = new Ractive(
@@ -2120,7 +2196,7 @@ Levels[0] =
   ],
   ships:
   [
-    {player: true, faction: 0, ship: "bomber", x: 0, y: 0},
+    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
     {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
   ]
 };
@@ -2144,6 +2220,8 @@ Levels[1] =
   ],
   ships:
   [
+    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
+    {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
   ]
 };
 TANK.registerComponent("Life")

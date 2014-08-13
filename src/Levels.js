@@ -18,7 +18,7 @@ Levels[0] =
   ],
   ships:
   [
-    {player: true, faction: 0, ship: "bomber", x: 0, y: 0},
+    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
     {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
   ]
 };
@@ -42,5 +42,7 @@ Levels[1] =
   ],
   ships:
   [
+    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
+    {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
   ]
 };
