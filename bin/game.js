@@ -1124,6 +1124,9 @@ TANK.registerComponent("CampaignMap")
 
     }.bind(this));
 
+    // Make the first node owned
+    this.systems[0].owned = true;
+
     // Helper to recursively explore a graph
     var exploreNode = function(node, islandNodes)
     {
@@ -1163,8 +1166,6 @@ TANK.registerComponent("CampaignMap")
         }
       }
 
-      nodeA.bad = true;
-      nodeB.bad = true;
       nodeA.edges.push(nodeB);
       nodeB.edges.push(nodeA);
     };
@@ -1186,19 +1187,34 @@ TANK.registerComponent("CampaignMap")
       var islandB = this.islands[i];
       connectIslands(islandA, islandB);
     }
+
+    this.mapGenerated = true;
   };
 
-  this.generateMap();
+  if (!this.mapGenerated)
+    this.generateMap();
 
+  // Handle clicking on a system
   this.listenTo(TANK.main, 'mousedown', function(e)
   {
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
+      if (system.owned)
+        continue;
+
+      var hasAdjacentOwned = false;
+      for (var j = 0; j < system.edges.length; ++j)
+        if (system.edges[j].owned)
+          hasAdjacentOwned = true;
+
+      if (!hasAdjacentOwned)
+        continue;
+
       var dist = TANK.Math2D.pointDistancePoint(system.pos, TANK.main.Game.mousePosWorld);
       if (dist < system.radius)
       {
-        TANK.main.Game.goToLevel(system.level);
+        TANK.main.Game.goToSystemBattle(system);
       }
     }
   });
@@ -1206,9 +1222,10 @@ TANK.registerComponent("CampaignMap")
   this.draw = function(ctx, camera)
   {
     ctx.save();
+    ctx.translate(-camera.x, -camera.y);
 
     // Draw edges
-    ctx.strokeStyle = '#fff';
+    var drawnEdges = [];
     ctx.lineWidth = 3;
     for (var i = 0; i < this.systems.length; ++i)
     {
@@ -1216,24 +1233,32 @@ TANK.registerComponent("CampaignMap")
       for (var j = 0; j < system.edges.length; ++j)
       {
         var systemB = system.edges[j];
+        if (drawnEdges.indexOf(systemB) >= 0)
+          continue;
+
+        if (systemB.owned || system.owned)
+          ctx.strokeStyle = '#7c7';
+        else
+          ctx.strokeStyle = '#c77';
+
         ctx.beginPath();
         ctx.moveTo(system.pos[0], system.pos[1]);
         ctx.lineTo(systemB.pos[0], systemB.pos[1]);
         ctx.stroke();
         ctx.closePath();
       }
+      drawnEdges.push(system);
     }
 
     // Draw systems
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
-      ctx.fillStyle = system.bad ? '#f55' : '#fff';
+      ctx.fillStyle = system.owned ? '#5f5' : '#f55';
       ctx.beginPath();
       ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
       ctx.fill();
       ctx.closePath();
-      ctx.stroke();
     }
 
     ctx.restore();
@@ -1546,11 +1571,11 @@ TANK.registerComponent("Faction")
 
 .initialize(function()
 {
-  this.listenTo(TANK.main, "levelEnd", function()
+  this.listenTo(TANK.main, "systemBattleEnd", function()
   {
     TANK.main.removeChild(this._entity);
   });
-  
+
   this.listenTo(this._entity, "buyship", function(ship, callback, data)
   {
     this.buyShip(ship, callback, data);
@@ -1570,7 +1595,7 @@ TANK.registerComponent("Faction")
       }
     }
 
-    if (chosenControlPoint) 
+    if (chosenControlPoint)
     {
       if (!chosenControlPoint.buyShip(type, callback, data))
       {
@@ -1623,7 +1648,7 @@ TANK.registerComponent('Game')
   this.lightDir = 0;
 
   // Level settings
-  this.currentLevel = -1;
+  this.currentSystem = null;
   this.pendingLoad = false;
 
   this.aiArenaMode = false;
@@ -1673,8 +1698,9 @@ TANK.registerComponent('Game')
   //
   this.goToMainMenu = function()
   {
-    TANK.main.removeComponent('CampaignMap');
-    TANK.main.dispatch('levelEnd');
+    if (this.campaignObject)
+      TANK.main.removeChild(this.campaignObject);
+    TANK.main.dispatch('systemBattleEnd');
 
     var save = localStorage['save'];
 
@@ -1689,19 +1715,6 @@ TANK.registerComponent('Game')
         that.goToCampaignMap();
       }
     });
-    if (save)
-    {
-      this.menuOptions.push(
-      {
-        name: 'Continue',
-        activate: function()
-        {
-          var saveData = JSON.parse(save);
-          that.menuUI.teardown();
-          that.goToLevel(saveData.currentLevel);
-        }
-      });
-    }
     this.menuOptions.push(
     {
       name: 'Options',
@@ -1767,18 +1780,11 @@ TANK.registerComponent('Game')
       template: '#winTemplate',
     });
 
-    this.popupUI.on('mainMenu', function()
+    this.popupUI.on('back', function()
     {
       that.popupUI.teardown();
       that.popupUI = null;
-      that.goToMainMenu();
-    });
-
-    this.popupUI.on('nextLevel', function()
-    {
-      that.popupUI.teardown();
-      that.popupUI = null;
-      that.goToLevel(that.currentLevel + 1);
+      that.goToCampaignMap();
     });
   };
 
@@ -1796,26 +1802,21 @@ TANK.registerComponent('Game')
       template: '#loseTemplate',
     });
 
-    this.popupUI.on('mainMenu', function()
+    this.popupUI.on('back', function()
     {
       that.popupUI.teardown();
       that.popupUI = null;
-      that.goToMainMenu();
-    });
-
-    this.popupUI.on('retry', function()
-    {
-      that.popupUI.teardown();
-      that.popupUI = null;
-      that.goToLevel(that.currentLevel);
+      that.goToCampaignMap();
     });
   };
 
   //
   // Load a new level
   //
-  this.loadLevelNow = function(level)
+  this.loadLevelNow = function(system)
   {
+    var level = system.level;
+
     // Create faction entities
     for (var i = 0; i < level.factions.length; ++i)
     {
@@ -1854,20 +1855,20 @@ TANK.registerComponent('Game')
     Lightr.lightDiffuse = level.lightDiffuse;
     bakeShipLighting();
 
-    TANK.main.dispatch('levelStart', level);
+    TANK.main.dispatch('systemBattleStart', system);
   };
 
-  // 
-  // Begin transition to new level
   //
-  this.goToLevel = function(level)
+  // Begin a real time system battle
+  //
+  this.goToSystemBattle = function(system)
   {
     // Send out a message to all existing level objects to be destroyed
-    TANK.main.removeComponent('CampaignMap');
-    TANK.main.dispatch('levelEnd');
+    TANK.main.removeChild(this.campaignObject);
+    TANK.main.dispatch('systemBattleEnd');
 
     // Set current level marker and set a pending load
-    this.currentLevel = level;
+    this.currentSystem = system;
     this.pendingLoad = true;
   };
 
@@ -1876,8 +1877,14 @@ TANK.registerComponent('Game')
   //
   this.goToCampaignMap = function()
   {
-    TANK.main.dispatch('levelEnd');
-    TANK.main.addComponent('CampaignMap');
+    TANK.main.Renderer2D.camera.x = 0;
+    TANK.main.Renderer2D.camera.y = 0;
+    TANK.main.dispatch('systemBattleEnd');
+
+    if (!this.campaignObject)
+      this.campaignObject = TANK.createEntity('CampaignMap');
+
+    TANK.main.addChild(this.campaignObject);
   };
 
   //
@@ -1885,63 +1892,43 @@ TANK.registerComponent('Game')
   //
   this.listenTo(TANK.main, 'start', function()
   {
-    if (this.aiArenaMode)
-      this.goToLevel(1);
-    else
-      this.goToMainMenu();
+    this.goToMainMenu();
   });
 
   //
   // Level start handler
   //
-  this.listenTo(TANK.main, 'levelStart', function(index)
+  this.listenTo(TANK.main, 'systemBattleStart', function(system)
   {
-    if (!this.aiArenaMode)
+    // Build bottom command bar ractive
+    this.barUI = new Ractive(
     {
-      // Save the game
-      // if (!localStorage['save'])
-      // {
-      //   var save = {};
-      //   save.currentLevel = index;
-      //   localStorage['save'] = JSON.stringify(save);
-      // }
-      // else
-      // {
-      //   var save = JSON.parse(localStorage['save']);
-      //   save.currentLevel = Math.max(save.currentLevel, this.currentLevel);
-      //   localStorage['save'] = JSON.stringify(save);
-      // }
+      el: 'barContainer',
+      template: '#barTemplate',
+      data: {commands: this.barCommands}
+    });
 
-      // Build bottom command bar ractive
-      this.barUI = new Ractive(
-      {
-        el: 'barContainer',
-        template: '#barTemplate',
-        data: {commands: this.barCommands}
-      });
+    // Build top command bar ractive
+    this.topBarUI = new Ractive(
+    {
+      el: 'topBarContainer',
+      template: '#topBarTemplate',
+      data: {items: this.topBarItems}
+    });
 
-      // Build top command bar ractive
-      this.topBarUI = new Ractive(
-      {
-        el: 'topBarContainer',
-        template: '#topBarTemplate',
-        data: {items: this.topBarItems}
-      });
+    // Set ractive event listeners
+    this.barUI.on('activate', function(e)
+    {
+      e.context.activate();
+    });
 
-      // Set ractive event listeners
-      this.barUI.on('activate', function(e)
-      {
-        e.context.activate();
-      });
-
-      TANK.main.dispatchTimed(3, 'scanForEndCondition');
-    }
+    TANK.main.dispatchTimed(3, 'scanForEndCondition');
   });
 
   //
   // Level end handler
   //
-  this.listenTo(TANK.main, 'levelEnd', function()
+  this.listenTo(TANK.main, 'systemBattleEnd', function()
   {
     this.factions = [];
 
@@ -1996,7 +1983,7 @@ TANK.registerComponent('Game')
     }
   });
 
-  // 
+  //
   // Check for level end condition
   //
   this.listenTo(TANK.main, 'scanForEndCondition', function()
@@ -2026,12 +2013,14 @@ TANK.registerComponent('Game')
 
     if (win)
     {
+      this.currentSystem.owned = true;
       this.showWinScreen();
       return;
     }
 
     if (lose)
     {
+      this.currentSystem.owned = false;
       this.showLoseScreen();
       return;
     }
@@ -2083,32 +2072,20 @@ TANK.registerComponent('Game')
   });
 
   //
-  // Update 
+  // Update
   //
   this.update = function(dt)
   {
     // Load levels
     if (this.pendingLoad)
     {
-      this.loadLevelNow(this.currentLevel);
+      this.loadLevelNow(this.currentSystem);
       this.pendingLoad = false;
     }
 
     // Update faction money count
     if (this.factions.length > 0 && this.topBarUI)
       this.topBarUI.set('items[0].name', 'Funds: ' + this.factions[0].money);
-
-    if (this.aiArenaMode)
-    {
-      if (TANK.main.Input.isDown(TANK.Key.W))
-        TANK.main.Renderer2D.camera.y -= dt * 1000;
-      if (TANK.main.Input.isDown(TANK.Key.S))
-        TANK.main.Renderer2D.camera.y += dt * 1000;
-      if (TANK.main.Input.isDown(TANK.Key.A))
-        TANK.main.Renderer2D.camera.x -= dt * 1000;
-      if (TANK.main.Input.isDown(TANK.Key.D))
-        TANK.main.Renderer2D.camera.x += dt * 1000;
-    }
   };
 });
 
@@ -3030,11 +3007,11 @@ TANK.registerComponent("Planet")
 {
   this.zdepth = 0;
   this.radius = 128;
-  this.atmosColor = 
+  this.atmosColor =
   [
-    Math.round(100 + Math.random() * 150), 
-    Math.round(100 + Math.random() * 150), 
-    Math.round(100 + Math.random() * 150), 
+    Math.round(100 + Math.random() * 150),
+    Math.round(100 + Math.random() * 150),
+    Math.round(100 + Math.random() * 150),
     0.8
   ];
   this.heights = [0, 0.3, 0.5, 0.6, 1];
@@ -3193,7 +3170,7 @@ TANK.registerComponent("Planet")
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
-  this.listenTo(TANK.main, "levelEnd", function()
+  this.listenTo(TANK.main, "systemBattleEnd", function()
   {
     TANK.main.removeChild(this._entity);
   });
@@ -3815,7 +3792,7 @@ TANK.registerComponent("Ship")
       TANK.main.dispatch("camerashake", 0.5);
   };
 
-  this.listenTo(TANK.main, "levelEnd", function()
+  this.listenTo(TANK.main, "systemBattleEnd", function()
   {
     TANK.main.removeChild(this._entity);
   });

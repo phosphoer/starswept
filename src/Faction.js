@@ -11,11 +11,11 @@ TANK.registerComponent("Faction")
 
 .initialize(function()
 {
-  this.listenTo(TANK.main, "levelEnd", function()
+  this.listenTo(TANK.main, "systemBattleEnd", function()
   {
     TANK.main.removeChild(this._entity);
   });
-  
+
   this.listenTo(this._entity, "buyship", function(ship, callback, data)
   {
     this.buyShip(ship, callback, data);
@@ -35,7 +35,7 @@ TANK.registerComponent("Faction")
       }
     }
 
-    if (chosenControlPoint) 
+    if (chosenControlPoint)
     {
       if (!chosenControlPoint.buyShip(type, callback, data))
       {

@@ -149,7 +149,7 @@ TANK.registerComponent("Ship")
       TANK.main.dispatch("camerashake", 0.5);
   };
 
-  this.listenTo(TANK.main, "levelEnd", function()
+  this.listenTo(TANK.main, "systemBattleEnd", function()
   {
     TANK.main.removeChild(this._entity);
   });

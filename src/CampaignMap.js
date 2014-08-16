@@ -96,6 +96,9 @@ TANK.registerComponent("CampaignMap")
 
     }.bind(this));
 
+    // Make the first node owned
+    this.systems[0].owned = true;
+
     // Helper to recursively explore a graph
     var exploreNode = function(node, islandNodes)
     {
@@ -135,8 +138,6 @@ TANK.registerComponent("CampaignMap")
         }
       }
 
-      nodeA.bad = true;
-      nodeB.bad = true;
       nodeA.edges.push(nodeB);
       nodeB.edges.push(nodeA);
     };
@@ -158,19 +159,34 @@ TANK.registerComponent("CampaignMap")
       var islandB = this.islands[i];
       connectIslands(islandA, islandB);
     }
+
+    this.mapGenerated = true;
   };
 
-  this.generateMap();
+  if (!this.mapGenerated)
+    this.generateMap();
 
+  // Handle clicking on a system
   this.listenTo(TANK.main, 'mousedown', function(e)
   {
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
+      if (system.owned)
+        continue;
+
+      var hasAdjacentOwned = false;
+      for (var j = 0; j < system.edges.length; ++j)
+        if (system.edges[j].owned)
+          hasAdjacentOwned = true;
+
+      if (!hasAdjacentOwned)
+        continue;
+
       var dist = TANK.Math2D.pointDistancePoint(system.pos, TANK.main.Game.mousePosWorld);
       if (dist < system.radius)
       {
-        TANK.main.Game.goToLevel(system.level);
+        TANK.main.Game.goToSystemBattle(system);
       }
     }
   });
@@ -178,9 +194,10 @@ TANK.registerComponent("CampaignMap")
   this.draw = function(ctx, camera)
   {
     ctx.save();
+    ctx.translate(-camera.x, -camera.y);
 
     // Draw edges
-    ctx.strokeStyle = '#fff';
+    var drawnEdges = [];
     ctx.lineWidth = 3;
     for (var i = 0; i < this.systems.length; ++i)
     {
@@ -188,24 +205,32 @@ TANK.registerComponent("CampaignMap")
       for (var j = 0; j < system.edges.length; ++j)
       {
         var systemB = system.edges[j];
+        if (drawnEdges.indexOf(systemB) >= 0)
+          continue;
+
+        if (systemB.owned || system.owned)
+          ctx.strokeStyle = '#7c7';
+        else
+          ctx.strokeStyle = '#c77';
+
         ctx.beginPath();
         ctx.moveTo(system.pos[0], system.pos[1]);
         ctx.lineTo(systemB.pos[0], systemB.pos[1]);
         ctx.stroke();
         ctx.closePath();
       }
+      drawnEdges.push(system);
     }
 
     // Draw systems
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
-      ctx.fillStyle = system.bad ? '#f55' : '#fff';
+      ctx.fillStyle = system.owned ? '#5f5' : '#f55';
       ctx.beginPath();
       ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
       ctx.fill();
       ctx.closePath();
-      ctx.stroke();
     }
 
     ctx.restore();
