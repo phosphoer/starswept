@@ -1036,7 +1036,7 @@ TANK.registerComponent("CampaignMap")
   this.systems = [];
   this.islands = [];
   this.barCommands = [];
-  this.isPlayerTurn = false;
+  this.isPlayerTurn = true;
 })
 
 .initialize(function()
@@ -1103,6 +1103,7 @@ TANK.registerComponent("CampaignMap")
     {
       this.systems.push(
       {
+        index: i,
         level: Levels[0],
         pos:
         [
@@ -1239,8 +1240,66 @@ TANK.registerComponent("CampaignMap")
       var islandB = this.islands[i];
       connectIslands(islandA, islandB);
     }
+  };
 
-    this.mapGenerated = true;
+  //
+  // Save the current game
+  //
+  this.save = function(slot)
+  {
+    var save = {};
+    save.systems = [];
+    save.isPlayerTurn = this.isPlayerTurn;
+
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      var system = this.systems[i];
+      var systemSave = {};
+      systemSave.index = system.index;
+      systemSave.pos = system.pos;
+      systemSave.radius = system.radius;
+      systemSave.owned = system.owned;
+      systemSave.edges = [];
+      system.edges.forEach(function(s)
+      {
+        systemSave.edges.push(s.index);
+      });
+      save.systems.push(systemSave);
+    }
+
+    localStorage['save-' + slot] = JSON.stringify(save);
+  };
+
+  //
+  // Load the current game
+  //
+  this.load = function(slot)
+  {
+    var save = JSON.parse(localStorage['save-' + slot]);
+    this.isPlayerTurn = save.isPlayerTurn;
+
+    this.systems = [];
+    for (var i = 0; i < save.systems.length; ++i)
+    {
+      var systemSave = save.systems[i];
+      var system = {};
+      system.index = systemSave.index;
+      system.pos = systemSave.pos;
+      system.radius = systemSave.radius;
+      system.owned = systemSave.owned;
+      system.edges = [];
+      this.systems.push(system);
+    }
+
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      var systemSave = save.systems[i];
+      var system = this.systems[i];
+      systemSave.edges.forEach(function(systemIndex)
+      {
+        system.edges.push(that.systems[systemIndex]);
+      });
+    }
   };
 
   //
@@ -1349,6 +1408,8 @@ TANK.registerComponent("CampaignMap")
     TANK.main.Renderer2D.camera.x = 0;
     TANK.main.Renderer2D.camera.y = 0;
 
+    this.isPlayerTurn = !this.isPlayerTurn;
+
     if (mode === 'attack')
     {
       TANK.main.Game.goToSystemBattle(system);
@@ -1448,24 +1509,28 @@ TANK.registerComponent("CampaignMap")
   };
 
   //
-  // Generate the map
+  // Generate the map or load it
   //
-  if (!this.mapGenerated)
+  if (!this.inGame)
     this.generateMap();
+  else
+    this.load('temp');
 
   //
-  // Toggle the turn
+  // Run AI turn if his turn
   //
-  this.isPlayerTurn = !this.isPlayerTurn;
   if (!this.isPlayerTurn)
   {
     this.startAITurn();
   }
+
+  this.inGame = true;
 })
 
 .uninitialize(function()
 {
-
+  // Always save a temp game before closing the campaign map
+  this.save('temp');
 });
 
 TANK.registerComponent("Clickable")
