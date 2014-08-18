@@ -109,7 +109,7 @@
     <script id='barTemplate' type='text/ractive'>
       <div class='bar'>
         {{#commands}}
-          <div class='bar-button' on-click='activate'>{{name}}</div>
+          <div class='bar-button {{active ? "on" : "off"}}' on-click='activate'>{{name}}</div>
         {{/commands}}
       </div>
     </script>

@@ -7,6 +7,8 @@ TANK.registerComponent("CampaignMap")
   this.minDist = 100;
   this.systems = [];
   this.islands = [];
+  this.barCommands = [];
+  this.isPlayerTurn = false;
 })
 
 .initialize(function()
@@ -14,6 +16,56 @@ TANK.registerComponent("CampaignMap")
   var that = this;
   TANK.main.Renderer2D.add(this);
 
+  // Build bottom command bar ractive
+  this.barCommands = [];
+  this.barUI = new Ractive(
+  {
+    el: 'barContainer',
+    template: '#barTemplate',
+    data: {commands: this.barCommands}
+  });
+
+  this.barCommands.push(
+  {
+    name: 'Fortify System',
+    active: false,
+    activate: function()
+    {
+      that.mode = 'fortify';
+    }
+  });
+  this.barCommands.push(
+  {
+    name: 'Attack System',
+    active: false,
+    activate: function()
+    {
+      that.mode = 'attack';
+    }
+  });
+  this.barCommands.push(
+  {
+    name: 'Move Flagship',
+    active: false,
+    activate: function()
+    {
+      that.mode = 'move';
+    }
+  });
+  this.barUI.on('activate', function(e)
+  {
+    that.barCommands.forEach(function(cmd)
+    {
+      cmd.active = false;
+    });
+    e.context.active = true;
+    e.context.activate();
+    that.barUI.update();
+  });
+
+  //
+  // Map generation logic
+  //
   this.generateMap = function()
   {
     this.systems = [];
@@ -163,35 +215,153 @@ TANK.registerComponent("CampaignMap")
     this.mapGenerated = true;
   };
 
-  if (!this.mapGenerated)
-    this.generateMap();
-
-  // Handle clicking on a system
-  this.listenTo(TANK.main, 'mousedown', function(e)
+  //
+  // Turn taking methods
+  //
+  this.startAttack = function(system)
   {
+    // Check that the system isn't owned by the attacker
+    if (system.owned === this.isPlayerTurn)
+    {
+      return;
+    }
+
+    // Check that the system has an adjacent system owned by attacker
+    var hasAdjacentOwned = false;
+    for (var j = 0; j < system.edges.length; ++j)
+      if (system.edges[j].owned === this.isPlayerTurn)
+        hasAdjacentOwned = true;
+
+    if (hasAdjacentOwned)
+    {
+      system.isBeingAttacked = true;
+      TANK.main.dispatchTimed(2, 'completeTurn', 'attack', system);
+    }
+  };
+
+  this.startFortify = function(system)
+  {
+    console.log('fortified ', system);
+  };
+
+  this.startMove = function(system)
+  {
+    console.log('moved to ', system);
+  };
+
+  //
+  // AI Turn Logic
+  //
+  this.startAITurn = function()
+  {
+    console.log('AI Turn...');
+
+    var modes = ['attack', 'fortify', 'move'];
+    var choice = Math.floor(Math.random() * 3);
+    var mode = modes[choice];
+
+    TANK.main.dispatchTimed(2, 'takeAITurn', mode);
+  };
+
+  this.aiTurnAttack = function()
+  {
+    console.log('AI attacked');
+
+    // Find a player owned node with an adjacent enemy node
+    var attackSystem = null;
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
       if (system.owned)
         continue;
 
-      var hasAdjacentOwned = false;
-      for (var j = 0; j < system.edges.length; ++j)
-        if (system.edges[j].owned)
-          hasAdjacentOwned = true;
+      system.edges.forEach(function(s)
+      {
+        if (s.owned)
+          attackSystem = s;
+      });
 
-      if (!hasAdjacentOwned)
-        continue;
+      if (attackSystem)
+        break;
+    }
 
+    if (attackSystem)
+    {
+      this.startAttack(attackSystem);
+    }
+    else
+    {
+      console.log('Couldn\'t find a system to attack');
+    }
+  };
+
+  this.aiTurnFortify = function()
+  {
+    console.log('AI fortified');
+  };
+
+  this.aiTurnMove = function()
+  {
+    console.log('AI moved');
+  };
+
+  this.listenTo(TANK.main, 'takeAITurn', function(mode)
+  {
+    if (mode === 'attack')
+      this.aiTurnAttack();
+    else if (mode === 'fortify')
+      this.aiTurnFortify();
+    else if (mode === 'move')
+      this.aiTurnMove();
+  });
+
+  this.listenTo(TANK.main, 'completeTurn', function(mode, system)
+  {
+    TANK.main.Renderer2D.camera.z = 1;
+    TANK.main.Renderer2D.camera.x = 0;
+    TANK.main.Renderer2D.camera.y = 0;
+
+    if (mode === 'attack')
+    {
+      TANK.main.Game.goToSystemBattle(system);
+      system.isBeingAttacked = false;
+    }
+    else if (mode === 'fortify')
+    {
+    }
+    else if (mode === 'move')
+    {
+    }
+  });
+
+  //
+  // Handle clicking on a system
+  //
+  this.listenTo(TANK.main, 'mousedown', function(e)
+  {
+    if (!this.isPlayerTurn)
+      return;
+
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      var system = this.systems[i];
       var dist = TANK.Math2D.pointDistancePoint(system.pos, TANK.main.Game.mousePosWorld);
       if (dist < system.radius)
       {
-        TANK.main.Game.goToSystemBattle(system);
+        if (this.mode === 'attack')
+          this.startAttack(system);
+        else if (this.mode === 'fortify')
+          this.startFortify(system);
+        else if (this.mode === 'move')
+          this.startMove(system);
       }
     }
   });
 
-  this.draw = function(ctx, camera)
+  //
+  // Render
+  //
+  this.draw = function(ctx, camera, dt)
   {
     ctx.save();
     ctx.translate(-camera.x, -camera.y);
@@ -226,6 +396,19 @@ TANK.registerComponent("CampaignMap")
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
+
+      if (system.isBeingAttacked)
+      {
+        ctx.fillStyle = '#b22';
+        ctx.beginPath();
+        ctx.arc(system.pos[0], system.pos[1], system.radius * 2, Math.PI * 2, false);
+        ctx.fill();
+        ctx.closePath();
+        camera.z *= 0.99;
+        camera.x = camera.x + (system.pos[0] - camera.x) * dt;
+        camera.y = camera.y + (system.pos[1] - camera.y) * dt;
+      }
+
       ctx.fillStyle = system.owned ? '#5f5' : '#f55';
       ctx.beginPath();
       ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
@@ -235,4 +418,24 @@ TANK.registerComponent("CampaignMap")
 
     ctx.restore();
   };
+
+  //
+  // Generate the map
+  //
+  if (!this.mapGenerated)
+    this.generateMap();
+
+  //
+  // Toggle the turn
+  //
+  this.isPlayerTurn = !this.isPlayerTurn;
+  if (!this.isPlayerTurn)
+  {
+    this.startAITurn();
+  }
+})
+
+.uninitialize(function()
+{
+
 });

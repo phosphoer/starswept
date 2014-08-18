@@ -11,6 +11,7 @@ TANK.registerComponent('Game')
   // Menu options
   this.menuOptions = [];
   this.levelOptions = [];
+  this.menuObjects = [];
 
   // Command options
   this.barCommands = [];
@@ -76,7 +77,6 @@ TANK.registerComponent('Game')
   {
     if (this.campaignObject)
       TANK.main.removeChild(this.campaignObject);
-    TANK.main.dispatch('systemBattleEnd');
 
     var save = localStorage['save'];
 
@@ -89,6 +89,11 @@ TANK.registerComponent('Game')
       {
         that.menuUI.teardown();
         that.goToCampaignMap();
+        that.menuObjects.forEach(function(obj)
+        {
+          TANK.main.removeChild(obj);
+        });
+        that.menuObjects = [];
       }
     });
     this.menuOptions.push(
@@ -127,12 +132,14 @@ TANK.registerComponent('Game')
     planet.Pos2D.x = 0;
     planet.Pos2D.y = -400;
     TANK.main.addChild(planet);
+    this.menuObjects.push(planet);
 
     var moon = TANK.createEntity('Planet');
     moon.Pos2D.x = -400;
     moon.Pos2D.y = 400;
     moon.Planet.radius = 48;
     TANK.main.addChild(moon);
+    this.menuObjects.push(moon);
 
     var ship = TANK.createEntity('Ship');
     ship.Pos2D.x = 300;
@@ -140,6 +147,7 @@ TANK.registerComponent('Game')
     ship.Ship.shipData = new Ships.bomber();
     ship.Ship.faction = null;
     TANK.main.addChild(ship);
+    this.menuObjects.push(ship);
   };
 
   //
@@ -160,6 +168,7 @@ TANK.registerComponent('Game')
     {
       that.popupUI.teardown();
       that.popupUI = null;
+      TANK.main.dispatch('systemBattleEnd');
       that.goToCampaignMap();
     });
   };
@@ -182,6 +191,7 @@ TANK.registerComponent('Game')
     {
       that.popupUI.teardown();
       that.popupUI = null;
+      TANK.main.dispatch('systemBattleEnd');
       that.goToCampaignMap();
     });
   };
@@ -241,7 +251,6 @@ TANK.registerComponent('Game')
   {
     // Send out a message to all existing level objects to be destroyed
     TANK.main.removeChild(this.campaignObject);
-    TANK.main.dispatch('systemBattleEnd');
 
     // Set current level marker and set a pending load
     this.currentSystem = system;
@@ -255,7 +264,6 @@ TANK.registerComponent('Game')
   {
     TANK.main.Renderer2D.camera.x = 0;
     TANK.main.Renderer2D.camera.y = 0;
-    TANK.main.dispatch('systemBattleEnd');
 
     if (!this.campaignObject)
       this.campaignObject = TANK.createEntity('CampaignMap');
