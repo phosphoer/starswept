@@ -84,7 +84,8 @@ TANK.registerComponent("CampaignMap")
         ],
         radius: 20,
         edges: [],
-        owned: false
+        owned: false,
+        fortifyLevel: 0
       });
 
       // Ensure systems are far apart
@@ -231,6 +232,7 @@ TANK.registerComponent("CampaignMap")
       systemSave.pos = system.pos;
       systemSave.radius = system.radius;
       systemSave.owned = system.owned;
+      systemSave.fortifyLevel = system.fortifyLevel
       systemSave.edges = [];
       system.edges.forEach(function(s)
       {
@@ -259,6 +261,7 @@ TANK.registerComponent("CampaignMap")
       system.pos = systemSave.pos;
       system.radius = systemSave.radius;
       system.owned = systemSave.owned;
+      system.fortifyLevel = systmsa.fortifyLevel;
       system.edges = [];
       this.systems.push(system);
     }
@@ -300,12 +303,20 @@ TANK.registerComponent("CampaignMap")
 
   this.startFortify = function(system)
   {
-    console.log('fortified ', system);
+    // Check that system is owned by turn taker
+    if (system.owned !== this.isPlayerTurn)
+    {
+      return;
+    }
+
+    system.isBeingFortified = true;
+    TANK.main.dispatchTimed(2, 'completeTurn', 'fortify', system);
   };
 
   this.startMove = function(system)
   {
     console.log('moved to ', system);
+    TANK.main.dispatchTimed(2, 'completeTurn', 'move', system);
   };
 
   //
@@ -356,12 +367,28 @@ TANK.registerComponent("CampaignMap")
 
   this.aiTurnFortify = function()
   {
-    console.log('AI fortified');
+    // Find AI owned systems
+    var aiOwnedSystems = [];
+    for (var i = 0; i < this.systems.length; ++i)
+      if (!this.systems[i].owned)
+        aiOwnedSystems.push(this.systems[i]);
+
+    // No systems to fortify
+    if (!aiOwnedSystems.length)
+    {
+      console.log('Couldn\'t find a system to fortify');
+      return;
+    }
+
+    // Pick a random system and fortify it
+    var system = aiOwnedSystems[Math.floor(Math.random() * aiOwnedSystems.length)];
+    this.startFortify(system);
   };
 
   this.aiTurnMove = function()
   {
-    console.log('AI moved');
+    var system = this.systems[Math.floor(Math.random() * this.systems.length)];
+    this.startMove(system);
   };
 
   this.listenTo(TANK.main, 'takeAITurn', function(mode)
@@ -380,6 +407,12 @@ TANK.registerComponent("CampaignMap")
     TANK.main.Renderer2D.camera.x = 0;
     TANK.main.Renderer2D.camera.y = 0;
 
+    this.barCommands.forEach(function(cmd)
+    {
+      cmd.active = false;
+    });
+    this.barUI.update();
+
     this.isPlayerTurn = !this.isPlayerTurn;
 
     if (mode === 'attack')
@@ -389,9 +422,15 @@ TANK.registerComponent("CampaignMap")
     }
     else if (mode === 'fortify')
     {
+      ++system.fortifyLevel;
+      system.isBeingFortified = false;
+      if (!this.isPlayerTurn)
+        this.startAITurn();
     }
     else if (mode === 'move')
     {
+      if (!this.isPlayerTurn)
+        this.startAITurn();
     }
   });
 
@@ -458,6 +497,7 @@ TANK.registerComponent("CampaignMap")
     {
       var system = this.systems[i];
 
+      // Draw attack state
       if (system.isBeingAttacked)
       {
         ctx.fillStyle = '#b22';
@@ -470,11 +510,29 @@ TANK.registerComponent("CampaignMap")
         camera.y = camera.y + (system.pos[1] - camera.y) * dt;
       }
 
-      ctx.fillStyle = system.owned ? '#5f5' : '#f55';
+      // Draw fortify state
+      if (system.isBeingFortified)
+      {
+        ctx.fillStyle = '#55f';
+        ctx.beginPath();
+        ctx.arc(system.pos[0], system.pos[1], system.radius * 2, Math.PI * 2, false);
+        ctx.fill();
+        ctx.closePath();
+      }
+
+      // Draw system
+      ctx.fillStyle = system.owned ? '#3c3' : '#f55';
       ctx.beginPath();
       ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
       ctx.fill();
       ctx.closePath();
+
+      // Draw fortify level
+      ctx.fillStyle = '#fff';
+      ctx.font = '18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(system.fortifyLevel, system.pos[0], system.pos[1]);
     }
 
     ctx.restore();
