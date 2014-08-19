@@ -262,6 +262,7 @@ TANK.registerComponent("CampaignMap")
       system.radius = systemSave.radius;
       system.owned = systemSave.owned;
       system.fortifyLevel = systmsa.fortifyLevel;
+      system.level = Levels[0];
       system.edges = [];
       this.systems.push(system);
     }
@@ -412,6 +413,7 @@ TANK.registerComponent("CampaignMap")
       cmd.active = false;
     });
     this.barUI.update();
+    this.mode = '';
 
     this.isPlayerTurn = !this.isPlayerTurn;
 
