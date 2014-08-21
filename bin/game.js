@@ -1402,8 +1402,9 @@ TANK.registerComponent("CampaignMap")
         var flagship = system.flagships[j];
         if (flagship)
         {
+          ctx.textAlign = 'left';
           ctx.fillStyle = player.color;
-          ctx.fillRect(system.pos[0] + (system.radius + 10) * (j + 1), system.pos[1] - system.radius, 20, 20);
+          ctx.fillText('Flagship', system.pos[0] + system.radius + 10, system.pos[1] + (system.radius) * j);
         }
       }
     }
