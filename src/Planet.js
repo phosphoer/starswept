@@ -9,11 +9,11 @@ TANK.registerComponent("Planet")
 {
   this.zdepth = 0;
   this.radius = 128;
-  this.atmosColor = 
+  this.atmosColor =
   [
-    Math.round(100 + Math.random() * 150), 
-    Math.round(100 + Math.random() * 150), 
-    Math.round(100 + Math.random() * 150), 
+    Math.round(100 + Math.random() * 150),
+    Math.round(100 + Math.random() * 150),
+    Math.round(100 + Math.random() * 150),
     0.8
   ];
   this.heights = [0, 0.3, 0.5, 0.6, 1];
@@ -172,7 +172,7 @@ TANK.registerComponent("Planet")
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
-  this.listenTo(TANK.main, "levelEnd", function()
+  this.listenTo(TANK.main, "systemBattleEnd", function()
   {
     TANK.main.removeChild(this._entity);
   });

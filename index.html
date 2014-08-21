@@ -63,8 +63,7 @@
         <div class='popup-info'>Ships lost - 0</div>
         <div class='popup-info'>Ships destroyed - 0</div>
         <div class='popup-footer'>
-          <div class='popup-button' on-click='mainMenu'>Main Menu</div>
-          <div class='popup-button' on-click='nextLevel'>Next Level</div>
+          <div class='popup-button' on-click='back'>Back</div>
         </div>
       </div>
     </script>
@@ -78,8 +77,7 @@
         <div class='popup-info'>Ships lost - 0</div>
         <div class='popup-info'>Ships destroyed - 0</div>
         <div class='popup-footer'>
-          <div class='popup-button' on-click='mainMenu'>Main Menu</div>
-          <div class='popup-button' on-click='retry'>Retry</div>
+          <div class='popup-button' on-click='back'>Back</div>
         </div>
       </div>
     </script>
@@ -111,7 +109,7 @@
     <script id='barTemplate' type='text/ractive'>
       <div class='bar'>
         {{#commands}}
-          <div class='bar-button' on-click='activate'>{{name}}</div>
+          <div class='bar-button {{active ? "on" : "off"}}' on-click='activate'>{{name}}</div>
         {{/commands}}
       </div>
     </script>

@@ -77,11 +77,12 @@ TANK.registerComponent("Weapons")
     e.Pos2D.rotation = t.rotation + gun.angle;
     e.Velocity.x = Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
     e.Velocity.y = Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
-    e.Life.life = gun.range / gun.projectileSpeed;
+    e.Life.life = gun.projectileLife || gun.range / gun.projectileSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
     e.Bullet.trailEffect = gun.trailEffect;
     e.Bullet.size = gun.projectileSize;
+    e.Bullet.accel = gun.projectileAccel;
     TANK.main.addChild(e);
 
     // Create effect

@@ -23,7 +23,7 @@ html, body
   text-align: center;
   font-size: 96px;
   color: #ddd;
-  margin-top: 100px;  
+  margin-top: 100px;
 }
 
 .menu-options
@@ -145,6 +145,11 @@ html, body
   background: #444;
   color: #ddd;
   text-align: center;
+}
+
+.bar-button.on
+{
+  background: #888;
 }
 
 .bar-button:hover

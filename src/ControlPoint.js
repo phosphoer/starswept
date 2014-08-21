@@ -1,18 +1,19 @@
-TANK.registerComponent("ControlPoint")
+TANK.registerComponent('ControlPoint')
 
-.includes(["Planet", "OrderTarget"])
+.includes(['Planet', 'OrderTarget'])
 
 .construct(function()
 {
   this.zdepth = 0;
   this.faction = null;
-  this.value = 10;
-  this.moneyTime = 5;
+  this.value = 5;
+  this.moneyTime = 10;
   this.moneyTimer = 0;
+  this.scanTimer = 0;
   this.pendingFaction = null;
   this.capturePercent = 0;
   this.captureDistance = 500;
-  this.passiveCapture = 0.05
+  this.passiveCapture = 0.05;
   this.queuedShips = [];
 })
 
@@ -60,9 +61,9 @@ TANK.registerComponent("ControlPoint")
         this.faction.addControlPoint(this);
 
       if (!this.faction)
-        console.log("Team " + oldFaction.team + " lost its control point");
+        console.log('Team ' + oldFaction.team + ' lost its control point');
       else
-        console.log("Team " + this.faction.team + " gained a control point");
+        console.log('Team ' + this.faction.team + ' gained a control point');
     }
 
     // If our capture percent reaches 0, lose the pending faction
@@ -93,7 +94,7 @@ TANK.registerComponent("ControlPoint")
     {
       // Draw strategic icon
       ctx.save();
-      ctx.fillStyle = this.faction ? this.faction.color : "#555";
+      ctx.fillStyle = this.faction ? this.faction.color : '#555';
       ctx.lineWidth = 2;
       ctx.translate(t.x - camera.x, t.y - camera.y);
 
@@ -107,13 +108,13 @@ TANK.registerComponent("ControlPoint")
     {
       // Draw queue
       ctx.save();
-      ctx.fillStyle = "#ddd";
-      ctx.font =  20 * camera.z + "px sans-serif";
+      ctx.fillStyle = '#ddd';
+      ctx.font =  20 * camera.z + 'px sans-serif';
       ctx.translate(t.x - camera.x, t.y - camera.y);
       for (var i = 0; i < this.queuedShips.length; ++i)
       {
         var timeRemaining = Math.round(this.queuedShips[i].time);
-        ctx.fillText(this.queuedShips[i].shipData.name + " - " + timeRemaining + " seconds", 400, -400 + i * 40);
+        ctx.fillText(this.queuedShips[i].shipData.name + ' - ' + timeRemaining + ' seconds', 400, -400 + i * 40);
       }
       ctx.restore();
     }
@@ -135,6 +136,24 @@ TANK.registerComponent("ControlPoint")
         this.faction.money += this.value;
     }
 
+    // Scan for nearby friendly ships that would prevent capturing
+    this.scanTimer -= dt;
+    if (this.scanTimer < 0 && this.faction)
+    {
+      this.scanTimer = 3;
+      this.friendliesNearby = false;
+      var ships = TANK.main.getChildrenWithComponent('Ship');
+      for (var i in ships)
+      {
+        var e = ships[i];
+        if (TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [t.x, t.y]) < this.captureDistance)
+        {
+          this.friendliesNearby = true;
+          break;
+        }
+      }
+    }
+
     // Process build queue
     if (this.queuedShips.length > 0)
     {
@@ -142,7 +161,7 @@ TANK.registerComponent("ControlPoint")
       item.time -= dt;
       if (item.time <= 0)
       {
-        var e = TANK.createEntity("AIShip");
+        var e = TANK.createEntity('AIShip');
         e.Ship.faction = this.faction;
         e.Ship.shipData = item.shipData;
         e.Pos2D.x = t.x - 400 + Math.random() * 800;

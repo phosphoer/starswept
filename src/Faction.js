@@ -4,18 +4,18 @@ TANK.registerComponent("Faction")
 {
   this.team = 0;
   this.color = "#666";
-  this.money = 50;
+  this.money = 10;
   this.controlPoints = [];
   this.shipsToBuy = [];
 })
 
 .initialize(function()
 {
-  this.listenTo(TANK.main, "levelEnd", function()
+  this.listenTo(TANK.main, "systemBattleEnd", function()
   {
     TANK.main.removeChild(this._entity);
   });
-  
+
   this.listenTo(this._entity, "buyship", function(ship, callback, data)
   {
     this.buyShip(ship, callback, data);
@@ -35,7 +35,7 @@ TANK.registerComponent("Faction")
       }
     }
 
-    if (chosenControlPoint) 
+    if (chosenControlPoint)
     {
       if (!chosenControlPoint.buyShip(type, callback, data))
       {

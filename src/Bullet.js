@@ -72,6 +72,9 @@ TANK.registerComponent("Bullet")
   {
     this.trailEmitter.Pos2D.x = t.x;
     this.trailEmitter.Pos2D.y = t.y;
+
+    this._entity.Velocity.x += Math.cos(t.rotation) * this.accel * dt;
+    this._entity.Velocity.y += Math.sin(t.rotation) * this.accel * dt;
   };
 
   this.draw = function(ctx, camera)

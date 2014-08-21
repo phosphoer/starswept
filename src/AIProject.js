@@ -77,7 +77,6 @@ function AIProject(aiFaction)
         }
       }
     }
-    aiFaction.say("Found " + aiFaction.idleShips.length + " idle ships...");
     aiFaction.idleShips = aiFaction.idleShips.filter(function(val) {return val !== null;});
 
     // Queue ships for construction to fill remaining places
@@ -87,10 +86,8 @@ function AIProject(aiFaction)
       if (!this.shipsRequired[i].assignedShip)
       {
         ++this.shipsQueued;
-        aiFaction.say("Queued ship for build...");
         aiFaction._entity.Faction.buyShip(this.shipsRequired[i].type, function(e, requiredShip)
         {
-          aiFaction.say("...Ship for target complete");
           requiredShip.assignedShip = e;
         }, this.shipsRequired[i]);
       }
