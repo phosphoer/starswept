@@ -1142,7 +1142,24 @@ TANK.registerComponent("CampaignMap")
 
   this.startMove = function(system)
   {
-    console.log('moved to ', system);
+    // Check that an adjacent system has a flagship
+    var flagshipSystem;
+    var flagshipIndex;
+    for (var i = 0; i < system.edges.length; ++i)
+    {
+      if (system.edges[i].flagships[this.currentTurn])
+      {
+        flagshipSystem = system.edges[i];
+        break;
+      }
+    }
+
+    if (flagshipSystem)
+    {
+      flagshipSystem.flagships[this.currentTurn] = false;
+      system.flagships[this.currentTurn] = true;
+    }
+
     TANK.main.dispatchTimed(2, 'completeTurn', 'move', system);
   };
 
@@ -1356,6 +1373,18 @@ TANK.registerComponent("CampaignMap")
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(system.fortifyLevel, system.pos[0], system.pos[1]);
+
+      // Draw flagship
+      for (var j = 0; j < TANK.main.Game.players.length; ++j)
+      {
+        var player = TANK.main.Game.players[j];
+        var flagship = system.flagships[j];
+        if (flagship)
+        {
+          ctx.fillStyle = player.color;
+          ctx.fillRect(system.pos[0] + (system.radius + 10) * (j + 1), system.pos[1] - system.radius, 20, 20);
+        }
+      }
     }
 
     ctx.restore();
@@ -2699,8 +2728,8 @@ TANK.registerComponent("MapGeneration")
         ],
         radius: 20,
         edges: [],
-        owned: false,
         owner: TANK.main.Game.players[1],
+        flagships: [],
         fortifyLevel: 0
       });
 
@@ -2768,6 +2797,10 @@ TANK.registerComponent("MapGeneration")
 
     // Make the first node owned
     this.systems[0].owner = TANK.main.Game.players[0];
+
+    // Init flagships
+    this.systems[0].flagships[0] = true;
+    this.systems[1].flagships[1] = true;
 
     // Helper to recursively explore a graph
     var exploreNode = function(node, islandNodes)

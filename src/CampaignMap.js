@@ -114,7 +114,24 @@ TANK.registerComponent("CampaignMap")
 
   this.startMove = function(system)
   {
-    console.log('moved to ', system);
+    // Check that an adjacent system has a flagship
+    var flagshipSystem;
+    var flagshipIndex;
+    for (var i = 0; i < system.edges.length; ++i)
+    {
+      if (system.edges[i].flagships[this.currentTurn])
+      {
+        flagshipSystem = system.edges[i];
+        break;
+      }
+    }
+
+    if (flagshipSystem)
+    {
+      flagshipSystem.flagships[this.currentTurn] = false;
+      system.flagships[this.currentTurn] = true;
+    }
+
     TANK.main.dispatchTimed(2, 'completeTurn', 'move', system);
   };
 
@@ -328,6 +345,18 @@ TANK.registerComponent("CampaignMap")
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(system.fortifyLevel, system.pos[0], system.pos[1]);
+
+      // Draw flagship
+      for (var j = 0; j < TANK.main.Game.players.length; ++j)
+      {
+        var player = TANK.main.Game.players[j];
+        var flagship = system.flagships[j];
+        if (flagship)
+        {
+          ctx.fillStyle = player.color;
+          ctx.fillRect(system.pos[0] + (system.radius + 10) * (j + 1), system.pos[1] - system.radius, 20, 20);
+        }
+      }
     }
 
     ctx.restore();

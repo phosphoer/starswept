@@ -32,8 +32,8 @@ TANK.registerComponent("MapGeneration")
         ],
         radius: 20,
         edges: [],
-        owned: false,
         owner: TANK.main.Game.players[1],
+        flagships: [],
         fortifyLevel: 0
       });
 
@@ -101,6 +101,10 @@ TANK.registerComponent("MapGeneration")
 
     // Make the first node owned
     this.systems[0].owner = TANK.main.Game.players[0];
+
+    // Init flagships
+    this.systems[0].flagships[0] = true;
+    this.systems[1].flagships[1] = true;
 
     // Helper to recursively explore a graph
     var exploreNode = function(node, islandNodes)
