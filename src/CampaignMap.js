@@ -203,7 +203,28 @@ TANK.registerComponent("CampaignMap")
 
   this.aiTurnMove = function()
   {
-    var system = this.systems[Math.floor(Math.random() * this.systems.length)];
+    // Find current flagship pos
+    var flagshipSystem;
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      if (this.systems[i].flagships[this.currentTurn])
+      {
+        flagshipSystem = this.systems[i];
+        break;
+      }
+    }
+
+    // Just try again if we have no flagship
+    if (!flagshipSystem)
+    {
+      this.startAITurn();
+      return;
+    }
+
+    // Pick an edge to move flagship to
+    var index = Math.floor(Math.random() * flagshipSystem.edges.length);
+    var system = flagshipSystem.edges[index];
+
     this.startMove(system);
   };
 
