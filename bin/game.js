@@ -1031,17 +1031,16 @@ TANK.registerComponent("CampaignMap")
 .construct(function()
 {
   this.zdepth = 0;
-  this.size = 400;
-  this.minDist = 100;
-  this.systems = [];
-  this.islands = [];
   this.barCommands = [];
-  this.isPlayerTurn = true;
+  this.currentPlayer = null;
+  this.currentTurn = 0;
+  this.turnsTaken = -1;
 })
 
 .initialize(function()
 {
   var that = this;
+  this.systems = TANK.main.MapGeneration.systems;
   TANK.main.Renderer2D.add(this);
 
   // Build bottom command bar ractive
@@ -1092,217 +1091,16 @@ TANK.registerComponent("CampaignMap")
   });
 
   //
-  // Map generation logic
+  // Go to next turn
   //
-  this.generateMap = function()
+  this.nextTurn = function()
   {
-    this.systems = [];
-
-    // Generate systems
-    for (var i = 0; i < 10; ++i)
+    ++this.turnsTaken;
+    this.currentTurn = this.turnsTaken % TANK.main.Game.players.length;
+    this.currentPlayer = TANK.main.Game.players[this.currentTurn];
+    if (!this.currentPlayer.player)
     {
-      this.systems.push(
-      {
-        index: i,
-        level: Levels[0],
-        pos:
-        [
-          -this.size + Math.random() * this.size * 2,
-          -this.size + Math.random() * this.size * 2
-        ],
-        radius: 20,
-        edges: [],
-        owned: false,
-        fortifyLevel: 0
-      });
-
-      // Ensure systems are far apart
-      var system = this.systems[i];
-      var angle = Math.random() * Math.PI * 2;
-      for (;;)
-      {
-        var minDist = this.systems.reduce(function(prev, cur)
-        {
-          if (cur === system)
-            return prev;
-          return Math.min(prev, TANK.Math2D.pointDistancePoint(system.pos, cur.pos));
-        }, Infinity);
-
-        if (minDist > this.minDist)
-          break;
-
-        system.pos[0] += Math.cos(angle) * 10;
-        system.pos[1] += Math.sin(angle) * 10;
-      }
-    }
-
-    // Make edges
-    this.systems.forEach(function(system)
-    {
-      // Get systems in distance order
-      var systemsOrdered = this.systems.slice();
-      systemsOrdered.sort(function(a, b)
-      {
-        var distA = TANK.Math2D.pointDistancePoint(system.pos, a.pos);
-        var distB = TANK.Math2D.pointDistancePoint(system.pos, b.pos);
-        return distA > distB;
-      });
-      systemsOrdered.splice(0, 1);
-
-      // Connect to closest system
-      var closest = systemsOrdered[0];
-      system.edges.push(closest);
-      closest.edges.push(system);
-      systemsOrdered.splice(0, 1);
-
-      // Find the next closest system that is not inline with the previous
-      var closestVec = TANK.Math2D.normalize(TANK.Math2D.subtract(closest.pos, system.pos));
-      var nextClosest = null;
-      for (var i = 0; i < systemsOrdered.length; ++i)
-      {
-        var s= systemsOrdered[i];
-        var systemVec = TANK.Math2D.normalize(TANK.Math2D.subtract(s.pos, system.pos));
-        var dot = TANK.Math2D.dot(closestVec, systemVec);
-        if (Math.abs(1 - dot) > 0.1)
-        {
-          nextClosest = s;
-          break;
-        }
-      };
-
-      if (nextClosest)
-      {
-        system.edges.push(nextClosest);
-        nextClosest.edges.push(system);
-      }
-
-    }.bind(this));
-
-    // Make the first node owned
-    this.systems[0].owned = true;
-
-    // Helper to recursively explore a graph
-    var exploreNode = function(node, islandNodes)
-    {
-      if (node.visited)
-        return false;
-
-      // Visit the node
-      node.visited = true;
-      islandNodes.push(node);
-
-      // Explore each adjacent node
-      for (var i = 0; i < node.edges.length; ++i)
-        exploreNode(node.edges[i], islandNodes);
-
-      return true;
-    };
-
-    // Helper to connect two islands
-    var connectIslands = function(a, b)
-    {
-      // Find the two closest nodes between the islands
-      var minDist = Infinity;
-      var nodeA = null;
-      var nodeB = null;
-
-      for (var i = 0; i < a.length; ++i)
-      {
-        for (var j = 0; j < b.length; ++j)
-        {
-          var dist = TANK.Math2D.pointDistancePoint(a[i].pos, b[j].pos);
-          if (dist < minDist)
-          {
-            minDist = dist;
-            nodeA = a[i];
-            nodeB = b[j];
-          }
-        }
-      }
-
-      nodeA.edges.push(nodeB);
-      nodeB.edges.push(nodeA);
-    };
-
-    // Explore every node to find islands
-    this.islands = [];
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var node = this.systems[i];
-      var island = [];
-      if (exploreNode(node, island))
-        this.islands.push(island);
-    }
-
-    // Connect each island to the next
-    for (var i = 1; i < this.islands.length; ++i)
-    {
-      var islandA = this.islands[i - 1];
-      var islandB = this.islands[i];
-      connectIslands(islandA, islandB);
-    }
-  };
-
-  //
-  // Save the current game
-  //
-  this.save = function(slot)
-  {
-    var save = {};
-    save.systems = [];
-    save.isPlayerTurn = this.isPlayerTurn;
-
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      var systemSave = {};
-      systemSave.index = system.index;
-      systemSave.pos = system.pos;
-      systemSave.radius = system.radius;
-      systemSave.owned = system.owned;
-      systemSave.fortifyLevel = system.fortifyLevel
-      systemSave.edges = [];
-      system.edges.forEach(function(s)
-      {
-        systemSave.edges.push(s.index);
-      });
-      save.systems.push(systemSave);
-    }
-
-    localStorage['save-' + slot] = JSON.stringify(save);
-  };
-
-  //
-  // Load the current game
-  //
-  this.load = function(slot)
-  {
-    var save = JSON.parse(localStorage['save-' + slot]);
-    this.isPlayerTurn = save.isPlayerTurn;
-
-    this.systems = [];
-    for (var i = 0; i < save.systems.length; ++i)
-    {
-      var systemSave = save.systems[i];
-      var system = {};
-      system.index = systemSave.index;
-      system.pos = systemSave.pos;
-      system.radius = systemSave.radius;
-      system.owned = systemSave.owned;
-      system.fortifyLevel = systmsa.fortifyLevel;
-      system.level = Levels[0];
-      system.edges = [];
-      this.systems.push(system);
-    }
-
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var systemSave = save.systems[i];
-      var system = this.systems[i];
-      systemSave.edges.forEach(function(systemIndex)
-      {
-        system.edges.push(that.systems[systemIndex]);
-      });
+      this.startAITurn();
     }
   };
 
@@ -1312,7 +1110,7 @@ TANK.registerComponent("CampaignMap")
   this.startAttack = function(system)
   {
     // Check that the system isn't owned by the attacker
-    if (system.owned === this.isPlayerTurn)
+    if (system.owner === this.currentPlayer)
     {
       return;
     }
@@ -1320,7 +1118,7 @@ TANK.registerComponent("CampaignMap")
     // Check that the system has an adjacent system owned by attacker
     var hasAdjacentOwned = false;
     for (var j = 0; j < system.edges.length; ++j)
-      if (system.edges[j].owned === this.isPlayerTurn)
+      if (system.edges[j].owner === this.currentPlayer)
         hasAdjacentOwned = true;
 
     if (hasAdjacentOwned)
@@ -1333,7 +1131,7 @@ TANK.registerComponent("CampaignMap")
   this.startFortify = function(system)
   {
     // Check that system is owned by turn taker
-    if (system.owned !== this.isPlayerTurn)
+    if (system.owner !== this.currentPlayer)
     {
       return;
     }
@@ -1371,12 +1169,12 @@ TANK.registerComponent("CampaignMap")
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
-      if (system.owned)
+      if (system.owner !== this.currentPlayer)
         continue;
 
       system.edges.forEach(function(s)
       {
-        if (s.owned)
+        if (s.owner !== that.currentPlayer)
           attackSystem = s;
       });
 
@@ -1399,7 +1197,7 @@ TANK.registerComponent("CampaignMap")
     // Find AI owned systems
     var aiOwnedSystems = [];
     for (var i = 0; i < this.systems.length; ++i)
-      if (!this.systems[i].owned)
+      if (this.systems[i].owner === this.currentPlayer)
         aiOwnedSystems.push(this.systems[i]);
 
     // No systems to fortify
@@ -1443,24 +1241,20 @@ TANK.registerComponent("CampaignMap")
     this.barUI.update();
     this.mode = '';
 
-    this.isPlayerTurn = !this.isPlayerTurn;
-
     if (mode === 'attack')
     {
-      TANK.main.Game.goToSystemBattle(system);
+      TANK.main.Game.goToSystemBattle(system, system.owner, this.currentPlayer);
       system.isBeingAttacked = false;
     }
     else if (mode === 'fortify')
     {
       ++system.fortifyLevel;
       system.isBeingFortified = false;
-      if (!this.isPlayerTurn)
-        this.startAITurn();
+      this.nextTurn();
     }
     else if (mode === 'move')
     {
-      if (!this.isPlayerTurn)
-        this.startAITurn();
+      this.nextTurn();
     }
   });
 
@@ -1469,7 +1263,7 @@ TANK.registerComponent("CampaignMap")
   //
   this.listenTo(TANK.main, 'mousedown', function(e)
   {
-    if (!this.isPlayerTurn)
+    if (!this.currentPlayer.player)
       return;
 
     for (var i = 0; i < this.systems.length; ++i)
@@ -1502,16 +1296,14 @@ TANK.registerComponent("CampaignMap")
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
+      var owner = system.owner;
       for (var j = 0; j < system.edges.length; ++j)
       {
         var systemB = system.edges[j];
         if (drawnEdges.indexOf(systemB) >= 0)
           continue;
 
-        if (systemB.owned || system.owned)
-          ctx.strokeStyle = '#7c7';
-        else
-          ctx.strokeStyle = '#c77';
+        ctx.strokeStyle = owner.color;
 
         ctx.beginPath();
         ctx.moveTo(system.pos[0], system.pos[1]);
@@ -1526,6 +1318,7 @@ TANK.registerComponent("CampaignMap")
     for (var i = 0; i < this.systems.length; ++i)
     {
       var system = this.systems[i];
+      var owner = system.owner;
 
       // Draw attack state
       if (system.isBeingAttacked)
@@ -1551,7 +1344,7 @@ TANK.registerComponent("CampaignMap")
       }
 
       // Draw system
-      ctx.fillStyle = system.owned ? '#3c3' : '#f55';
+      ctx.fillStyle = owner.color;
       ctx.beginPath();
       ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
       ctx.fill();
@@ -1569,28 +1362,13 @@ TANK.registerComponent("CampaignMap")
   };
 
   //
-  // Generate the map or load it
+  // Go to next turn
   //
-  if (!this.inGame)
-    this.generateMap();
-  else
-    this.load('temp');
-
-  //
-  // Run AI turn if his turn
-  //
-  if (!this.isPlayerTurn)
-  {
-    this.startAITurn();
-  }
-
-  this.inGame = true;
+  this.nextTurn();
 })
 
 .uninitialize(function()
 {
-  // Always save a temp game before closing the campaign map
-  this.save('temp');
 });
 
 TANK.registerComponent("Clickable")
@@ -1952,13 +1730,30 @@ TANK.registerComponent("Faction")
 });
 TANK.registerComponent('Game')
 
+.includes(['MapGeneration'])
+
 .construct(function()
 {
   // Game scale factor
   this.scaleFactor = 3;
 
   // Current existing factions
-  this.factions = [];
+  this.players =
+  [
+    {
+      player: true,
+      color: '#3c3',
+      battleAI: 'Faction',
+      team: 0,
+    },
+    {
+      player: false,
+      color: '#d55',
+      battleAI: 'AIFaction2',
+      team: 1
+    }
+  ];
+  this.player = this.players[0];
 
   // Menu options
   this.menuOptions = [];
@@ -1999,13 +1794,36 @@ TANK.registerComponent('Game')
       shipType: i,
       activate: function()
       {
-        that.factions[0].buyShip(this.shipType);
+        that.player.faction.buyShip(this.shipType);
       }
     });
   }
 
   // Money counter
   this.topBarItems.push({name: ''});
+
+  //
+  // Save the current game
+  //
+  this.save = function(slot)
+  {
+    var save = {};
+    save.currentTurn = this.campaignObject.CampaignMap.currentTurn;
+    save.turnsTaken = this.campaignObject.CampaignMap.turnsTaken;
+    save.systems = TANK.main.MapGeneration.save();
+    localStorage['save-' + slot] = JSON.stringify(save);
+  };
+
+  //
+  // Load the current game
+  //
+  this.load = function(slot)
+  {
+    var save = JSON.parse(localStorage['save-' + slot]);
+    this.currentTurn = save.currentTurn;
+    this.turnsTaken = save.turnsTaken;
+    TANK.main.MapGeneration.load(save.systems);
+  };
 
   //
   // Update the mouse world position
@@ -2040,6 +1858,7 @@ TANK.registerComponent('Game')
       activate: function()
       {
         that.menuUI.teardown();
+        TANK.main.MapGeneration.generateMap();
         that.goToCampaignMap();
         that.menuObjects.forEach(function(obj)
         {
@@ -2153,15 +1972,26 @@ TANK.registerComponent('Game')
   //
   this.loadLevelNow = function(system)
   {
-    var level = system.level;
+    var players = [this.currentSystemDefender, this.currentSystemAttacker];
+
+    // Generate a level
+    var level = {};
+    level.lightDir = 1.5;
+    level.lightDiffuse = [0.8, 1, 1];
+    level.controlPoints = [];
+    level.ships = [];
+    level.controlPoints.push({x: 0, y: 0, faction: 0});
+    level.controlPoints.push({x: 4000, y: 4000, faction: 1});
+    level.ships.push({player: players[0].player, faction: 0, ship: "frigate", x: 0, y: 0});
+    level.ships.push({player: players[1].player, faction: 1, ship: "frigate", x: 4000, y: 4000});
 
     // Create faction entities
-    for (var i = 0; i < level.factions.length; ++i)
+    for (var i = 0; i < players.length; ++i)
     {
-      var e = TANK.createEntity(level.factions[i].ai);
-      e.Faction.team = level.factions[i].team;
-      e.Faction.color = level.factions[i].color;
-      this.factions.push(e.Faction);
+      var e = TANK.createEntity(players[i].battleAI);
+      e.Faction.team = players[i].team;
+      e.Faction.color = players[i].color;
+      players[i].faction = e.Faction;
       TANK.main.addChild(e);
     }
 
@@ -2173,7 +2003,7 @@ TANK.registerComponent('Game')
       e.Pos2D.x = cp.x;
       e.Pos2D.y = cp.y;
       if (cp.faction >= 0)
-        this.factions[cp.faction].addControlPoint(e.ControlPoint);
+        players[cp.faction].faction.addControlPoint(e.ControlPoint);
       TANK.main.addChild(e);
     }
 
@@ -2184,7 +2014,7 @@ TANK.registerComponent('Game')
       e.Pos2D.x = level.ships[i].x;
       e.Pos2D.y = level.ships[i].y;
       e.Ship.shipData = new Ships[level.ships[i].ship];
-      e.Ship.faction = this.factions[level.ships[i].faction];
+      e.Ship.faction = players[level.ships[i].faction].faction;
       TANK.main.addChild(e);
     }
 
@@ -2199,13 +2029,15 @@ TANK.registerComponent('Game')
   //
   // Begin a real time system battle
   //
-  this.goToSystemBattle = function(system)
+  this.goToSystemBattle = function(system, defender, attacker)
   {
     // Send out a message to all existing level objects to be destroyed
     TANK.main.removeChild(this.campaignObject);
 
     // Set current level marker and set a pending load
     this.currentSystem = system;
+    this.currentSystemDefender = defender;
+    this.currentSystemAttacker = attacker;
     this.pendingLoad = true;
   };
 
@@ -2266,8 +2098,6 @@ TANK.registerComponent('Game')
   //
   this.listenTo(TANK.main, 'systemBattleEnd', function()
   {
-    this.factions = [];
-
     // Remove command bars
     if (this.topBarUI)
       this.topBarUI.teardown();
@@ -2324,40 +2154,42 @@ TANK.registerComponent('Game')
   //
   this.listenTo(TANK.main, 'scanForEndCondition', function()
   {
-    var win = true;
-    var lose = true;
+    var attackerWin = true;
+    var defenderWin = true;
 
-    // Check if the player owns any or all control points
+    // Check if the attacker owns any or all control points
     var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
     for (var i in controlPoints)
     {
-      if (controlPoints[i].ControlPoint.faction === this.factions[0])
-        lose = false;
+      if (controlPoints[i].ControlPoint.faction === this.currentSystemDefender.faction)
+        attackerWin = false;
       else
-        win = false;
+        defenderWin = false;
     }
 
     // Check if there are any friendly or enemy ships left
     var ships = TANK.main.getChildrenWithComponent('Ship');
     for (var i in ships)
     {
-      if (ships[i].Ship.faction === this.factions[0])
-        lose = false;
+      if (ships[i].Ship.faction === this.currentSystemDefender.faction)
+        attackerWin = false;
       else
-        win = false;
+        defenderWin = false;
     }
 
-    if (win)
-    {
-      this.currentSystem.owned = true;
-      this.showWinScreen();
-      return;
-    }
+    var winner;
+    if (attackerWin)
+      winner = this.currentSystemAttacker;
+    if (defenderWin)
+      winner = this.currentSystemDefender;
 
-    if (lose)
+    if (winner)
     {
-      this.currentSystem.owned = false;
-      this.showLoseScreen();
+      this.currentSystem.owner = winner;
+      if (winner.player)
+        this.showWinScreen();
+      else
+        this.showLoseScreen();
       return;
     }
 
@@ -2420,8 +2252,8 @@ TANK.registerComponent('Game')
     }
 
     // Update faction money count
-    if (this.factions.length > 0 && this.topBarUI)
-      this.topBarUI.set('items[0].name', 'Funds: ' + this.factions[0].money);
+    if (this.players[0] && this.players[0].faction && this.topBarUI)
+      this.topBarUI.set('items[0].name', 'Funds: ' + this.players[0].faction.money);
   };
 });
 
@@ -2553,18 +2385,13 @@ Guns.mediumRocket = function()
 
 var Levels = [];
 
-Levels[0] = 
+Levels[0] =
 {
   name: "Sample Level",
   difficulty: 1,
   lightDir: 1.5,
   lightDiffuse: [0.8, 1, 1],
-  factions: 
-  [
-    {ai: "Faction", team: 0, color: "#5d5"},
-    {ai: "AIFaction2", team: 1, color: "#d55"}
-  ],
-  controlPoints: 
+  controlPoints:
   [
     {x: 0, y: 0, faction: 0},
     {x: 4000, y: 4000, faction: 1}
@@ -2576,18 +2403,13 @@ Levels[0] =
   ]
 };
 
-Levels[1] = 
+Levels[1] =
 {
   name: "Triangle",
   difficulty: 2,
   lightDir: 0.5,
   lightDiffuse: [1, 1, 0.9],
-  factions: 
-  [
-    {ai: "Faction", team: 0, color: "#5d5"},
-    {ai: "AIFaction2", team: 1, color: "#d55"}
-  ],
-  controlPoints: 
+  controlPoints:
   [
     {x: 0, y: 0, faction: 0},
     {x: 5000, y: 5000, faction: 1},
@@ -2841,6 +2663,224 @@ TANK.registerComponent("Lights")
     }
 
     ctx.restore();
+  };
+});
+TANK.registerComponent("MapGeneration")
+
+.construct(function()
+{
+  this.size = 400;
+  this.minDist = 100;
+  this.systems = [];
+  this.islands = [];
+})
+
+.initialize(function()
+{
+  var that = this;
+
+  //
+  // Map generation logic
+  //
+  this.generateMap = function()
+  {
+    this.systems = [];
+
+    // Generate systems
+    for (var i = 0; i < 10; ++i)
+    {
+      this.systems.push(
+      {
+        index: i,
+        pos:
+        [
+          -this.size + Math.random() * this.size * 2,
+          -this.size + Math.random() * this.size * 2
+        ],
+        radius: 20,
+        edges: [],
+        owned: false,
+        owner: TANK.main.Game.players[1],
+        fortifyLevel: 0
+      });
+
+      // Ensure systems are far apart
+      var system = this.systems[i];
+      var angle = Math.random() * Math.PI * 2;
+      for (;;)
+      {
+        var minDist = this.systems.reduce(function(prev, cur)
+        {
+          if (cur === system)
+            return prev;
+          return Math.min(prev, TANK.Math2D.pointDistancePoint(system.pos, cur.pos));
+        }, Infinity);
+
+        if (minDist > this.minDist)
+          break;
+
+        system.pos[0] += Math.cos(angle) * 10;
+        system.pos[1] += Math.sin(angle) * 10;
+      }
+    }
+
+    // Make edges
+    this.systems.forEach(function(system)
+    {
+      // Get systems in distance order
+      var systemsOrdered = this.systems.slice();
+      systemsOrdered.sort(function(a, b)
+      {
+        var distA = TANK.Math2D.pointDistancePoint(system.pos, a.pos);
+        var distB = TANK.Math2D.pointDistancePoint(system.pos, b.pos);
+        return distA > distB;
+      });
+      systemsOrdered.splice(0, 1);
+
+      // Connect to closest system
+      var closest = systemsOrdered[0];
+      system.edges.push(closest);
+      closest.edges.push(system);
+      systemsOrdered.splice(0, 1);
+
+      // Find the next closest system that is not inline with the previous
+      var closestVec = TANK.Math2D.normalize(TANK.Math2D.subtract(closest.pos, system.pos));
+      var nextClosest = null;
+      for (var i = 0; i < systemsOrdered.length; ++i)
+      {
+        var s= systemsOrdered[i];
+        var systemVec = TANK.Math2D.normalize(TANK.Math2D.subtract(s.pos, system.pos));
+        var dot = TANK.Math2D.dot(closestVec, systemVec);
+        if (Math.abs(1 - dot) > 0.1)
+        {
+          nextClosest = s;
+          break;
+        }
+      };
+
+      if (nextClosest)
+      {
+        system.edges.push(nextClosest);
+        nextClosest.edges.push(system);
+      }
+
+    }.bind(this));
+
+    // Make the first node owned
+    this.systems[0].owner = TANK.main.Game.players[0];
+
+    // Helper to recursively explore a graph
+    var exploreNode = function(node, islandNodes)
+    {
+      if (node.visited)
+        return false;
+
+      // Visit the node
+      node.visited = true;
+      islandNodes.push(node);
+
+      // Explore each adjacent node
+      for (var i = 0; i < node.edges.length; ++i)
+        exploreNode(node.edges[i], islandNodes);
+
+      return true;
+    };
+
+    // Helper to connect two islands
+    var connectIslands = function(a, b)
+    {
+      // Find the two closest nodes between the islands
+      var minDist = Infinity;
+      var nodeA = null;
+      var nodeB = null;
+
+      for (var i = 0; i < a.length; ++i)
+      {
+        for (var j = 0; j < b.length; ++j)
+        {
+          var dist = TANK.Math2D.pointDistancePoint(a[i].pos, b[j].pos);
+          if (dist < minDist)
+          {
+            minDist = dist;
+            nodeA = a[i];
+            nodeB = b[j];
+          }
+        }
+      }
+
+      nodeA.edges.push(nodeB);
+      nodeB.edges.push(nodeA);
+    };
+
+    // Explore every node to find islands
+    this.islands = [];
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      var node = this.systems[i];
+      var island = [];
+      if (exploreNode(node, island))
+        this.islands.push(island);
+    }
+
+    // Connect each island to the next
+    for (var i = 1; i < this.islands.length; ++i)
+    {
+      var islandA = this.islands[i - 1];
+      var islandB = this.islands[i];
+      connectIslands(islandA, islandB);
+    }
+  };
+
+  this.save = function()
+  {
+    var systems = [];
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      var system = this.systems[i];
+      var systemSave = {};
+      systemSave.index = system.index;
+      systemSave.pos = system.pos;
+      systemSave.radius = system.radius;
+      systemSave.owner = TANK.main.Game.players.indexOf(system.owner);
+      systemSave.fortifyLevel = system.fortifyLevel;
+      systemSave.edges = [];
+      system.edges.forEach(function(s)
+      {
+        systemSave.edges.push(s.index);
+      });
+      systems.push(systemSave);
+    }
+
+    return systems;
+  };
+
+  this.load = function(systems)
+  {
+    this.systems = [];
+    this.islands = [];
+
+    for (var i = 0; i < systems.length; ++i)
+    {
+      var systemSave = systems[i];
+      var system = {};
+      system.index = systemSave.index;
+      system.pos = systemSave.pos;
+      system.radius = systemSave.radius;
+      system.owner = TANK.main.Game.players[systemSave.owner];
+      system.fortifyLevel = systemSave.fortifyLevel;
+      system.edges = [];
+      this.systems.push(system);
+    }
+
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      var systemSave = systems[i];
+      var system = this.systems[i];
+      systemSave.edges.forEach(function(systemIndex)
+      {
+        system.edges.push(that.systems[systemIndex]);
+      });
+    }
   };
 });
 TANK.registerComponent("OrderTarget").includes("Clickable");

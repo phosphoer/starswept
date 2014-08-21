@@ -1,12 +1,29 @@
 TANK.registerComponent('Game')
 
+.includes(['MapGeneration'])
+
 .construct(function()
 {
   // Game scale factor
   this.scaleFactor = 3;
 
   // Current existing factions
-  this.factions = [];
+  this.players =
+  [
+    {
+      player: true,
+      color: '#3c3',
+      battleAI: 'Faction',
+      team: 0,
+    },
+    {
+      player: false,
+      color: '#d55',
+      battleAI: 'AIFaction2',
+      team: 1
+    }
+  ];
+  this.player = this.players[0];
 
   // Menu options
   this.menuOptions = [];
@@ -47,13 +64,36 @@ TANK.registerComponent('Game')
       shipType: i,
       activate: function()
       {
-        that.factions[0].buyShip(this.shipType);
+        that.player.faction.buyShip(this.shipType);
       }
     });
   }
 
   // Money counter
   this.topBarItems.push({name: ''});
+
+  //
+  // Save the current game
+  //
+  this.save = function(slot)
+  {
+    var save = {};
+    save.currentTurn = this.campaignObject.CampaignMap.currentTurn;
+    save.turnsTaken = this.campaignObject.CampaignMap.turnsTaken;
+    save.systems = TANK.main.MapGeneration.save();
+    localStorage['save-' + slot] = JSON.stringify(save);
+  };
+
+  //
+  // Load the current game
+  //
+  this.load = function(slot)
+  {
+    var save = JSON.parse(localStorage['save-' + slot]);
+    this.currentTurn = save.currentTurn;
+    this.turnsTaken = save.turnsTaken;
+    TANK.main.MapGeneration.load(save.systems);
+  };
 
   //
   // Update the mouse world position
@@ -88,6 +128,7 @@ TANK.registerComponent('Game')
       activate: function()
       {
         that.menuUI.teardown();
+        TANK.main.MapGeneration.generateMap();
         that.goToCampaignMap();
         that.menuObjects.forEach(function(obj)
         {
@@ -201,15 +242,26 @@ TANK.registerComponent('Game')
   //
   this.loadLevelNow = function(system)
   {
-    var level = system.level;
+    var players = [this.currentSystemDefender, this.currentSystemAttacker];
+
+    // Generate a level
+    var level = {};
+    level.lightDir = 1.5;
+    level.lightDiffuse = [0.8, 1, 1];
+    level.controlPoints = [];
+    level.ships = [];
+    level.controlPoints.push({x: 0, y: 0, faction: 0});
+    level.controlPoints.push({x: 4000, y: 4000, faction: 1});
+    level.ships.push({player: players[0].player, faction: 0, ship: "frigate", x: 0, y: 0});
+    level.ships.push({player: players[1].player, faction: 1, ship: "frigate", x: 4000, y: 4000});
 
     // Create faction entities
-    for (var i = 0; i < level.factions.length; ++i)
+    for (var i = 0; i < players.length; ++i)
     {
-      var e = TANK.createEntity(level.factions[i].ai);
-      e.Faction.team = level.factions[i].team;
-      e.Faction.color = level.factions[i].color;
-      this.factions.push(e.Faction);
+      var e = TANK.createEntity(players[i].battleAI);
+      e.Faction.team = players[i].team;
+      e.Faction.color = players[i].color;
+      players[i].faction = e.Faction;
       TANK.main.addChild(e);
     }
 
@@ -221,7 +273,7 @@ TANK.registerComponent('Game')
       e.Pos2D.x = cp.x;
       e.Pos2D.y = cp.y;
       if (cp.faction >= 0)
-        this.factions[cp.faction].addControlPoint(e.ControlPoint);
+        players[cp.faction].faction.addControlPoint(e.ControlPoint);
       TANK.main.addChild(e);
     }
 
@@ -232,7 +284,7 @@ TANK.registerComponent('Game')
       e.Pos2D.x = level.ships[i].x;
       e.Pos2D.y = level.ships[i].y;
       e.Ship.shipData = new Ships[level.ships[i].ship];
-      e.Ship.faction = this.factions[level.ships[i].faction];
+      e.Ship.faction = players[level.ships[i].faction].faction;
       TANK.main.addChild(e);
     }
 
@@ -247,13 +299,15 @@ TANK.registerComponent('Game')
   //
   // Begin a real time system battle
   //
-  this.goToSystemBattle = function(system)
+  this.goToSystemBattle = function(system, defender, attacker)
   {
     // Send out a message to all existing level objects to be destroyed
     TANK.main.removeChild(this.campaignObject);
 
     // Set current level marker and set a pending load
     this.currentSystem = system;
+    this.currentSystemDefender = defender;
+    this.currentSystemAttacker = attacker;
     this.pendingLoad = true;
   };
 
@@ -314,8 +368,6 @@ TANK.registerComponent('Game')
   //
   this.listenTo(TANK.main, 'systemBattleEnd', function()
   {
-    this.factions = [];
-
     // Remove command bars
     if (this.topBarUI)
       this.topBarUI.teardown();
@@ -372,40 +424,42 @@ TANK.registerComponent('Game')
   //
   this.listenTo(TANK.main, 'scanForEndCondition', function()
   {
-    var win = true;
-    var lose = true;
+    var attackerWin = true;
+    var defenderWin = true;
 
-    // Check if the player owns any or all control points
+    // Check if the attacker owns any or all control points
     var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
     for (var i in controlPoints)
     {
-      if (controlPoints[i].ControlPoint.faction === this.factions[0])
-        lose = false;
+      if (controlPoints[i].ControlPoint.faction === this.currentSystemDefender.faction)
+        attackerWin = false;
       else
-        win = false;
+        defenderWin = false;
     }
 
     // Check if there are any friendly or enemy ships left
     var ships = TANK.main.getChildrenWithComponent('Ship');
     for (var i in ships)
     {
-      if (ships[i].Ship.faction === this.factions[0])
-        lose = false;
+      if (ships[i].Ship.faction === this.currentSystemDefender.faction)
+        attackerWin = false;
       else
-        win = false;
+        defenderWin = false;
     }
 
-    if (win)
-    {
-      this.currentSystem.owned = true;
-      this.showWinScreen();
-      return;
-    }
+    var winner;
+    if (attackerWin)
+      winner = this.currentSystemAttacker;
+    if (defenderWin)
+      winner = this.currentSystemDefender;
 
-    if (lose)
+    if (winner)
     {
-      this.currentSystem.owned = false;
-      this.showLoseScreen();
+      this.currentSystem.owner = winner;
+      if (winner.player)
+        this.showWinScreen();
+      else
+        this.showLoseScreen();
       return;
     }
 
@@ -468,7 +522,7 @@ TANK.registerComponent('Game')
     }
 
     // Update faction money count
-    if (this.factions.length > 0 && this.topBarUI)
-      this.topBarUI.set('items[0].name', 'Funds: ' + this.factions[0].money);
+    if (this.players[0] && this.players[0].faction && this.topBarUI)
+      this.topBarUI.set('items[0].name', 'Funds: ' + this.players[0].faction.money);
   };
 });
