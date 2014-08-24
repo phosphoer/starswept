@@ -1701,14 +1701,14 @@ TANK.registerComponent('Game')
     {
       player: true,
       color: '#3c3',
-      shipColor: '#2d2',
+      shipColor: '#6f6',
       battleAI: 'Faction',
       team: 0,
     },
     {
       player: false,
       color: '#d55',
-      shipColor: '#c44',
+      shipColor: '#b33',
       battleAI: 'AIFaction',
       team: 1
     }
@@ -2198,8 +2198,8 @@ TANK.registerComponent('Game')
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
     if (TANK.main.Renderer2D.camera.z < 0.5)
       TANK.main.Renderer2D.camera.z = 0.5;
-    if (TANK.main.Renderer2D.camera.z > 12)
-      TANK.main.Renderer2D.camera.z = 12;
+    if (TANK.main.Renderer2D.camera.z > 15)
+      TANK.main.Renderer2D.camera.z = 15;
   });
 
   this.listenTo(TANK.main, 'gesturechange', function(e)
@@ -2213,8 +2213,8 @@ TANK.registerComponent('Game')
       TANK.main.Renderer2D.camera.z *= scale;
       if (TANK.main.Renderer2D.camera.z < 1)
         TANK.main.Renderer2D.camera.z = 1;
-      if (TANK.main.Renderer2D.camera.z > 100)
-        TANK.main.Renderer2D.camera.z = 100;
+      if (TANK.main.Renderer2D.camera.z > 15)
+        TANK.main.Renderer2D.camera.z = 15;
     }
   });
 
@@ -2249,10 +2249,10 @@ function GenerateLevel(system)
   var numControlPoints = Math.round(Math.sqrt(Math.random()) * 5) + 2;
 
   // Level size
-  var levelSize = 7000;
+  var levelSize = 10000;
 
   // Min dist between planets
-  var minPlanetDist = 1500;
+  var minPlanetDist = 3000;
 
   // Generate control point locations
   for (var i = 0; i < numControlPoints; ++i)
@@ -4395,9 +4395,9 @@ TANK.registerComponent('Ship')
       ctx.beginPath();
       if (this.shipData.class === 1)
       {
-        ctx.moveTo(0, 0);
+        ctx.moveTo(0, 0.1);
         ctx.lineTo(1, 0.5);
-        ctx.lineTo(0, 1);
+        ctx.lineTo(0, 0.9);
       }
       // Arrow for bomber
       else if (this.shipData.class === 2)
@@ -4405,14 +4405,14 @@ TANK.registerComponent('Ship')
         ctx.moveTo(0.0, 0.0);
         ctx.lineTo(1.0, 0.5);
         ctx.lineTo(0.0, 1.0);
-        ctx.lineTo(0.4, 0.5);
+        ctx.lineTo(0.3, 0.5);
       }
       // Diamond for frigate
       else if (this.shipData.class === 3)
       {
-        ctx.moveTo(0.5, 1.0);
+        ctx.moveTo(0.5, 0.9);
         ctx.lineTo(1.0, 0.5);
-        ctx.lineTo(0.5, 0.0);
+        ctx.lineTo(0.5, 0.1);
         ctx.lineTo(0.0, 0.5);
       }
       ctx.closePath();

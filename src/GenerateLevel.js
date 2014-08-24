@@ -11,10 +11,10 @@ function GenerateLevel(system)
   var numControlPoints = Math.round(Math.sqrt(Math.random()) * 5) + 2;
 
   // Level size
-  var levelSize = 7000;
+  var levelSize = 10000;
 
   // Min dist between planets
-  var minPlanetDist = 1500;
+  var minPlanetDist = 3000;
 
   // Generate control point locations
   for (var i = 0; i < numControlPoints; ++i)

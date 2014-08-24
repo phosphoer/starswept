@@ -357,9 +357,9 @@ TANK.registerComponent('Ship')
       ctx.beginPath();
       if (this.shipData.class === 1)
       {
-        ctx.moveTo(0, 0);
+        ctx.moveTo(0, 0.1);
         ctx.lineTo(1, 0.5);
-        ctx.lineTo(0, 1);
+        ctx.lineTo(0, 0.9);
       }
       // Arrow for bomber
       else if (this.shipData.class === 2)
@@ -367,14 +367,14 @@ TANK.registerComponent('Ship')
         ctx.moveTo(0.0, 0.0);
         ctx.lineTo(1.0, 0.5);
         ctx.lineTo(0.0, 1.0);
-        ctx.lineTo(0.4, 0.5);
+        ctx.lineTo(0.3, 0.5);
       }
       // Diamond for frigate
       else if (this.shipData.class === 3)
       {
-        ctx.moveTo(0.5, 1.0);
+        ctx.moveTo(0.5, 0.9);
         ctx.lineTo(1.0, 0.5);
-        ctx.lineTo(0.5, 0.0);
+        ctx.lineTo(0.5, 0.1);
         ctx.lineTo(0.0, 0.5);
       }
       ctx.closePath();

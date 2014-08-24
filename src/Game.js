@@ -13,14 +13,14 @@ TANK.registerComponent('Game')
     {
       player: true,
       color: '#3c3',
-      shipColor: '#2d2',
+      shipColor: '#6f6',
       battleAI: 'Faction',
       team: 0,
     },
     {
       player: false,
       color: '#d55',
-      shipColor: '#c44',
+      shipColor: '#b33',
       battleAI: 'AIFaction',
       team: 1
     }
@@ -510,8 +510,8 @@ TANK.registerComponent('Game')
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
     if (TANK.main.Renderer2D.camera.z < 0.5)
       TANK.main.Renderer2D.camera.z = 0.5;
-    if (TANK.main.Renderer2D.camera.z > 12)
-      TANK.main.Renderer2D.camera.z = 12;
+    if (TANK.main.Renderer2D.camera.z > 15)
+      TANK.main.Renderer2D.camera.z = 15;
   });
 
   this.listenTo(TANK.main, 'gesturechange', function(e)
@@ -525,8 +525,8 @@ TANK.registerComponent('Game')
       TANK.main.Renderer2D.camera.z *= scale;
       if (TANK.main.Renderer2D.camera.z < 1)
         TANK.main.Renderer2D.camera.z = 1;
-      if (TANK.main.Renderer2D.camera.z > 100)
-        TANK.main.Renderer2D.camera.z = 100;
+      if (TANK.main.Renderer2D.camera.z > 15)
+        TANK.main.Renderer2D.camera.z = 15;
     }
   });
 
