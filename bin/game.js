@@ -2868,6 +2868,25 @@ TANK.registerComponent("MapGeneration")
       }
     }
 
+    // Center map on screen
+    var minPos = [Infinity, Infinity];
+    var maxPos = [-Infinity, -Infinity];
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      var system = this.systems[i];
+      minPos[0] = Math.min(minPos[0], system.pos[0]);
+      minPos[1] = Math.min(minPos[1], system.pos[1]);
+      maxPos[0] = Math.max(maxPos[0], system.pos[0]);
+      maxPos[1] = Math.max(maxPos[1], system.pos[1]);
+    }
+    var center = [minPos[0] + (maxPos[0] - minPos[0]) / 2, minPos[1] + (maxPos[1] - minPos[1]) / 2];
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      var system = this.systems[i];
+      system.pos[0] -= center[0];
+      system.pos[1] -= center[1];
+    }
+
     // Make edges
     this.systems.forEach(function(system)
     {
