@@ -24,6 +24,8 @@ html, body
   font-size: 96px;
   color: #ddd;
   margin-top: 100px;
+  padding: 20px;
+  background-color: rgba(10, 10, 10, 0.4);
 }
 
 .menu-options
