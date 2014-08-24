@@ -2041,12 +2041,28 @@ TANK.registerComponent('Game')
     this.menuObjects.push(moon);
 
     var ship = TANK.createEntity('Ship');
-    ship.Pos2D.x = 300;
-    ship.Pos2D.y = 200;
+    ship.Pos2D.x = 400;
+    ship.Pos2D.y = 300;
     ship.Ship.shipData = new Ships.bomber();
     ship.Ship.faction = null;
     TANK.main.addChild(ship);
     this.menuObjects.push(ship);
+
+    // ship = TANK.createEntity('Ship');
+    // ship.Pos2D.x = 300;
+    // ship.Pos2D.y = 100;
+    // ship.Ship.shipData = new Ships.frigate();
+    // ship.Ship.faction = null;
+    // TANK.main.addChild(ship);
+    // this.menuObjects.push(ship);
+
+    // ship = TANK.createEntity('Ship');
+    // ship.Pos2D.x = 200;
+    // ship.Pos2D.y = 300;
+    // ship.Ship.shipData = new Ships.fighter();
+    // ship.Ship.faction = null;
+    // TANK.main.addChild(ship);
+    // this.menuObjects.push(ship);
   };
 
   //
@@ -4674,12 +4690,12 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 85,
-        y: 42
+        y: 39
       },
       {
         type: "mediumRail",
         x: 35,
-        y: 41
+        y: 39
       }
     ],
     front:
@@ -4687,7 +4703,7 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 106,
-        y: 70
+        y: 69
       }
     ],
     right:
@@ -4708,14 +4724,14 @@ Ships.frigate = function()
       {
         type: "mediumRail",
         x: 36,
-        y: 70
+        y: 69
       }
     ]
   },
   this.lights =
   [
     {
-      x: 16, y: 41, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 14, y: 39, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4723,7 +4739,7 @@ Ships.frigate = function()
       }
     },
     {
-      x: 3, y: 86, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 2, y: 84, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4731,7 +4747,7 @@ Ships.frigate = function()
       }
     },
     {
-      x: 54, y: 86, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 54, y: 84, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},

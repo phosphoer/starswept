@@ -183,12 +183,28 @@ TANK.registerComponent('Game')
     this.menuObjects.push(moon);
 
     var ship = TANK.createEntity('Ship');
-    ship.Pos2D.x = 300;
-    ship.Pos2D.y = 200;
+    ship.Pos2D.x = 400;
+    ship.Pos2D.y = 300;
     ship.Ship.shipData = new Ships.bomber();
     ship.Ship.faction = null;
     TANK.main.addChild(ship);
     this.menuObjects.push(ship);
+
+    // ship = TANK.createEntity('Ship');
+    // ship.Pos2D.x = 300;
+    // ship.Pos2D.y = 100;
+    // ship.Ship.shipData = new Ships.frigate();
+    // ship.Ship.faction = null;
+    // TANK.main.addChild(ship);
+    // this.menuObjects.push(ship);
+
+    // ship = TANK.createEntity('Ship');
+    // ship.Pos2D.x = 200;
+    // ship.Pos2D.y = 300;
+    // ship.Ship.shipData = new Ships.fighter();
+    // ship.Ship.faction = null;
+    // TANK.main.addChild(ship);
+    // this.menuObjects.push(ship);
   };
 
   //
