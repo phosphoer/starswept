@@ -1,6 +1,6 @@
-TANK.registerComponent("Ship")
+TANK.registerComponent('Ship')
 
-.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons", "OrderTarget"])
+.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'OrderTarget'])
 
 .construct(function()
 {
@@ -26,12 +26,11 @@ TANK.registerComponent("Ship")
   TANK.main.Renderer2D.add(this);
 
   // Set up collision
-  this._entity.Collider2D.collisionLayer = "ships";
-  this._entity.Collider2D.collidesWith = ["bullets"];
+  this._entity.Collider2D.collisionLayer = 'ships';
+  this._entity.Collider2D.collidesWith = ['bullets'];
 
   // Get some data from ship
   this.image = this.shipData.__proto__.image;
-  this.imageEngine = this.shipData.__proto__.imageEngine;
   this.imageNormals = this.shipData.__proto__.imageNormals;
   this.lightBuffers = this.shipData.__proto__.lightBuffers;
   this.health = this.shipData.health;
@@ -53,6 +52,7 @@ TANK.registerComponent("Ship")
   this._entity.Clickable.height = this.image.height * TANK.main.Game.scaleFactor;
   this._entity.Weapons.width = this.image.width;
   this._entity.Weapons.height = this.image.height;
+  this._entity.Engines.size = this.shipData.engineSize;
 
   // Setup texture buffers
   this.mainBuffer.createBuffer(this.image.width, this.image.height);
@@ -83,7 +83,7 @@ TANK.registerComponent("Ship")
     this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
 
     // Set speed
-    if (typeof speedPercent === "undefined")
+    if (typeof speedPercent === 'undefined')
       this.setSpeedPercent(1)
     else
       this.setSpeedPercent(speedPercent)
@@ -132,7 +132,7 @@ TANK.registerComponent("Ship")
     // If we are the player, we should transfer player control to another ship
     if (this._entity.Player)
     {
-      TANK.main.dispatchTimed(1, "scanforplayership", this.faction, [t.x, t.y]);
+      TANK.main.dispatchTimed(1, 'scanforplayership', this.faction, [t.x, t.y]);
     }
 
     // Remove objects
@@ -146,16 +146,16 @@ TANK.registerComponent("Ship")
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < window.innerWidth / 2)
-      TANK.main.dispatch("camerashake", 0.5);
+      TANK.main.dispatch('camerashake', 0.5);
   };
 
-  this.listenTo(TANK.main, "systemBattleEnd", function()
+  this.listenTo(TANK.main, 'systemBattleEnd', function()
   {
     TANK.main.removeChild(this._entity);
   });
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
+  this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
   {
     // Affect trajectory
     v.x += dir[0] * 0.02;
@@ -167,19 +167,19 @@ TANK.registerComponent("Ship")
     this.health -= damage;
   });
 
-  this.listenTo(this._entity, "thrustOn", function()
+  this.listenTo(this._entity, 'thrustOn', function()
   {
     for (var i = 0; i < this.shipData.lights.length; ++i)
       if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "on";
+        this.shipData.lights[i].state = 'on';
     this._entity.Lights.redrawLights();
   });
 
-  this.listenTo(this._entity, "thrustOff", function()
+  this.listenTo(this._entity, 'thrustOff', function()
   {
     for (var i = 0; i < this.shipData.lights.length; ++i)
       if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "off";
+        this.shipData.lights[i].state = 'off';
     this._entity.Lights.redrawLights();
   });
 
@@ -238,14 +238,14 @@ TANK.registerComponent("Ship")
       v.x += Math.cos(t.rotation) * dt * this.shipData.accel;
       v.y += Math.sin(t.rotation) * dt * this.shipData.accel;
       if (!this.thrustOn)
-        this._entity.dispatch("ThrustOn");
+        this._entity.dispatch('ThrustOn');
       this.thrustOn = true;
     }
     // Otherwise, turn off the thrusters
     else
     {
       if (this.thrustOn)
-        this._entity.dispatch("ThrustOff");
+        this._entity.dispatch('ThrustOff');
       this.thrustOn = false;
     }
     // Slow down if moving faster than we want
@@ -280,7 +280,7 @@ TANK.registerComponent("Ship")
     this.thrustAlpha = Math.min(1, this.thrustAlpha);
 
     // Capture nearby control points
-    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+    var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
     for (var i in controlPoints)
     {
       var e = controlPoints[i];
@@ -318,9 +318,9 @@ TANK.registerComponent("Ship")
 
     // Draw damage buffer
     this.mainBuffer.context.globalAlpha = 1;
-    this.mainBuffer.context.globalCompositeOperation = "source-atop";
+    this.mainBuffer.context.globalCompositeOperation = 'source-atop';
     this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
-    this.mainBuffer.context.globalCompositeOperation = "destination-out";
+    this.mainBuffer.context.globalCompositeOperation = 'destination-out';
     this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
     this.mainBuffer.context.restore();
   };
@@ -341,13 +341,6 @@ TANK.registerComponent("Ship")
     // Draw the main ship buffer
     this.redrawShip();
     ctx.drawImage(this.mainBuffer.canvas, 0, 0);
-
-    // Draw engine
-    if (this.thrustOn || this.thrustAlpha > 0)
-    {
-      ctx.globalAlpha = this.thrustAlpha;
-      ctx.drawImage(this.imageEngine, 0, 0);
-    }
 
     // Draw team indicator
     if (camera.z < 8 && this.faction)
@@ -379,7 +372,7 @@ TANK.registerComponent("Ship")
     {
       ctx.globalAlpha = 1;
       ctx.lineWidth = 1 * camera.z;
-      ctx.strokeStyle = "rgba(150, 255, 150, 0.8)";
+      ctx.strokeStyle = 'rgba(150, 255, 150, 0.8)';
       ctx.strokeRect(0, 0, this.image.width, this.image.height);
     }
 

@@ -1400,11 +1400,13 @@ TANK.registerComponent("CampaignMap")
       {
         var player = TANK.main.Game.players[j];
         var flagship = system.flagships[j];
+        var offset = 0;
         if (flagship)
         {
           ctx.textAlign = 'left';
           ctx.fillStyle = player.color;
-          ctx.fillText('Flagship', system.pos[0] + system.radius + 10, system.pos[1] + (system.radius) * j);
+          ctx.fillText('Flagship', system.pos[0] + system.radius + 10, system.pos[1] + system.radius * offset);
+          ++offset;
         }
       }
     }
@@ -1571,6 +1573,10 @@ TANK.registerComponent('ControlPoint')
 
   this.update = function(dt)
   {
+    // Lose queue if captures
+    if (!this.faction)
+      this.queuedShips = [];
+
     // Passively re-capture self
     if (this.capturePercent > 0 && this.faction)
       this.tryCapture(this.faction, this.passiveCapture * dt);
@@ -1715,6 +1721,77 @@ TANK.registerComponent("DustField")
   };
 });
 
+TANK.registerComponent("Engines")
+
+.includes("Pos2D")
+
+.construct(function()
+{
+  this.zdepth = 4;
+  this.engineBuffer = new PixelBuffer();
+  this.color = 'rgba(255, 0, 255, 0)';
+  this.size = [30, 14];
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ship = this._entity.Ship;
+  var lights = this._entity.Lights;
+
+  TANK.main.Renderer2D.add(this);
+
+  this.drawEngine = function()
+  {
+    this.engineBuffer.createBuffer(this.size[0], this.size[1]);
+
+    var context = this.engineBuffer.context;
+    var canvas = this.engineBuffer.canvas;
+
+    var c1 = [canvas.width * 0.9, canvas.height / 2, canvas.height * 0.1];
+    var c2 = [canvas.width * 0.75, canvas.height / 2, canvas.height / 2];
+
+    var grad = context.createRadialGradient(c1[0], c1[1], c1[2], c2[0], c2[1], c2[2]);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(1, this.color);
+
+    context.scale(2, 1);
+    context.translate(canvas.width / -2, 0);
+
+    context.fillStyle = grad;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  };
+
+  this.draw = function(ctx, camera)
+  {
+    if (ship.thrustAlpha <= 0)
+      return;
+
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+    ctx.rotate(t.rotation);
+    ctx.translate(ship.image.width / -2, ship.image.height / -2);
+    ctx.globalAlpha = ship.thrustAlpha;
+
+    for (var i = 0; i < lights.lights.length; ++i)
+    {
+      var light = lights.lights[i];
+      if (!light.isEngine)
+        continue;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.translate(this.engineBuffer.width / -1, this.engineBuffer.height / -2);
+      ctx.drawImage(this.engineBuffer.canvas, light.x + 4, light.y);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  };
+
+  this.drawEngine();
+});
 TANK.registerComponent("Faction")
 
 .construct(function()
@@ -4072,9 +4149,9 @@ TANK.registerComponent("Player")
     ctx.restore();
   };
 });
-TANK.registerComponent("Ship")
+TANK.registerComponent('Ship')
 
-.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons", "OrderTarget"])
+.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'OrderTarget'])
 
 .construct(function()
 {
@@ -4100,12 +4177,11 @@ TANK.registerComponent("Ship")
   TANK.main.Renderer2D.add(this);
 
   // Set up collision
-  this._entity.Collider2D.collisionLayer = "ships";
-  this._entity.Collider2D.collidesWith = ["bullets"];
+  this._entity.Collider2D.collisionLayer = 'ships';
+  this._entity.Collider2D.collidesWith = ['bullets'];
 
   // Get some data from ship
   this.image = this.shipData.__proto__.image;
-  this.imageEngine = this.shipData.__proto__.imageEngine;
   this.imageNormals = this.shipData.__proto__.imageNormals;
   this.lightBuffers = this.shipData.__proto__.lightBuffers;
   this.health = this.shipData.health;
@@ -4127,6 +4203,7 @@ TANK.registerComponent("Ship")
   this._entity.Clickable.height = this.image.height * TANK.main.Game.scaleFactor;
   this._entity.Weapons.width = this.image.width;
   this._entity.Weapons.height = this.image.height;
+  this._entity.Engines.size = this.shipData.engineSize;
 
   // Setup texture buffers
   this.mainBuffer.createBuffer(this.image.width, this.image.height);
@@ -4157,7 +4234,7 @@ TANK.registerComponent("Ship")
     this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
 
     // Set speed
-    if (typeof speedPercent === "undefined")
+    if (typeof speedPercent === 'undefined')
       this.setSpeedPercent(1)
     else
       this.setSpeedPercent(speedPercent)
@@ -4206,7 +4283,7 @@ TANK.registerComponent("Ship")
     // If we are the player, we should transfer player control to another ship
     if (this._entity.Player)
     {
-      TANK.main.dispatchTimed(1, "scanforplayership", this.faction, [t.x, t.y]);
+      TANK.main.dispatchTimed(1, 'scanforplayership', this.faction, [t.x, t.y]);
     }
 
     // Remove objects
@@ -4220,16 +4297,16 @@ TANK.registerComponent("Ship")
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < window.innerWidth / 2)
-      TANK.main.dispatch("camerashake", 0.5);
+      TANK.main.dispatch('camerashake', 0.5);
   };
 
-  this.listenTo(TANK.main, "systemBattleEnd", function()
+  this.listenTo(TANK.main, 'systemBattleEnd', function()
   {
     TANK.main.removeChild(this._entity);
   });
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
+  this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
   {
     // Affect trajectory
     v.x += dir[0] * 0.02;
@@ -4241,19 +4318,19 @@ TANK.registerComponent("Ship")
     this.health -= damage;
   });
 
-  this.listenTo(this._entity, "thrustOn", function()
+  this.listenTo(this._entity, 'thrustOn', function()
   {
     for (var i = 0; i < this.shipData.lights.length; ++i)
       if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "on";
+        this.shipData.lights[i].state = 'on';
     this._entity.Lights.redrawLights();
   });
 
-  this.listenTo(this._entity, "thrustOff", function()
+  this.listenTo(this._entity, 'thrustOff', function()
   {
     for (var i = 0; i < this.shipData.lights.length; ++i)
       if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "off";
+        this.shipData.lights[i].state = 'off';
     this._entity.Lights.redrawLights();
   });
 
@@ -4312,14 +4389,14 @@ TANK.registerComponent("Ship")
       v.x += Math.cos(t.rotation) * dt * this.shipData.accel;
       v.y += Math.sin(t.rotation) * dt * this.shipData.accel;
       if (!this.thrustOn)
-        this._entity.dispatch("ThrustOn");
+        this._entity.dispatch('ThrustOn');
       this.thrustOn = true;
     }
     // Otherwise, turn off the thrusters
     else
     {
       if (this.thrustOn)
-        this._entity.dispatch("ThrustOff");
+        this._entity.dispatch('ThrustOff');
       this.thrustOn = false;
     }
     // Slow down if moving faster than we want
@@ -4354,7 +4431,7 @@ TANK.registerComponent("Ship")
     this.thrustAlpha = Math.min(1, this.thrustAlpha);
 
     // Capture nearby control points
-    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
+    var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
     for (var i in controlPoints)
     {
       var e = controlPoints[i];
@@ -4392,9 +4469,9 @@ TANK.registerComponent("Ship")
 
     // Draw damage buffer
     this.mainBuffer.context.globalAlpha = 1;
-    this.mainBuffer.context.globalCompositeOperation = "source-atop";
+    this.mainBuffer.context.globalCompositeOperation = 'source-atop';
     this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
-    this.mainBuffer.context.globalCompositeOperation = "destination-out";
+    this.mainBuffer.context.globalCompositeOperation = 'destination-out';
     this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
     this.mainBuffer.context.restore();
   };
@@ -4415,13 +4492,6 @@ TANK.registerComponent("Ship")
     // Draw the main ship buffer
     this.redrawShip();
     ctx.drawImage(this.mainBuffer.canvas, 0, 0);
-
-    // Draw engine
-    if (this.thrustOn || this.thrustAlpha > 0)
-    {
-      ctx.globalAlpha = this.thrustAlpha;
-      ctx.drawImage(this.imageEngine, 0, 0);
-    }
 
     // Draw team indicator
     if (camera.z < 8 && this.faction)
@@ -4453,7 +4523,7 @@ TANK.registerComponent("Ship")
     {
       ctx.globalAlpha = 1;
       ctx.lineWidth = 1 * camera.z;
-      ctx.strokeStyle = "rgba(150, 255, 150, 0.8)";
+      ctx.strokeStyle = 'rgba(150, 255, 150, 0.8)';
       ctx.strokeRect(0, 0, this.image.width, this.image.height);
     }
 
@@ -4474,21 +4544,22 @@ Ships.fighter = function()
   this.buildTime = 5;
   this.threat = 1;
   this.optimalAngle = 0;
+  this.engineSize = [18, 8];
   this.guns =
   {
     front:
     [
       {
         type: "smallRail",
-        x: 19,
-        y: 14
+        x: 28,
+        y: 21
       }
     ]
   },
   this.lights =
   [
     {
-      x: 3, y: 6, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 11, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4496,7 +4567,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 2, y: 15, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 9, y: 25, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4504,7 +4575,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 4, y: 22, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 14, y: 35, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4512,7 +4583,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 13, y: 15, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 23, y: 26, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -4534,21 +4605,22 @@ Ships.bomber = function()
   this.buildTime = 10;
   this.threat = 3;
   this.optimalAngle = 0;
+  this.engineSize = [24, 12];
   this.guns =
   {
     front:
     [
       {
         type: "mediumRocket",
-        x: 36,
-        y: 28
+        x: 60,
+        y: 60
       }
     ]
   },
   this.lights =
   [
     {
-      x: 16, y: 20, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 29, y: 36, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4556,7 +4628,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 9, y: 24, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 25, y: 45, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4564,7 +4636,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 15, y: 38, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 23, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4572,7 +4644,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 49, y: 23, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 80, y: 29, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -4594,55 +4666,56 @@ Ships.frigate = function()
   this.buildTime = 15;
   this.threat = 10;
   this.optimalAngle = Math.PI / 2;
+  this.engineSize = [24, 16];
   this.guns =
   {
     left:
     [
       {
         type: "mediumRail",
-        x: 20,
-        y: 3
+        x: 85,
+        y: 42
       },
       {
         type: "mediumRail",
-        x: 40,
-        y: 3
+        x: 35,
+        y: 41
       }
     ],
     front:
     [
       {
         type: "mediumRail",
-        x: 78,
-        y: 28
+        x: 106,
+        y: 70
       }
     ],
     right:
     [
       {
         type: "mediumRail",
-        x: 20,
-        y: 45
+        x: 16,
+        y: 85
       },
       {
         type: "mediumRail",
-        x: 40,
-        y: 45
+        x: 44,
+        y: 85
       }
     ],
     back:
     [
       {
         type: "mediumRail",
-        x: 23,
-        y: 30
+        x: 36,
+        y: 70
       }
     ]
   },
   this.lights =
   [
     {
-      x: 6, y: 3, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 16, y: 41, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4650,7 +4723,7 @@ Ships.frigate = function()
       }
     },
     {
-      x: 6, y: 43, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 3, y: 86, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4658,7 +4731,7 @@ Ships.frigate = function()
       }
     },
     {
-      x: 49, y: 3, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 54, y: 86, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -4709,7 +4782,6 @@ for (var i in Ships)
   ship.prototype.imageEngine = new Image();
   ship.prototype.imageNormals = new Image();
   ship.prototype.image.src = "res/" + i + ".png";
-  ship.prototype.imageEngine.src = "res/" + i + "-engine.png";
   ship.prototype.imageNormals.src = "res/" + i + "-normals.png";
 
   ship.prototype.image.onload = function()

@@ -122,6 +122,10 @@ TANK.registerComponent('ControlPoint')
 
   this.update = function(dt)
   {
+    // Lose queue if captures
+    if (!this.faction)
+      this.queuedShips = [];
+
     // Passively re-capture self
     if (this.capturePercent > 0 && this.faction)
       this.tryCapture(this.faction, this.passiveCapture * dt);

@@ -12,21 +12,22 @@ Ships.fighter = function()
   this.buildTime = 5;
   this.threat = 1;
   this.optimalAngle = 0;
+  this.engineSize = [18, 8];
   this.guns =
   {
     front:
     [
       {
         type: "smallRail",
-        x: 19,
-        y: 14
+        x: 28,
+        y: 21
       }
     ]
   },
   this.lights =
   [
     {
-      x: 3, y: 6, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 11, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -34,7 +35,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 2, y: 15, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 9, y: 25, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -42,7 +43,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 4, y: 22, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 14, y: 35, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -50,7 +51,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 13, y: 15, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 23, y: 26, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -72,21 +73,22 @@ Ships.bomber = function()
   this.buildTime = 10;
   this.threat = 3;
   this.optimalAngle = 0;
+  this.engineSize = [24, 12];
   this.guns =
   {
     front:
     [
       {
         type: "mediumRocket",
-        x: 36,
-        y: 28
+        x: 60,
+        y: 60
       }
     ]
   },
   this.lights =
   [
     {
-      x: 16, y: 20, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 29, y: 36, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -94,7 +96,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 9, y: 24, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 25, y: 45, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -102,7 +104,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 15, y: 38, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 23, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -110,7 +112,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 49, y: 23, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 80, y: 29, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -132,55 +134,56 @@ Ships.frigate = function()
   this.buildTime = 15;
   this.threat = 10;
   this.optimalAngle = Math.PI / 2;
+  this.engineSize = [24, 16];
   this.guns =
   {
     left:
     [
       {
         type: "mediumRail",
-        x: 20,
-        y: 3
+        x: 85,
+        y: 42
       },
       {
         type: "mediumRail",
-        x: 40,
-        y: 3
+        x: 35,
+        y: 41
       }
     ],
     front:
     [
       {
         type: "mediumRail",
-        x: 78,
-        y: 28
+        x: 106,
+        y: 70
       }
     ],
     right:
     [
       {
         type: "mediumRail",
-        x: 20,
-        y: 45
+        x: 16,
+        y: 85
       },
       {
         type: "mediumRail",
-        x: 40,
-        y: 45
+        x: 44,
+        y: 85
       }
     ],
     back:
     [
       {
         type: "mediumRail",
-        x: 23,
-        y: 30
+        x: 36,
+        y: 70
       }
     ]
   },
   this.lights =
   [
     {
-      x: 6, y: 3, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 16, y: 41, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -188,7 +191,7 @@ Ships.frigate = function()
       }
     },
     {
-      x: 6, y: 43, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 3, y: 86, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -196,7 +199,7 @@ Ships.frigate = function()
       }
     },
     {
-      x: 49, y: 3, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 54, y: 86, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -247,7 +250,6 @@ for (var i in Ships)
   ship.prototype.imageEngine = new Image();
   ship.prototype.imageNormals = new Image();
   ship.prototype.image.src = "res/" + i + ".png";
-  ship.prototype.imageEngine.src = "res/" + i + "-engine.png";
   ship.prototype.imageNormals.src = "res/" + i + "-normals.png";
 
   ship.prototype.image.onload = function()
