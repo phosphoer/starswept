@@ -217,111 +217,6 @@ TANK.registerComponent("AIFaction")
 .includes("Faction")
 .construct(function()
 {
-  this.name = "original";
-  this.currentCaptureTarget = null;
-  this.projects = [];
-
-  this.idleShipScanTime = 5;
-  this.idleShipScanTimer = 0;
-  this.idleShips = [];
-})
-.initialize(function()
-{
-  var faction = this._entity.Faction;
-  var that = this;
-
-  this.calculateThreatAtPos = function(pos, radius, targetFaction)
-  {
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    var threat = 0;
-    for (var i in ships)
-    {
-      if (targetFaction && ships[i].Ship.faction !== targetFaction)
-        continue;
-      else if (!targetFaction && ships[i].Ship.faction === faction)
-        continue;
-
-      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
-      if (dist < radius)
-        threat += ships[i].Ship.shipData.threat;
-    }
-
-    return threat;
-  };
-
-  this.findIdleShips = function()
-  {
-    this.idleShips = [];
-    var ships = TANK.main.getChildrenWithComponent("AIShip");
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
-        this.idleShips.push(ships[i]);
-    }
-  };
-
-  this.say = function(message)
-  {
-    console.log("AI " + this.name + "(" + faction.team + "): " + message);
-  };
-
-  this.update = function(dt)
-  {
-    // Find idle ships
-    this.idleShipScanTimer -= dt;
-    if (this.idleShipScanTimer <= 0)
-    {
-      this.idleShipScanTimer = this.idleShipScanTime;
-      this.findIdleShips();
-    } 
-
-    // If we don't have a current capture target, find one and create a project for it
-    if (!this.currentCaptureTarget)
-    {
-      this.say("No capture target, picking a new one...");
-      var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
-      for (var i in controlPoints)
-      {
-        var e = controlPoints[i];
-        if (!e.ControlPoint.faction || e.ControlPoint.faction.team !== faction.team)
-        {
-          this.say("Found capture target, assigning ships...");
-          this.currentCaptureTarget = e;
-          var pos = [this.currentCaptureTarget.Pos2D.x, this.currentCaptureTarget.Pos2D.y];
-          var threat = this.calculateThreatAtPos(pos, 700, e.ControlPoint.faction);
-          var captureProject = new AIProject(this);
-          captureProject.target = e;
-          captureProject.buildCombatGroup((threat + 1) * 1.5);
-          captureProject.acquireShips();
-          captureProject.completeCondition = function()
-          {
-            return e.ControlPoint.faction === faction;
-          };
-          this.projects.push(captureProject);
-          break;
-        }
-      }
-    }
-
-    // Update existing projects
-    for (var i = 0; i < this.projects.length; ++i)
-    {
-      this.projects[i].update(dt);
-      if (this.projects[i].complete)
-        this.projects[i] = null;
-    }
-    this.projects = this.projects.filter(function(val) {return val !== null;});
-  };
-});
-
-})();
-(function()
-{
-
-TANK.registerComponent("AIFaction2")
-.includes("Faction")
-.construct(function()
-{
   this.name = "new";
   this.projects = [];
 
@@ -391,7 +286,7 @@ TANK.registerComponent("AIFaction2")
       for (var i = 0; i < faction.controlPoints.length; ++i)
       {
         var cp = faction.controlPoints[i];
-        
+
         // If there isn't a project for this point, create one
         if (!this.defenseProjects[cp._entity._id])
         {
@@ -459,9 +354,9 @@ TANK.registerComponent("AIFaction2")
           }
         }
       }
-      
+
       if (this.attackTarget)
-        this.say('target found'); 
+        this.say('target found');
     }
     // Make an attack project if we don't have one
     else if (this.attackTarget && !this.attackProject)
@@ -473,7 +368,7 @@ TANK.registerComponent("AIFaction2")
       this.attackProject.completeCondition = function()
       {
         var complete = that.attackTarget.ControlPoint.faction === faction;
-        if (complete) 
+        if (complete)
         {
           that.say('attack project complete');
           that.attackProject = null;
@@ -511,7 +406,7 @@ TANK.registerComponent("AIFaction2")
     {
       this.idleShipScanTimer = this.idleShipScanTime;
       this.findIdleShips();
-    } 
+    }
 
     // Update existing projects
     for (var i = 0; i < this.projects.length; ++i)
@@ -524,74 +419,6 @@ TANK.registerComponent("AIFaction2")
   };
 });
 
-
-})();
-(function()
-{
-
-TANK.registerComponent("AIFaction3")
-.includes("Faction")
-.construct(function()
-{
-  this.name = "trevor";
-
-  this.idleShipScanTime = 5;
-  this.idleShipScanTimer = 0;
-  this.idleShips = [];
-})
-.initialize(function()
-{
-  var faction = this._entity.Faction;
-  var that = this;
-
-  this.calculateThreatAtPos = function(pos, radius, targetFaction)
-  {
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    var threat = 0;
-    for (var i in ships)
-    {
-      if (targetFaction && ships[i].Ship.faction !== targetFaction)
-        continue;
-      else if (!targetFaction && ships[i].Ship.faction === faction)
-        continue;
-
-      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
-      if (dist < radius)
-        threat += ships[i].Ship.shipData.threat;
-    }
-
-    return threat;
-  };
-
-  this.findIdleShips = function()
-  {
-    this.idleShips = [];
-    var ships = TANK.main.getChildrenWithComponent("AIShip");
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
-        this.idleShips.push(ships[i]);
-    }
-  };
-
-  this.say = function(message)
-  {
-    console.log("AI " + this.name + "(" + faction.team + "): " + message);
-  };
-
-  this.update = function(dt)
-  {
-    // Find idle ships
-    this.idleShipScanTimer -= dt;
-    if (this.idleShipScanTimer <= 0)
-    {
-      this.idleShipScanTimer = this.idleShipScanTime;
-      this.findIdleShips();
-    } 
-
-
-  };
-});
 
 })();
 function AIProject(aiFaction)
@@ -1877,7 +1704,7 @@ TANK.registerComponent('Game')
     {
       player: false,
       color: '#d55',
-      battleAI: 'AIFaction2',
+      battleAI: 'AIFaction',
       team: 1
     }
   ];
@@ -2119,15 +1946,13 @@ TANK.registerComponent('Game')
     var players = [this.currentSystemDefender, this.currentSystemAttacker];
 
     // Generate a level
-    var level = {};
-    level.lightDir = 1.5;
-    level.lightDiffuse = [0.8, 1, 1];
-    level.controlPoints = [];
-    level.ships = [];
-    level.controlPoints.push({x: 0, y: 0, faction: 0});
-    level.controlPoints.push({x: 4000, y: 4000, faction: 1});
-    level.ships.push({player: players[0].player, faction: 0, ship: "frigate", x: 0, y: 0});
-    level.ships.push({player: players[1].player, faction: 1, ship: "frigate", x: 4000, y: 4000});
+    var level = GenerateLevel(system);
+
+    // Player start ships
+    var cp0 = level.controlPoints[0];
+    var cp1 = level.controlPoints[1];
+    level.ships.push({player: players[0].player, faction: 0, ship: 'frigate', x: cp0.x, y: cp0.y});
+    level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: cp1.x, y: cp1.y});
 
     // Create faction entities
     for (var i = 0; i < players.length; ++i)
@@ -2139,6 +1964,9 @@ TANK.registerComponent('Game')
       TANK.main.addChild(e);
     }
 
+    // Increase money based on fortify
+    this.currentSystemDefender.faction.money += system.fortifyLevel * 20;
+
     // Create control points
     for (var i = 0; i < level.controlPoints.length; ++i)
     {
@@ -2146,6 +1974,7 @@ TANK.registerComponent('Game')
       e = TANK.createEntity('ControlPoint');
       e.Pos2D.x = cp.x;
       e.Pos2D.y = cp.y;
+      e.Planet.radius = 72 + Math.random() * 96;
       if (cp.faction >= 0)
         players[cp.faction].faction.addControlPoint(e.ControlPoint);
       TANK.main.addChild(e);
@@ -2401,6 +2230,58 @@ TANK.registerComponent('Game')
   };
 });
 
+function GenerateLevel(system)
+{
+  // Basic info
+  var level = {};
+  level.lightDir = Math.random() * Math.PI * 2;
+  level.lightDiffuse = [0.8, 1, 1];
+  level.controlPoints = [];
+  level.ships = [];
+
+  // Number of control points
+  var numControlPoints = Math.round(Math.sqrt(Math.random()) * 5) + 2;
+
+  // Level size
+  var levelSize = 7000;
+
+  // Min dist between planets
+  var minPlanetDist = 1500;
+
+  // Generate control point locations
+  for (var i = 0; i < numControlPoints; ++i)
+  {
+    var cp = {x: Math.random() * levelSize, y: Math.random() * levelSize, faction: -1};
+
+    // Ensure points are far apart
+    var angle = Math.random() * Math.PI * 2;
+    for (;;)
+    {
+      var minDist = level.controlPoints.reduce(function(prev, cur)
+      {
+        if (cur === cp)
+          return prev;
+        return Math.min(prev, TANK.Math2D.pointDistancePoint([cp.x, cp.y], [cur.x, cur.y]));
+      }, Infinity);
+
+      if (minDist > minPlanetDist)
+        break;
+
+      cp.x += Math.cos(angle) * 100;
+      cp.y += Math.sin(angle) * 100;
+    }
+
+    level.controlPoints.push(cp);
+  }
+
+  // Assign factions to control points
+  level.controlPoints[0].faction = 0;
+  level.controlPoints[1].faction = 1;
+
+  // Generate ships
+
+  return level;
+};
 TANK.registerComponent("Glow")
 
 .includes(["Pos2D", "Velocity", "Life"])
@@ -2527,44 +2408,6 @@ Guns.mediumRocket = function()
   this.y = 0;
 };
 
-var Levels = [];
-
-Levels[0] =
-{
-  name: "Sample Level",
-  difficulty: 1,
-  lightDir: 1.5,
-  lightDiffuse: [0.8, 1, 1],
-  controlPoints:
-  [
-    {x: 0, y: 0, faction: 0},
-    {x: 4000, y: 4000, faction: 1}
-  ],
-  ships:
-  [
-    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
-    {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
-  ]
-};
-
-Levels[1] =
-{
-  name: "Triangle",
-  difficulty: 2,
-  lightDir: 0.5,
-  lightDiffuse: [1, 1, 0.9],
-  controlPoints:
-  [
-    {x: 0, y: 0, faction: 0},
-    {x: 5000, y: 5000, faction: 1},
-    {x: 5000, y: 0, faction: -1}
-  ],
-  ships:
-  [
-    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
-    {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
-  ]
-};
 TANK.registerComponent("Life")
 
 .construct(function()

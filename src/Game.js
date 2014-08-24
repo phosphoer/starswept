@@ -19,7 +19,7 @@ TANK.registerComponent('Game')
     {
       player: false,
       color: '#d55',
-      battleAI: 'AIFaction2',
+      battleAI: 'AIFaction',
       team: 1
     }
   ];
@@ -261,15 +261,13 @@ TANK.registerComponent('Game')
     var players = [this.currentSystemDefender, this.currentSystemAttacker];
 
     // Generate a level
-    var level = {};
-    level.lightDir = 1.5;
-    level.lightDiffuse = [0.8, 1, 1];
-    level.controlPoints = [];
-    level.ships = [];
-    level.controlPoints.push({x: 0, y: 0, faction: 0});
-    level.controlPoints.push({x: 4000, y: 4000, faction: 1});
-    level.ships.push({player: players[0].player, faction: 0, ship: "frigate", x: 0, y: 0});
-    level.ships.push({player: players[1].player, faction: 1, ship: "frigate", x: 4000, y: 4000});
+    var level = GenerateLevel(system);
+
+    // Player start ships
+    var cp0 = level.controlPoints[0];
+    var cp1 = level.controlPoints[1];
+    level.ships.push({player: players[0].player, faction: 0, ship: 'frigate', x: cp0.x, y: cp0.y});
+    level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: cp1.x, y: cp1.y});
 
     // Create faction entities
     for (var i = 0; i < players.length; ++i)
@@ -281,6 +279,9 @@ TANK.registerComponent('Game')
       TANK.main.addChild(e);
     }
 
+    // Increase money based on fortify
+    this.currentSystemDefender.faction.money += system.fortifyLevel * 20;
+
     // Create control points
     for (var i = 0; i < level.controlPoints.length; ++i)
     {
@@ -288,6 +289,7 @@ TANK.registerComponent('Game')
       e = TANK.createEntity('ControlPoint');
       e.Pos2D.x = cp.x;
       e.Pos2D.y = cp.y;
+      e.Planet.radius = 72 + Math.random() * 96;
       if (cp.faction >= 0)
         players[cp.faction].faction.addControlPoint(e.ControlPoint);
       TANK.main.addChild(e);
