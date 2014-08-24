@@ -1288,6 +1288,7 @@ TANK.registerComponent('ControlPoint')
   this.moneyTime = 10;
   this.moneyTimer = 0;
   this.scanTimer = 0;
+  this.radius = 300;
   this.pendingFaction = null;
   this.capturePercent = 0;
   this.captureDistance = 500;
@@ -1302,6 +1303,7 @@ TANK.registerComponent('ControlPoint')
   TANK.main.Renderer2D.add(this);
 
   this._entity.Clickable.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
+  this.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
 
   this.tryCapture = function(faction, amount)
   {
@@ -1372,12 +1374,13 @@ TANK.registerComponent('ControlPoint')
     {
       // Draw strategic icon
       ctx.save();
+      ctx.globalAlpha = Math.min(1, (camera.z - 8) / 4);
       ctx.fillStyle = this.faction ? this.faction.color : '#555';
       ctx.lineWidth = 2;
       ctx.translate(t.x - camera.x, t.y - camera.y);
 
       ctx.beginPath();
-      ctx.arc(0, 0, 300, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.radius, Math.PI * 2, false);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
@@ -1591,7 +1594,7 @@ TANK.registerComponent("Engines")
 
   this.draw = function(ctx, camera)
   {
-    if (ship.thrustAlpha <= 0)
+    if (ship.thrustAlpha <= 0 || camera.z > 6)
       return;
 
     ctx.save();
@@ -1698,12 +1701,14 @@ TANK.registerComponent('Game')
     {
       player: true,
       color: '#3c3',
+      shipColor: '#2d2',
       battleAI: 'Faction',
       team: 0,
     },
     {
       player: false,
       color: '#d55',
+      shipColor: '#c44',
       battleAI: 'AIFaction',
       team: 1
     }
@@ -1960,6 +1965,7 @@ TANK.registerComponent('Game')
       var e = TANK.createEntity(players[i].battleAI);
       e.Faction.team = players[i].team;
       e.Faction.color = players[i].color;
+      e.Faction.shipColor = players[i].shipColor;
       players[i].faction = e.Faction;
       TANK.main.addChild(e);
     }
@@ -2633,6 +2639,9 @@ TANK.registerComponent("Lights")
 
   this.draw = function(ctx, camera)
   {
+    if (camera.z > 6)
+      return;
+
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
@@ -3563,7 +3572,7 @@ TANK.registerComponent("Planet")
 
   this.draw = function(ctx, camera, dt)
   {
-    if (camera.z >= 8)
+    if (camera.z >= 12)
       return;
 
     ctx.save();
@@ -4368,11 +4377,51 @@ TANK.registerComponent('Ship')
     ctx.translate(this.image.width / -2, this.image.height / -2);
 
     // Draw the main ship buffer
-    this.redrawShip();
-    ctx.drawImage(this.mainBuffer.canvas, 0, 0);
+    if (camera.z <= 8)
+    {
+      this.redrawShip();
+      ctx.drawImage(this.mainBuffer.canvas, 0, 0);
+    }
+
+    if (camera.z >= 6)
+    {
+      // Draw ship indicator
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (camera.z - 6) / 4);
+      ctx.scale(this.image.width, this.image.height);
+
+      // Simple triangle for fighter
+      ctx.fillStyle = this.faction ? this.faction.shipColor : '#555';
+      ctx.beginPath();
+      if (this.shipData.class === 1)
+      {
+        ctx.moveTo(0, 0);
+        ctx.lineTo(1, 0.5);
+        ctx.lineTo(0, 1);
+      }
+      // Arrow for bomber
+      else if (this.shipData.class === 2)
+      {
+        ctx.moveTo(0.0, 0.0);
+        ctx.lineTo(1.0, 0.5);
+        ctx.lineTo(0.0, 1.0);
+        ctx.lineTo(0.4, 0.5);
+      }
+      // Diamond for frigate
+      else if (this.shipData.class === 3)
+      {
+        ctx.moveTo(0.5, 1.0);
+        ctx.lineTo(1.0, 0.5);
+        ctx.lineTo(0.5, 0.0);
+        ctx.lineTo(0.0, 0.5);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Draw team indicator
-    if (camera.z < 8 && this.faction)
+    if (camera.z <= 6 && this.faction)
     {
       ctx.globalAlpha = 1;
       ctx.fillStyle = this.faction.color;
@@ -4413,6 +4462,7 @@ var Ships = {};
 Ships.fighter = function()
 {
   this.name = "Fighter";
+  this.class = 1;
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -4474,6 +4524,7 @@ Ships.fighter = function()
 Ships.bomber = function()
 {
   this.name = "Bomber";
+  this.class = 2;
   this.maxTurnSpeed = 0.8;
   this.maxSpeed = 200;
   this.accel = 35;
@@ -4535,6 +4586,7 @@ Ships.bomber = function()
 Ships.frigate = function()
 {
   this.name = "Frigate";
+  this.class = 3;
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;
@@ -4820,7 +4872,7 @@ TANK.registerComponent("Weapons")
   {
     if (this.guns[gunSide].length === 0)
       return 0;
-    var gun = this.guns[gunSide][0]; 
+    var gun = this.guns[gunSide][0];
     return 1 - gun.reloadTimer / gun.reloadTime;
   };
 
@@ -4894,13 +4946,16 @@ TANK.registerComponent("Weapons")
         guns[j].worldPos = pos;
 
         // Find max range
-        this.maxRange = Math.max(this.maxRange, guns[j].range);    
+        this.maxRange = Math.max(this.maxRange, guns[j].range);
       }
     }
   };
 
   this.draw = function(ctx, camera)
   {
+    if (camera.z > 6)
+      return;
+
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);

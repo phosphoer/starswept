@@ -41,7 +41,7 @@ TANK.registerComponent("Engines")
 
   this.draw = function(ctx, camera)
   {
-    if (ship.thrustAlpha <= 0)
+    if (ship.thrustAlpha <= 0 || camera.z > 6)
       return;
 
     ctx.save();

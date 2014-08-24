@@ -57,7 +57,7 @@ TANK.registerComponent("Weapons")
   {
     if (this.guns[gunSide].length === 0)
       return 0;
-    var gun = this.guns[gunSide][0]; 
+    var gun = this.guns[gunSide][0];
     return 1 - gun.reloadTimer / gun.reloadTime;
   };
 
@@ -131,13 +131,16 @@ TANK.registerComponent("Weapons")
         guns[j].worldPos = pos;
 
         // Find max range
-        this.maxRange = Math.max(this.maxRange, guns[j].range);    
+        this.maxRange = Math.max(this.maxRange, guns[j].range);
       }
     }
   };
 
   this.draw = function(ctx, camera)
   {
+    if (camera.z > 6)
+      return;
+
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);

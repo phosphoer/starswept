@@ -3,6 +3,7 @@ var Ships = {};
 Ships.fighter = function()
 {
   this.name = "Fighter";
+  this.class = 1;
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -64,6 +65,7 @@ Ships.fighter = function()
 Ships.bomber = function()
 {
   this.name = "Bomber";
+  this.class = 2;
   this.maxTurnSpeed = 0.8;
   this.maxSpeed = 200;
   this.accel = 35;
@@ -125,6 +127,7 @@ Ships.bomber = function()
 Ships.frigate = function()
 {
   this.name = "Frigate";
+  this.class = 3;
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;

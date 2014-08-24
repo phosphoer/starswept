@@ -10,6 +10,7 @@ TANK.registerComponent('ControlPoint')
   this.moneyTime = 10;
   this.moneyTimer = 0;
   this.scanTimer = 0;
+  this.radius = 300;
   this.pendingFaction = null;
   this.capturePercent = 0;
   this.captureDistance = 500;
@@ -24,6 +25,7 @@ TANK.registerComponent('ControlPoint')
   TANK.main.Renderer2D.add(this);
 
   this._entity.Clickable.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
+  this.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
 
   this.tryCapture = function(faction, amount)
   {
@@ -94,12 +96,13 @@ TANK.registerComponent('ControlPoint')
     {
       // Draw strategic icon
       ctx.save();
+      ctx.globalAlpha = Math.min(1, (camera.z - 8) / 4);
       ctx.fillStyle = this.faction ? this.faction.color : '#555';
       ctx.lineWidth = 2;
       ctx.translate(t.x - camera.x, t.y - camera.y);
 
       ctx.beginPath();
-      ctx.arc(0, 0, 300, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.radius, Math.PI * 2, false);
       ctx.closePath();
       ctx.fill();
       ctx.restore();

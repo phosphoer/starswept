@@ -69,6 +69,9 @@ TANK.registerComponent("Lights")
 
   this.draw = function(ctx, camera)
   {
+    if (camera.z > 6)
+      return;
+
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);

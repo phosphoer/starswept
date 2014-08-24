@@ -339,11 +339,51 @@ TANK.registerComponent('Ship')
     ctx.translate(this.image.width / -2, this.image.height / -2);
 
     // Draw the main ship buffer
-    this.redrawShip();
-    ctx.drawImage(this.mainBuffer.canvas, 0, 0);
+    if (camera.z <= 8)
+    {
+      this.redrawShip();
+      ctx.drawImage(this.mainBuffer.canvas, 0, 0);
+    }
+
+    if (camera.z >= 6)
+    {
+      // Draw ship indicator
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (camera.z - 6) / 4);
+      ctx.scale(this.image.width, this.image.height);
+
+      // Simple triangle for fighter
+      ctx.fillStyle = this.faction ? this.faction.shipColor : '#555';
+      ctx.beginPath();
+      if (this.shipData.class === 1)
+      {
+        ctx.moveTo(0, 0);
+        ctx.lineTo(1, 0.5);
+        ctx.lineTo(0, 1);
+      }
+      // Arrow for bomber
+      else if (this.shipData.class === 2)
+      {
+        ctx.moveTo(0.0, 0.0);
+        ctx.lineTo(1.0, 0.5);
+        ctx.lineTo(0.0, 1.0);
+        ctx.lineTo(0.4, 0.5);
+      }
+      // Diamond for frigate
+      else if (this.shipData.class === 3)
+      {
+        ctx.moveTo(0.5, 1.0);
+        ctx.lineTo(1.0, 0.5);
+        ctx.lineTo(0.5, 0.0);
+        ctx.lineTo(0.0, 0.5);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Draw team indicator
-    if (camera.z < 8 && this.faction)
+    if (camera.z <= 6 && this.faction)
     {
       ctx.globalAlpha = 1;
       ctx.fillStyle = this.faction.color;

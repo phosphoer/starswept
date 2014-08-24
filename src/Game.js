@@ -13,12 +13,14 @@ TANK.registerComponent('Game')
     {
       player: true,
       color: '#3c3',
+      shipColor: '#2d2',
       battleAI: 'Faction',
       team: 0,
     },
     {
       player: false,
       color: '#d55',
+      shipColor: '#c44',
       battleAI: 'AIFaction',
       team: 1
     }
@@ -275,6 +277,7 @@ TANK.registerComponent('Game')
       var e = TANK.createEntity(players[i].battleAI);
       e.Faction.team = players[i].team;
       e.Faction.color = players[i].color;
+      e.Faction.shipColor = players[i].shipColor;
       players[i].faction = e.Faction;
       TANK.main.addChild(e);
     }
