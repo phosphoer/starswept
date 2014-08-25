@@ -1693,7 +1693,7 @@ TANK.registerComponent('Game')
 .construct(function()
 {
   // Game scale factor
-  this.scaleFactor = 3;
+  this.scaleFactor = 2;
 
   // Current existing factions
   this.players =
@@ -1981,7 +1981,7 @@ TANK.registerComponent('Game')
       e = TANK.createEntity('ControlPoint');
       e.Pos2D.x = cp.x;
       e.Pos2D.y = cp.y;
-      e.Planet.radius = 96 + Math.random() * 96;
+      e.Planet.radius = 128 + Math.random() * 128;
       if (cp.faction >= 0)
         players[cp.faction].faction.addControlPoint(e.ControlPoint);
       TANK.main.addChild(e);
