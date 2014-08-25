@@ -110,6 +110,8 @@ TANK.registerComponent('Ship')
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
     this.decalBuffer.applyBuffer();
 
+    Wave.play('hit-01');
+
     // Do damage to weapons on the ship
     for (var side in this._entity.Weapons.guns)
     {

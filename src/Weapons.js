@@ -88,6 +88,9 @@ TANK.registerComponent("Weapons")
     // Create effect
     ParticleLibrary[gun.shootEffect](pos[0], pos[1], t.rotation + gun.angle);
 
+    // Play sound
+    Wave.play(gun.shootSound);
+
     // Recoil
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;

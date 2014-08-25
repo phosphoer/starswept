@@ -1754,6 +1754,7 @@ TANK.registerComponent('Game')
       shipType: i,
       activate: function()
       {
+        Wave.play('blip-01');
         that.player.faction.buyShip(this.shipType);
       }
     });
@@ -1980,7 +1981,7 @@ TANK.registerComponent('Game')
       e = TANK.createEntity('ControlPoint');
       e.Pos2D.x = cp.x;
       e.Pos2D.y = cp.y;
-      e.Planet.radius = 72 + Math.random() * 96;
+      e.Planet.radius = 96 + Math.random() * 96;
       if (cp.faction >= 0)
         players[cp.faction].faction.addControlPoint(e.ControlPoint);
       TANK.main.addChild(e);
@@ -2284,8 +2285,6 @@ function GenerateLevel(system)
   level.controlPoints[0].faction = 0;
   level.controlPoints[1].faction = 1;
 
-  // Generate ships
-
   return level;
 };
 TANK.registerComponent("Glow")
@@ -2355,13 +2354,13 @@ TANK.registerComponent("Glow")
 });
 var Guns = {};
 
-
 Guns.smallRail = function()
 {
   this.image = new Image();
-  this.image.src = "res/small-rail.png";
-  this.shootEffect = "gunFireSmall";
-  this.trailEffect = "smallRailTrail";
+  this.image.src = 'res/img/small-rail.png';
+  this.shootSound = 'small-rail-01';
+  this.shootEffect = 'gunFireSmall';
+  this.trailEffect = 'smallRailTrail';
   this.screenShake = 0;
   this.reloadTime = 1;
   this.reloadTimer = 0;
@@ -2378,9 +2377,10 @@ Guns.smallRail = function()
 Guns.mediumRail = function()
 {
   this.image = new Image();
-  this.image.src = "res/medium-rail.png";
-  this.shootEffect = "gunFireMedium";
-  this.trailEffect = "mediumRailTrail";
+  this.image.src = 'res/img/medium-rail.png';
+  this.shootSound = 'medium-rail-01';
+  this.shootEffect = 'gunFireMedium';
+  this.trailEffect = 'mediumRailTrail';
   this.screenShake = 0.5;
   this.reloadTime = 5;
   this.reloadTimer = 0;
@@ -2397,9 +2397,10 @@ Guns.mediumRail = function()
 Guns.mediumRocket = function()
 {
   this.image = new Image();
-  this.image.src = "res/small-rail.png";
-  this.shootEffect = "gunFireMedium";
-  this.trailEffect = "mediumRailTrail";
+  this.image.src = 'res/img/small-rail.png';
+  this.shootSound = 'medium-rail-01';
+  this.shootEffect = 'gunFireMedium';
+  this.trailEffect = 'mediumRailTrail';
   this.screenShake = 0.5;
   this.reloadTime = 3;
   this.reloadTimer = 0;
@@ -2661,6 +2662,24 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
+function LoadSounds()
+{
+  var sounds =
+  [
+    'small-rail-01',
+    'medium-rail-01',
+    'explode-01',
+    'blip-01',
+    'hit-01'
+  ];
+
+  for (var i = 0; i < sounds.length; ++i)
+  {
+    var name = sounds[i];
+    var fileName = 'res/snd/' + name + '.wav';
+    Wave.load(fileName, name);
+  }
+}
 TANK.registerComponent("MapGeneration")
 
 .construct(function()
@@ -4148,6 +4167,8 @@ TANK.registerComponent('Ship')
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
     this.decalBuffer.applyBuffer();
 
+    Wave.play('hit-01');
+
     // Do damage to weapons on the ship
     for (var side in this._entity.Weapons.guns)
     {
@@ -4461,8 +4482,9 @@ var Ships = {};
 
 Ships.fighter = function()
 {
-  this.name = "Fighter";
+  this.name = 'Fighter';
   this.class = 1;
+  this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
@@ -4478,7 +4500,7 @@ Ships.fighter = function()
     front:
     [
       {
-        type: "smallRail",
+        type: 'smallRail',
         x: 28,
         y: 21
       }
@@ -4487,7 +4509,7 @@ Ships.fighter = function()
   this.lights =
   [
     {
-      x: 11, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 11, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4495,7 +4517,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 9, y: 25, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 9, y: 25, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4503,7 +4525,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 14, y: 35, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 14, y: 35, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4511,7 +4533,7 @@ Ships.fighter = function()
       }
     },
     {
-      x: 23, y: 26, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 23, y: 26, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -4523,8 +4545,9 @@ Ships.fighter = function()
 
 Ships.bomber = function()
 {
-  this.name = "Bomber";
+  this.name = 'Bomber';
   this.class = 2;
+  this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.8;
   this.maxSpeed = 200;
   this.accel = 35;
@@ -4540,7 +4563,7 @@ Ships.bomber = function()
     front:
     [
       {
-        type: "mediumRocket",
+        type: 'mediumRocket',
         x: 60,
         y: 60
       }
@@ -4549,7 +4572,7 @@ Ships.bomber = function()
   this.lights =
   [
     {
-      x: 29, y: 36, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 29, y: 36, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4557,7 +4580,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 25, y: 45, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 25, y: 45, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4565,7 +4588,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 23, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 23, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4573,7 +4596,7 @@ Ships.bomber = function()
       }
     },
     {
-      x: 80, y: 29, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 80, y: 29, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -4585,8 +4608,9 @@ Ships.bomber = function()
 
 Ships.frigate = function()
 {
-  this.name = "Frigate";
+  this.name = 'Frigate';
   this.class = 3;
+  this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
   this.accel = 15;
@@ -4602,12 +4626,12 @@ Ships.frigate = function()
     left:
     [
       {
-        type: "mediumRail",
+        type: 'mediumRail',
         x: 85,
         y: 39
       },
       {
-        type: "mediumRail",
+        type: 'mediumRail',
         x: 35,
         y: 39
       }
@@ -4615,7 +4639,7 @@ Ships.frigate = function()
     front:
     [
       {
-        type: "mediumRail",
+        type: 'mediumRail',
         x: 106,
         y: 69
       }
@@ -4623,12 +4647,12 @@ Ships.frigate = function()
     right:
     [
       {
-        type: "mediumRail",
+        type: 'mediumRail',
         x: 16,
         y: 85
       },
       {
-        type: "mediumRail",
+        type: 'mediumRail',
         x: 44,
         y: 85
       }
@@ -4636,7 +4660,7 @@ Ships.frigate = function()
     back:
     [
       {
-        type: "mediumRail",
+        type: 'mediumRail',
         x: 36,
         y: 69
       }
@@ -4645,7 +4669,7 @@ Ships.frigate = function()
   this.lights =
   [
     {
-      x: 14, y: 39, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 14, y: 39, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4653,7 +4677,7 @@ Ships.frigate = function()
       }
     },
     {
-      x: 2, y: 84, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
+      x: 2, y: 84, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
       states:
       {
         on: {radius: 10, alpha: 0.8},
@@ -4661,7 +4685,7 @@ Ships.frigate = function()
       }
     },
     {
-      x: 54, y: 84, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
+      x: 54, y: 84, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
       states:
       {
         on: {alpha: 0.5},
@@ -4673,7 +4697,7 @@ Ships.frigate = function()
 
 // Ships.alien = function()
 // {
-//   this.name = "Alien";
+//   this.name = 'Alien';
 //   this.maxTurnSpeed = 0.35;
 //   this.maxSpeed = 150;
 //   this.accel = 15;
@@ -4689,7 +4713,7 @@ Ships.frigate = function()
 //   this.lights =
 //   [
 //     {
-//       x: 10, y: 33, colorA: [255, 200, 255], colorB: [255, 140, 255], state: "off", isEngine: true,
+//       x: 10, y: 33, colorA: [255, 200, 255], colorB: [255, 140, 255], state: 'off', isEngine: true,
 //       states:
 //       {
 //         on: {radius: 10, alpha: 0.8},
@@ -4711,8 +4735,8 @@ for (var i in Ships)
   ship.prototype.image = new Image();
   ship.prototype.imageEngine = new Image();
   ship.prototype.imageNormals = new Image();
-  ship.prototype.image.src = "res/" + i + ".png";
-  ship.prototype.imageNormals.src = "res/" + i + "-normals.png";
+  ship.prototype.image.src = 'res/img/' + i + '.png';
+  ship.prototype.imageNormals.src = 'res/img/' + i + '-normals.png';
 
   ship.prototype.image.onload = function()
   {
@@ -4903,6 +4927,9 @@ TANK.registerComponent("Weapons")
     // Create effect
     ParticleLibrary[gun.shootEffect](pos[0], pos[1], t.rotation + gun.angle);
 
+    // Play sound
+    Wave.play(gun.shootSound);
+
     // Recoil
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
     this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
@@ -4992,6 +5019,8 @@ TANK.registerComponent("Weapons")
 
 function main()
 {
+  LoadSounds();
+
   TANK.createEngine(["Input", "Renderer2D", "Game", "StarField", "DustField"]);
 
   TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");

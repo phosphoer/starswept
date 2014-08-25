@@ -46,7 +46,5 @@ function GenerateLevel(system)
   level.controlPoints[0].faction = 0;
   level.controlPoints[1].faction = 1;
 
-  // Generate ships
-
   return level;
 };

@@ -66,6 +66,7 @@ TANK.registerComponent('Game')
       shipType: i,
       activate: function()
       {
+        Wave.play('blip-01');
         that.player.faction.buyShip(this.shipType);
       }
     });
@@ -292,7 +293,7 @@ TANK.registerComponent('Game')
       e = TANK.createEntity('ControlPoint');
       e.Pos2D.x = cp.x;
       e.Pos2D.y = cp.y;
-      e.Planet.radius = 72 + Math.random() * 96;
+      e.Planet.radius = 96 + Math.random() * 96;
       if (cp.faction >= 0)
         players[cp.faction].faction.addControlPoint(e.ControlPoint);
       TANK.main.addChild(e);

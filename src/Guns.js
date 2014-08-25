@@ -1,12 +1,12 @@
 var Guns = {};
 
-
 Guns.smallRail = function()
 {
   this.image = new Image();
-  this.image.src = "res/small-rail.png";
-  this.shootEffect = "gunFireSmall";
-  this.trailEffect = "smallRailTrail";
+  this.image.src = 'res/img/small-rail.png';
+  this.shootSound = 'small-rail-01';
+  this.shootEffect = 'gunFireSmall';
+  this.trailEffect = 'smallRailTrail';
   this.screenShake = 0;
   this.reloadTime = 1;
   this.reloadTimer = 0;
@@ -23,9 +23,10 @@ Guns.smallRail = function()
 Guns.mediumRail = function()
 {
   this.image = new Image();
-  this.image.src = "res/medium-rail.png";
-  this.shootEffect = "gunFireMedium";
-  this.trailEffect = "mediumRailTrail";
+  this.image.src = 'res/img/medium-rail.png';
+  this.shootSound = 'medium-rail-01';
+  this.shootEffect = 'gunFireMedium';
+  this.trailEffect = 'mediumRailTrail';
   this.screenShake = 0.5;
   this.reloadTime = 5;
   this.reloadTimer = 0;
@@ -42,9 +43,10 @@ Guns.mediumRail = function()
 Guns.mediumRocket = function()
 {
   this.image = new Image();
-  this.image.src = "res/small-rail.png";
-  this.shootEffect = "gunFireMedium";
-  this.trailEffect = "mediumRailTrail";
+  this.image.src = 'res/img/small-rail.png';
+  this.shootSound = 'medium-rail-01';
+  this.shootEffect = 'gunFireMedium';
+  this.trailEffect = 'mediumRailTrail';
   this.screenShake = 0.5;
   this.reloadTime = 3;
   this.reloadTimer = 0;
