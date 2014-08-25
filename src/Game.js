@@ -6,6 +6,7 @@ TANK.registerComponent('Game')
 {
   // Game scale factor
   this.scaleFactor = 2;
+  this.volume = 0.5;
 
   // Current existing factions
   this.players =

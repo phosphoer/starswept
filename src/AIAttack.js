@@ -3,8 +3,8 @@ this.Action = this.Action || {};
 Action.AIAttack = function(e, target)
 {
   this.target = target;
-  this.attackDistanceMin = 350;
-  this.attackDistanceMax = 550;
+  this.attackDistanceMin = 450;
+  this.attackDistanceMax = 600;
   this.giveUpTimer = 5;
 
   this.update = function(dt)

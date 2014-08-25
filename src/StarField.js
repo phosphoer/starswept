@@ -8,9 +8,6 @@ TANK.registerComponent("StarField")
 
 .initialize(function()
 {
-  this.pixelBuffer = new PixelBuffer();
-  this.pixelBuffer.createBuffer(window.innerWidth, window.innerHeight);
-
   TANK.main.Renderer2D.add(this);
 
   var i;
@@ -19,8 +16,8 @@ TANK.registerComponent("StarField")
     var r =
     this.stars.push(
     {
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
+      x: Math.random(),
+      y: Math.random(),
       z: Math.random() * 0.01 + 0.001,
       size: Math.random() * 3 + 0.1,
       color: "rgba(" + Math.round(150 + Math.random() * 100) +
@@ -30,13 +27,19 @@ TANK.registerComponent("StarField")
     });
   }
 
-  for (i = 0; i < this.stars.length; ++i)
+  this.redraw = function()
   {
-    var x = (this.stars[i].x);
-    var y = (this.stars[i].y);
+    this.pixelBuffer = new PixelBuffer();
+    this.pixelBuffer.createBuffer(window.innerWidth, window.innerHeight);
 
-    this.pixelBuffer.context.fillStyle = this.stars[i].color;
-    this.pixelBuffer.context.fillRect(x, y, this.stars[i].size, this.stars[i].size);
+    for (i = 0; i < this.stars.length; ++i)
+    {
+      var x = (this.stars[i].x);
+      var y = (this.stars[i].y);
+
+      this.pixelBuffer.context.fillStyle = this.stars[i].color;
+      this.pixelBuffer.context.fillRect(x * window.innerWidth, y * window.innerHeight, this.stars[i].size, this.stars[i].size);
+    }
   }
 
   this.draw = function(ctx, camera)
@@ -46,4 +49,7 @@ TANK.registerComponent("StarField")
     ctx.drawImage(this.pixelBuffer.canvas, -window.innerWidth / 2, -window.innerHeight / 2);
     ctx.restore();
   };
+
+  window.addEventListener('resize', this.redraw.bind(this));
+  this.redraw();
 });

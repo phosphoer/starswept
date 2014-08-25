@@ -15,9 +15,7 @@ TANK.registerComponent('SoundEmitter')
   this.play = function(name)
   {
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [ear.x, ear.y]);
-    var volume = Math.min(1, earRange / dist);
-    console.log('playing at distance ', dist);
-    console.log('playing at volume ', volume);
+    var volume = Math.min(1, earRange / dist) * TANK.main.Game.volume;
     Wave.play(name, volume);
   };
 });
