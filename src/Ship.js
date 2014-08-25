@@ -143,6 +143,7 @@ TANK.registerComponent('Ship')
 
     // Create explosion effect
     ParticleLibrary.explosionMedium(t.x, t.y);
+    Wave.play(this.shipData.explodeSound);
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;

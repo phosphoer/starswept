@@ -1282,7 +1282,7 @@ TANK.registerComponent('ControlPoint')
 
 .construct(function()
 {
-  this.zdepth = 0;
+  this.zdepth = 1;
   this.faction = null;
   this.value = 5;
   this.moneyTime = 10;
@@ -2362,10 +2362,10 @@ Guns.smallRail = function()
   this.shootEffect = 'gunFireSmall';
   this.trailEffect = 'smallRailTrail';
   this.screenShake = 0;
-  this.reloadTime = 1;
+  this.reloadTime = 0.5;
   this.reloadTimer = 0;
   this.range = 500;
-  this.damage = 0.05;
+  this.damage = 0.03;
   this.projectileSpeed = 900;
   this.projectileAccel = 0;
   this.projectileSize = 1;
@@ -4200,6 +4200,7 @@ TANK.registerComponent('Ship')
 
     // Create explosion effect
     ParticleLibrary.explosionMedium(t.x, t.y);
+    Wave.play(this.shipData.explodeSound);
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
