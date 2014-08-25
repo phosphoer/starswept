@@ -35,7 +35,7 @@ Action.AIAttack = function(e, target)
     if (targetDist < this.attackDistanceMin)
     {
       ship.heading = targetDir + Math.PI;
-      ship.setSpeedPercent(1);
+      ship.setSpeedPercent(0.5);
     }
     // We want to get to a minimum distance from the target before attempting to aim at it
     else if (targetDist > this.attackDistanceMax)
@@ -2364,7 +2364,7 @@ Guns.smallRail = function()
   this.screenShake = 0;
   this.reloadTime = 0.5;
   this.reloadTimer = 0;
-  this.range = 500;
+  this.range = 700;
   this.damage = 0.03;
   this.projectileSpeed = 900;
   this.projectileAccel = 0;
@@ -2384,7 +2384,7 @@ Guns.mediumRail = function()
   this.screenShake = 0.5;
   this.reloadTime = 5;
   this.reloadTimer = 0;
-  this.range = 800;
+  this.range = 1200;
   this.damage = 0.1;
   this.projectileSpeed = 800;
   this.projectileAccel = 0;
@@ -2406,7 +2406,7 @@ Guns.mediumRocket = function()
   this.reloadTimer = 0;
   this.range = 800;
   this.damage = 0.2;
-  this.projectileLife = 5;
+  this.projectileLife = 7;
   this.projectileSpeed = 200;
   this.projectileAccel = 50;
   this.projectileSize = 3;
@@ -2662,24 +2662,6 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
-function LoadSounds()
-{
-  var sounds =
-  [
-    'small-rail-01',
-    'medium-rail-01',
-    'explode-01',
-    'blip-01',
-    'hit-01'
-  ];
-
-  for (var i = 0; i < sounds.length; ++i)
-  {
-    var name = sounds[i];
-    var fileName = 'res/snd/' + name + '.wav';
-    Wave.load(fileName, name);
-  }
-}
 TANK.registerComponent("MapGeneration")
 
 .construct(function()
@@ -4057,7 +4039,7 @@ TANK.registerComponent("Player")
 });
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'OrderTarget'])
+.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter', 'OrderTarget'])
 
 .construct(function()
 {
@@ -4167,7 +4149,7 @@ TANK.registerComponent('Ship')
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
     this.decalBuffer.applyBuffer();
 
-    Wave.play('hit-01');
+    this._entity.SoundEmitter.play('hit-01');
 
     // Do damage to weapons on the ship
     for (var side in this._entity.Weapons.guns)
@@ -4200,7 +4182,7 @@ TANK.registerComponent('Ship')
 
     // Create explosion effect
     ParticleLibrary.explosionMedium(t.x, t.y);
-    Wave.play(this.shipData.explodeSound);
+    this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
@@ -4757,6 +4739,47 @@ var bakeShipLighting = function()
   }
 };
 
+function LoadSounds()
+{
+  var sounds =
+  [
+    'small-rail-01',
+    'medium-rail-01',
+    'explode-01',
+    'blip-01',
+    'hit-01'
+  ];
+
+  for (var i = 0; i < sounds.length; ++i)
+  {
+    var name = sounds[i];
+    var fileName = 'res/snd/' + name + '.wav';
+    Wave.load(fileName, name);
+  }
+}
+TANK.registerComponent('SoundEmitter')
+
+.includes(['Pos2D'])
+
+.construct(function()
+{
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ear = TANK.main.Renderer2D.camera;
+  var earRange = 600;
+
+  this.play = function(name)
+  {
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [ear.x, ear.y]);
+    var volume = Math.min(1, earRange / dist);
+    console.log('playing at distance ', dist);
+    console.log('playing at volume ', volume);
+    Wave.play(name, volume);
+  };
+});
 TANK.registerComponent("StarField")
 
 .construct(function()
@@ -4929,7 +4952,7 @@ TANK.registerComponent("Weapons")
     ParticleLibrary[gun.shootEffect](pos[0], pos[1], t.rotation + gun.angle);
 
     // Play sound
-    Wave.play(gun.shootSound);
+    this._entity.SoundEmitter.play(gun.shootSound);
 
     // Recoil
     this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;

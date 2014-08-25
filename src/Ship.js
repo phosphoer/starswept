@@ -1,6 +1,6 @@
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'OrderTarget'])
+.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter', 'OrderTarget'])
 
 .construct(function()
 {
@@ -110,7 +110,7 @@ TANK.registerComponent('Ship')
     this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
     this.decalBuffer.applyBuffer();
 
-    Wave.play('hit-01');
+    this._entity.SoundEmitter.play('hit-01');
 
     // Do damage to weapons on the ship
     for (var side in this._entity.Weapons.guns)
@@ -143,7 +143,7 @@ TANK.registerComponent('Ship')
 
     // Create explosion effect
     ParticleLibrary.explosionMedium(t.x, t.y);
-    Wave.play(this.shipData.explodeSound);
+    this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;

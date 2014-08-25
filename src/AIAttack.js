@@ -35,7 +35,7 @@ Action.AIAttack = function(e, target)
     if (targetDist < this.attackDistanceMin)
     {
       ship.heading = targetDir + Math.PI;
-      ship.setSpeedPercent(1);
+      ship.setSpeedPercent(0.5);
     }
     // We want to get to a minimum distance from the target before attempting to aim at it
     else if (targetDist > this.attackDistanceMax)
