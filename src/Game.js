@@ -516,24 +516,8 @@ TANK.registerComponent('Game')
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
     if (TANK.main.Renderer2D.camera.z < 0.5)
       TANK.main.Renderer2D.camera.z = 0.5;
-    if (TANK.main.Renderer2D.camera.z > 15)
-      TANK.main.Renderer2D.camera.z = 15;
-  });
-
-  this.listenTo(TANK.main, 'gesturechange', function(e)
-  {
-    if (e.scale)
-    {
-      this.zooming = true;
-      var scale = 1 / e.scale;
-      scale = Math.min(scale, 1.1);
-      scale = Math.max(scale, 0.9);
-      TANK.main.Renderer2D.camera.z *= scale;
-      if (TANK.main.Renderer2D.camera.z < 1)
-        TANK.main.Renderer2D.camera.z = 1;
-      if (TANK.main.Renderer2D.camera.z > 15)
-        TANK.main.Renderer2D.camera.z = 15;
-    }
+    if (TANK.main.Renderer2D.camera.z > 20)
+      TANK.main.Renderer2D.camera.z = 20;
   });
 
   //

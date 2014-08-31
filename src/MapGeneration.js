@@ -32,7 +32,7 @@ TANK.registerComponent("MapGeneration")
         ],
         radius: 20,
         edges: [],
-        owner: TANK.main.Game.players[1],
+        owner: null,
         flagships: [],
         numPlanets: Math.round(Math.random() * 4) + 2,
         seed: Math.random(),
@@ -123,9 +123,23 @@ TANK.registerComponent("MapGeneration")
     // Make the first node owned
     this.systems[0].owner = TANK.main.Game.players[0];
 
+    // Make the farther node from that owned by the enemy
+    var maxDist = 0;
+    var farthest = null;
+    for (var i = 1; i < this.systems.length; ++i)
+    {
+      var dist = TANK.Math2D.pointDistancePoint(this.systems[0].pos, this.systems[i].pos);
+      if (dist > maxDist)
+      {
+        maxDist = dist;
+        farthest = this.systems[i];
+      }
+    }
+    farthest.owner = TANK.main.Game.players[1];
+
     // Init flagships
     this.systems[0].flagships[0] = true;
-    this.systems[1].flagships[1] = true;
+    farthest.flagships[1] = true;
 
     // Helper to recursively explore a graph
     var exploreNode = function(node, islandNodes)

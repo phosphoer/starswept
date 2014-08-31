@@ -1108,8 +1108,16 @@ TANK.registerComponent("CampaignMap")
 
     if (mode === 'attack')
     {
-      TANK.main.Game.goToSystemBattle(system, system.owner, this.currentPlayer);
       system.isBeingAttacked = false;
+      if (!system.owner)
+      {
+        system.owner = this.currentPlayer;
+        this.nextTurn();
+      }
+      else
+      {
+        TANK.main.Game.goToSystemBattle(system, system.owner, this.currentPlayer);
+      }
     }
     else if (mode === 'fortify')
     {
@@ -1168,7 +1176,7 @@ TANK.registerComponent("CampaignMap")
         if (drawnEdges.indexOf(systemB) >= 0)
           continue;
 
-        ctx.strokeStyle = owner.color;
+        ctx.strokeStyle = owner ? owner.color : '#666';
 
         ctx.beginPath();
         ctx.moveTo(system.pos[0], system.pos[1]);
@@ -1209,7 +1217,7 @@ TANK.registerComponent("CampaignMap")
       }
 
       // Draw system
-      ctx.fillStyle = owner.color;
+      ctx.fillStyle = owner ? owner.color : '#666';
       ctx.beginPath();
       ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
       ctx.fill();
@@ -2204,24 +2212,8 @@ TANK.registerComponent('Game')
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
     if (TANK.main.Renderer2D.camera.z < 0.5)
       TANK.main.Renderer2D.camera.z = 0.5;
-    if (TANK.main.Renderer2D.camera.z > 15)
-      TANK.main.Renderer2D.camera.z = 15;
-  });
-
-  this.listenTo(TANK.main, 'gesturechange', function(e)
-  {
-    if (e.scale)
-    {
-      this.zooming = true;
-      var scale = 1 / e.scale;
-      scale = Math.min(scale, 1.1);
-      scale = Math.max(scale, 0.9);
-      TANK.main.Renderer2D.camera.z *= scale;
-      if (TANK.main.Renderer2D.camera.z < 1)
-        TANK.main.Renderer2D.camera.z = 1;
-      if (TANK.main.Renderer2D.camera.z > 15)
-        TANK.main.Renderer2D.camera.z = 15;
-    }
+    if (TANK.main.Renderer2D.camera.z > 20)
+      TANK.main.Renderer2D.camera.z = 20;
   });
 
   //
@@ -2713,7 +2705,7 @@ TANK.registerComponent("MapGeneration")
         ],
         radius: 20,
         edges: [],
-        owner: TANK.main.Game.players[1],
+        owner: null,
         flagships: [],
         numPlanets: Math.round(Math.random() * 4) + 2,
         seed: Math.random(),
@@ -2804,9 +2796,23 @@ TANK.registerComponent("MapGeneration")
     // Make the first node owned
     this.systems[0].owner = TANK.main.Game.players[0];
 
+    // Make the farther node from that owned by the enemy
+    var maxDist = 0;
+    var farthest = null;
+    for (var i = 1; i < this.systems.length; ++i)
+    {
+      var dist = TANK.Math2D.pointDistancePoint(this.systems[0].pos, this.systems[i].pos);
+      if (dist > maxDist)
+      {
+        maxDist = dist;
+        farthest = this.systems[i];
+      }
+    }
+    farthest.owner = TANK.main.Game.players[1];
+
     // Init flagships
     this.systems[0].flagships[0] = true;
-    this.systems[1].flagships[1] = true;
+    farthest.flagships[1] = true;
 
     // Helper to recursively explore a graph
     var exploreNode = function(node, islandNodes)

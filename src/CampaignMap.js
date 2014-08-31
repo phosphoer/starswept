@@ -253,8 +253,16 @@ TANK.registerComponent("CampaignMap")
 
     if (mode === 'attack')
     {
-      TANK.main.Game.goToSystemBattle(system, system.owner, this.currentPlayer);
       system.isBeingAttacked = false;
+      if (!system.owner)
+      {
+        system.owner = this.currentPlayer;
+        this.nextTurn();
+      }
+      else
+      {
+        TANK.main.Game.goToSystemBattle(system, system.owner, this.currentPlayer);
+      }
     }
     else if (mode === 'fortify')
     {
@@ -313,7 +321,7 @@ TANK.registerComponent("CampaignMap")
         if (drawnEdges.indexOf(systemB) >= 0)
           continue;
 
-        ctx.strokeStyle = owner.color;
+        ctx.strokeStyle = owner ? owner.color : '#666';
 
         ctx.beginPath();
         ctx.moveTo(system.pos[0], system.pos[1]);
@@ -354,7 +362,7 @@ TANK.registerComponent("CampaignMap")
       }
 
       // Draw system
-      ctx.fillStyle = owner.color;
+      ctx.fillStyle = owner ? owner.color : '#666';
       ctx.beginPath();
       ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
       ctx.fill();
