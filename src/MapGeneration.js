@@ -34,7 +34,9 @@ TANK.registerComponent("MapGeneration")
         edges: [],
         owner: TANK.main.Game.players[1],
         flagships: [],
-        fortifyLevel: 0
+        numPlanets: Math.round(Math.random() * 4) + 2,
+        seed: Math.random(),
+        fortifyLevel: 1
       });
 
       // Ensure systems are far apart

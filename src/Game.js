@@ -269,9 +269,13 @@ TANK.registerComponent('Game')
 
     // Player start ships
     var cp0 = level.controlPoints[0];
-    var cp1 = level.controlPoints[1];
+    var cp1 = level.attackerCP;
     level.ships.push({player: players[0].player, faction: 0, ship: 'frigate', x: cp0.x, y: cp0.y});
-    level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: cp1.x, y: cp1.y});
+
+    if (cp1)
+      level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: cp1.x, y: cp1.y});
+    else
+      level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: 10000, y: 0});
 
     // Create faction entities
     for (var i = 0; i < players.length; ++i)

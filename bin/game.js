@@ -1957,9 +1957,13 @@ TANK.registerComponent('Game')
 
     // Player start ships
     var cp0 = level.controlPoints[0];
-    var cp1 = level.controlPoints[1];
+    var cp1 = level.attackerCP;
     level.ships.push({player: players[0].player, faction: 0, ship: 'frigate', x: cp0.x, y: cp0.y});
-    level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: cp1.x, y: cp1.y});
+
+    if (cp1)
+      level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: cp1.x, y: cp1.y});
+    else
+      level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: 10000, y: 0});
 
     // Create faction entities
     for (var i = 0; i < players.length; ++i)
@@ -2240,15 +2244,14 @@ TANK.registerComponent('Game')
 
 function GenerateLevel(system)
 {
+  var rng = new RNG(system.seed);
+
   // Basic info
   var level = {};
-  level.lightDir = Math.random() * Math.PI * 2;
+  level.lightDir = rng.uniform() * Math.PI * 2;
   level.lightDiffuse = [0.8, 1, 1];
   level.controlPoints = [];
   level.ships = [];
-
-  // Number of control points
-  var numControlPoints = Math.round(Math.sqrt(Math.random()) * 5) + 2;
 
   // Level size
   var levelSize = 10000;
@@ -2257,12 +2260,12 @@ function GenerateLevel(system)
   var minPlanetDist = 3000;
 
   // Generate control point locations
-  for (var i = 0; i < numControlPoints; ++i)
+  for (var i = 0; i < system.numPlanets; ++i)
   {
-    var cp = {x: Math.random() * levelSize, y: Math.random() * levelSize, faction: -1};
+    var cp = {x: rng.uniform() * levelSize, y: rng.uniform() * levelSize, faction: -1};
 
     // Ensure points are far apart
-    var angle = Math.random() * Math.PI * 2;
+    var angle = rng.uniform() * Math.PI * 2;
     for (;;)
     {
       var minDist = level.controlPoints.reduce(function(prev, cur)
@@ -2279,12 +2282,25 @@ function GenerateLevel(system)
       cp.y += Math.sin(angle) * 100;
     }
 
+    // Defender owns fortifyLevel amount of planets
+    if (i < system.fortifyLevel)
+      cp.faction = 0;
+
     level.controlPoints.push(cp);
   }
 
-  // Assign factions to control points
-  level.controlPoints[0].faction = 0;
-  level.controlPoints[1].faction = 1;
+  // Assign an attacker owned planet if fortify level isn't max
+  if (system.fortifyLevel < system.numPlanets)
+  {
+    level.attackerCP = level.controlPoints[level.controlPoints.length - 1];
+    level.attackerCP.faction = 1;
+  }
+  // If fortifyLevel is maxed, spawn an attack force?
+  else
+  {
+    level.ships.push({player: false, faction: 1, ship: 'frigate', x: levelSize, y: 200});
+  }
+
 
   return level;
 };
@@ -2699,7 +2715,9 @@ TANK.registerComponent("MapGeneration")
         edges: [],
         owner: TANK.main.Game.players[1],
         flagships: [],
-        fortifyLevel: 0
+        numPlanets: Math.round(Math.random() * 4) + 2,
+        seed: Math.random(),
+        fortifyLevel: 1
       });
 
       // Ensure systems are far apart
@@ -2912,7 +2930,7 @@ ParticleLibrary.slowMediumFire = function()
   var e = TANK.createEntity("ParticleEmitter");
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
   emitter.spawnOffsetMin = [-50, -50];
   emitter.spawnOffsetMax = [50, 50];
   emitter.spawnScaleMin = 1;
@@ -2951,7 +2969,7 @@ ParticleLibrary.explosionMediumFire = function(x, y)
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
   emitter.spawnOffsetMin = [-40, -40];
   emitter.spawnOffsetMax = [40, 40];
   emitter.spawnSpeedMin = 150;
@@ -2983,7 +3001,7 @@ ParticleLibrary.explosionMediumFireballs = function(x, y)
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 250;
@@ -3014,7 +3032,7 @@ ParticleLibrary.explosionMediumSparks = function(x, y)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 350;
@@ -3045,7 +3063,7 @@ ParticleLibrary.explosionMediumSmoke = function(x, y)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.particleImage.src = "res/img/particle-smoke-1.png";
   emitter.spawnOffsetMin = [-70, -70];
   emitter.spawnOffsetMax = [70, 70];
   emitter.spawnSpeedMin = 50;
@@ -3086,7 +3104,7 @@ ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.particleImage.src = "res/img/particle-smoke-1.png";
   emitter.spawnOffsetMin = [-8, -8];
   emitter.spawnOffsetMax = [8, 8];
   emitter.spawnSpeedMin = 100;
@@ -3119,7 +3137,7 @@ ParticleLibrary.gunFireSmallSparks = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -3160,7 +3178,7 @@ ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.particleImage.src = "res/img/particle-smoke-1.png";
   emitter.spawnOffsetMin = [-20, -20];
   emitter.spawnOffsetMax = [20, 20];
   emitter.spawnSpeedMin = 100;
@@ -3193,7 +3211,7 @@ ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 350;
@@ -3224,7 +3242,7 @@ ParticleLibrary.damageMedium = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -3251,7 +3269,7 @@ ParticleLibrary.smallRailTrail = function()
 {
   var e = TANK.createEntity(["ParticleEmitter"]);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnPerSecond = 100;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.3;
@@ -3267,7 +3285,7 @@ ParticleLibrary.mediumRailTrail = function()
 {
   var e = TANK.createEntity(["ParticleEmitter"]);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnPerSecond = 200;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.4;
