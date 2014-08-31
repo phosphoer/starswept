@@ -369,11 +369,14 @@ TANK.registerComponent("CampaignMap")
       ctx.closePath();
 
       // Draw fortify level
-      ctx.fillStyle = '#fff';
-      ctx.font = '18px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(system.fortifyLevel, system.pos[0], system.pos[1]);
+      if (system.owner)
+      {
+        ctx.fillStyle = '#fff';
+        ctx.font = '18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(system.fortifyLevel, system.pos[0], system.pos[1]);
+      }
 
       // Draw flagship
       for (var j = 0; j < TANK.main.Game.players.length; ++j)
