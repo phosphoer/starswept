@@ -1,6 +1,6 @@
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter', 'OrderTarget'])
+.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter'])
 
 .construct(function()
 {
@@ -14,7 +14,6 @@ TANK.registerComponent('Ship')
   this.dead = false;
 
   this.shipData = null;
-  this.faction = null;
   this.deadTimer = 0;
 })
 
@@ -48,8 +47,6 @@ TANK.registerComponent('Ship')
   this._entity.Lights.redrawLights();
   this._entity.Collider2D.width = this.image.width * TANK.main.Game.scaleFactor;
   this._entity.Collider2D.height = this.image.height * TANK.main.Game.scaleFactor;
-  this._entity.Clickable.width = this.image.width * TANK.main.Game.scaleFactor;
-  this._entity.Clickable.height = this.image.height * TANK.main.Game.scaleFactor;
   this._entity.Weapons.width = this.image.width;
   this._entity.Weapons.height = this.image.height;
   this._entity.Engines.size = this.shipData.engineSize;
@@ -131,12 +128,6 @@ TANK.registerComponent('Ship')
   // Explode the ship
   this.explode = function()
   {
-    // If we are the player, we should transfer player control to another ship
-    if (this._entity.Player)
-    {
-      TANK.main.dispatchTimed(1, 'scanforplayership', this.faction, [t.x, t.y]);
-    }
-
     // Remove objects
     TANK.main.removeChild(this._entity);
     TANK.main.removeChild(this.exploder);
@@ -151,11 +142,6 @@ TANK.registerComponent('Ship')
     if (dist < window.innerWidth / 2)
       TANK.main.dispatch('camerashake', 0.5);
   };
-
-  this.listenTo(TANK.main, 'systemBattleEnd', function()
-  {
-    TANK.main.removeChild(this._entity);
-  });
 
   // Damage response
   this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
@@ -281,25 +267,6 @@ TANK.registerComponent('Ship')
       this.thrustAlpha -= dt;
     this.thrustAlpha = Math.max(0, this.thrustAlpha);
     this.thrustAlpha = Math.min(1, this.thrustAlpha);
-
-    // Capture nearby control points
-    var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
-    for (var i in controlPoints)
-    {
-      var e = controlPoints[i];
-
-      // Skip control points that belong to us and aren't contested
-      if (e.ControlPoint.faction && e.ControlPoint.faction.team === this.faction.team && !e.ControlPoint.pendingFaction)
-        continue;
-
-      // Try to capture or restore control point if it is within range
-      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [e.Pos2D.x, e.Pos2D.y]);
-      if (dist < e.ControlPoint.captureDistance)
-      {
-        e.ControlPoint.tryCapture(this.faction, 0.1 * dt);
-        break;
-      }
-    };
   };
 
   this.redrawShip = function()
@@ -342,82 +309,8 @@ TANK.registerComponent('Ship')
     ctx.translate(this.image.width / -2, this.image.height / -2);
 
     // Draw the main ship buffer
-    if (camera.z <= 8)
-    {
-      this.redrawShip();
-      ctx.drawImage(this.mainBuffer.canvas, 0, 0);
-    }
-
-    if (camera.z >= 6)
-    {
-      // Draw ship indicator
-      ctx.save();
-      ctx.globalAlpha = Math.min(1, (camera.z - 6) / 4);
-      ctx.scale(this.image.width, this.image.height);
-
-      // Simple triangle for fighter
-      ctx.fillStyle = this.faction ? this.faction.shipColor : '#555';
-      ctx.beginPath();
-      if (this.shipData.class === 1)
-      {
-        ctx.moveTo(0, 0.1);
-        ctx.lineTo(1, 0.5);
-        ctx.lineTo(0, 0.9);
-      }
-      // Arrow for bomber
-      else if (this.shipData.class === 2)
-      {
-        ctx.moveTo(0.0, 0.0);
-        ctx.lineTo(1.0, 0.5);
-        ctx.lineTo(0.0, 1.0);
-        ctx.lineTo(0.3, 0.5);
-      }
-      // Diamond for frigate
-      else if (this.shipData.class === 3)
-      {
-        ctx.moveTo(0.5, 0.9);
-        ctx.lineTo(1.0, 0.5);
-        ctx.lineTo(0.5, 0.1);
-        ctx.lineTo(0.0, 0.5);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Draw team indicator
-    if (camera.z <= 6 && this.faction)
-    {
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = this.faction.color;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-5, -2.5);
-      ctx.lineTo(-2.5, -5);
-
-      ctx.moveTo(this.image.width, 0);
-      ctx.lineTo(this.image.width + 5, -2.5);
-      ctx.lineTo(this.image.width + 2.5, -5);
-
-      ctx.moveTo(this.image.width, this.image.height);
-      ctx.lineTo(this.image.width + 5, this.image.height + 2.5);
-      ctx.lineTo(this.image.width + 2.5, this.image.height + 5);
-
-      ctx.moveTo(0, this.image.height);
-      ctx.lineTo(-5, this.image.height + 2.5);
-      ctx.lineTo(-2.5, this.image.height + 5);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // Draw selection box
-    if (this.selected)
-    {
-      ctx.globalAlpha = 1;
-      ctx.lineWidth = 1 * camera.z;
-      ctx.strokeStyle = 'rgba(150, 255, 150, 0.8)';
-      ctx.strokeRect(0, 0, this.image.width, this.image.height);
-    }
+    this.redrawShip();
+    ctx.drawImage(this.mainBuffer.canvas, 0, 0);
 
     ctx.restore();
   };

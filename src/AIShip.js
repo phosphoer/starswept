@@ -21,61 +21,6 @@ TANK.registerComponent("AIShip")
 
   });
 
-  // Get the name of a context order
-  this.getContextOrder = function(target)
-  {
-    if (!target)
-      return null;
-
-    // Do something with a ship
-    if (target.Ship)
-    {
-      // Attack the ship if it is an enemy
-      if (target.Ship.faction.team !== ship.faction.team)
-        return "Attack";
-      else
-        return "Escort";
-    }
-    // Go to a control point
-    else if (target.ControlPoint)
-    {
-      if (!target.ControlPoint.faction || target.ControlPoint.faction.team !== ship.faction.team)
-        return "Capture";
-      else
-        return "Defend";
-    }
-
-    return null;
-  };
-
-  // Handle being given an order to do something with an object
-  this.giveContextOrder = function(target)
-  {
-    if (!target)
-      return;
-
-    // Do something with a ship
-    if (target.Ship)
-    {
-      this.clearOrders();
-      // Attack the ship if it is an enemy
-      if (target.Ship.faction.team != ship.faction.team)
-        this.addOrder(new Action.AIAttack(this._entity, target));
-      // Otherwise, escort the ship
-      else
-        this.addOrder(new Action.AIEscort(this._entity, target));
-    }
-    // Go to a control point
-    else if (target.ControlPoint)
-    {
-      this.clearOrders();
-      if (!target.ControlPoint.faction || target.ControlPoint.faction.team !== ship.faction.team)
-        this.addOrder(new Action.AIDefend(this._entity, target));
-      else
-        this.addOrder(new Action.AIDefend(this._entity, target));
-    }
-  };
-
   // Add an action to the queue
   this.addOrder = function(order)
   {

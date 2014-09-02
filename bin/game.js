@@ -55,99 +55,6 @@ Action.AIAttack = function(e, target)
 };
 this.Action = this.Action || {};
 
-Action.AIDefend = function(e, target)
-{ 
-  this.timer = 0;
-  this.stayTime = 20;
-  this.defendPos = [0, 0];
-  this.desiredDist = 200;
-  this.maxDefendDist = 600;
-  this.aggroDistance = 800;
-  this.scanTimer = 1;
-
-  this.update = function(dt)
-  {
-    var t = e.Pos2D;
-
-    // Pick a new defend position
-    this.timer -= dt;
-    if (this.timer <= 0)
-    {
-      this.pickNewPos();
-      this.timer = this.stayTime;
-    }
-
-    // Move to the control point and stop
-    var dist = TANK.Math2D.pointDistancePoint(this.defendPos, [t.x, t.y]);
-    if (dist > this.desiredDist * 3)
-      e.Ship.moveTowards(this.defendPos);
-    else if (dist > this.desiredDist)
-      e.Ship.moveTowards(this.defendPos, 0.3)
-    else
-      e.Ship.setSpeedPercent(0);
-
-    // Once we are in our defend location, we should attack any enemy ships
-    // that come near the location
-    this.scanTimer -= dt;
-    if (dist <= this.desiredDist && this.scanTimer < 0)
-    {
-      this.scanTimer = 1;
-
-      var ships = TANK.main.getChildrenWithComponent("Ship");
-      for (var i in ships)
-      {
-        // Skip ships on our team
-        var obj = ships[i];
-        if (obj.Ship.faction.team === e.Ship.faction.team)
-          continue;
-
-        // If we see a ship, clear our order queue, attack the ship, and then go back to defending this point
-        if (TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], this.defendPos) <= this.aggroDistance)
-        {
-          e.AIShip.clearOrders();
-          e.AIShip.addOrder(new Action.AIAttack(e, obj));
-          e.AIShip.addOrder(new Action.AIDefend(e, target));
-        }
-      }
-    }
-  };
-
-  this.pickNewPos = function()
-  {
-    var angle = Math.random() * Math.PI * 2;
-    var dist = Math.random() * this.maxDefendDist;
-    var offsetVec = [Math.cos(angle) * dist, Math.sin(angle) * dist];
-    this.defendPos = TANK.Math2D.add([target.Pos2D.x, target.Pos2D.y], offsetVec);
-  };
-};
-
-Action.AIDefendNearest = function(e)
-{
-  this.update = function(dt)
-  {
-    // Look at all friendly control points and give a defend
-    // order for the nearest one
-    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
-    var minDist = Infinity;
-    var nearest = null;
-    for (var i in controlPoints)
-    {
-      var obj = controlPoints[i];
-      var dist = TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], [e.Pos2D.x, e.Pos2D.y]);
-      if (dist < minDist)
-      {
-        minDist = dist;
-        nearest = obj;
-      }
-    }
-
-    e.AIShip.addOrder(new Action.AIDefend(e, nearest));
-    return true;
-  };
-};
-
-this.Action = this.Action || {};
-
 Action.AIEscort = function(e, target)
 {
   this.target = target;
@@ -210,359 +117,6 @@ Action.AIEscort = function(e, target)
   };
 };
 
-(function()
-{
-
-TANK.registerComponent("AIFaction")
-.includes("Faction")
-.construct(function()
-{
-  this.name = "new";
-  this.projects = [];
-
-  this.idleShipScanTime = 5;
-  this.idleShipScanTimer = 0;
-  this.idleShips = [];
-
-  this.attackProject = null;
-  this.attackTarget = null;
-  this.attackStrength = 1;
-  this.attackTime = 40;
-  this.attackTimer = 0;
-
-  this.defenseIncreaseTimer = 25;
-  this.defenseTime = 25;
-  this.defenseTimer = 0;
-  this.defenseStrength = 1;
-  this.defenseProjects = {};
-})
-.initialize(function()
-{
-  var faction = this._entity.Faction;
-  var that = this;
-
-  this.calculateThreatAtPos = function(pos, radius, targetFaction)
-  {
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    var threat = 0;
-    for (var i in ships)
-    {
-      if (targetFaction && ships[i].Ship.faction !== targetFaction)
-        continue;
-      else if (!targetFaction && ships[i].Ship.faction === faction)
-        continue;
-
-      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
-      if (dist < radius)
-        threat += ships[i].Ship.shipData.threat;
-    }
-
-    return threat;
-  };
-
-  this.findIdleShips = function()
-  {
-    this.idleShips = [];
-    var ships = TANK.main.getChildrenWithComponent("AIShip");
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
-        this.idleShips.push(ships[i]);
-    }
-  };
-
-  this.say = function(message)
-  {
-    console.log("AI " + this.name + "(" + faction.team + "): " + message);
-  };
-
-  this.update = function(dt)
-  {
-    // We should have a defense project for each owned control point
-    this.defenseTimer -= dt;
-    if (this.defenseTimer <= 0)
-    {
-      this.defenseTimer = this.defenseTime;
-      for (var i = 0; i < faction.controlPoints.length; ++i)
-      {
-        var cp = faction.controlPoints[i];
-
-        // If there isn't a project for this point, create one
-        if (!this.defenseProjects[cp._entity._id])
-        {
-          this.say('defense project created');
-          var project = new AIProject(this);
-          project.target = cp._entity;
-          project.buildCombatGroup(this.defenseStrength);
-          project.acquireShips();
-          this.projects.push(project);
-          this.defenseProjects[cp._entity._id] = project;
-
-          // End the project if the control point no longer exists
-          var that = this;
-          project.completeCondition = function()
-          {
-            if (!TANK.main.getChild(this.target._id) || this.target.ControlPoint.faction !== faction)
-            {
-              that.say('defense project over');
-              delete that.defenseProjects[this.target._id];
-              return true;
-            }
-            return false;
-          };
-        }
-        else
-        {
-          this.defenseProjects[cp._entity._id].buildShipsForThreat(this.defenseStrength);
-          this.defenseProjects[cp._entity._id].refresh();
-        }
-      }
-    }
-
-    // Increase defense strength over time
-    this.defenseIncreaseTimer -= dt;
-    if (this.defenseIncreaseTimer < 0)
-    {
-      var choice = Math.random();
-      if (choice < 0.5)
-        this.defenseStrength += Math.random() * 5;
-      else
-        this.defenseStrength += 10 * (Math.random() * 3.1);
-      this.defenseIncreaseTimer = (60 + Math.random() * 60) * this.defenseStrength;
-      this.defenseStrength = Math.round(this.defenseStrength);
-      this.say('increasing defenses to ' + this.defenseStrength);
-    }
-
-    // Find an attack target with low defense
-    if (!this.attackTarget)
-    {
-      this.say('searching for target');
-      var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
-      var minThreat = Infinity;
-      for (var i in controlPoints)
-      {
-        var e = controlPoints[i];
-        if (!e.ControlPoint.faction || e.ControlPoint.faction.team !== faction.team)
-        {
-          var threat = this.calculateThreatAtPos([e.Pos2D.x, e.Pos2D.y], 600);
-          if (!e.ControlPoint.faction)
-            threat = -1;
-          if (threat < minThreat)
-          {
-            minThreat = threat;
-            this.attackTarget = e;
-          }
-        }
-      }
-
-      if (this.attackTarget)
-        this.say('target found');
-    }
-    // Make an attack project if we don't have one
-    else if (this.attackTarget && !this.attackProject)
-    {
-      this.say('attack project created');
-      this.attackProject = new AIProject(this);
-      this.attackProject.target = this.attackTarget;
-      var that = this;
-      this.attackProject.completeCondition = function()
-      {
-        var complete = that.attackTarget.ControlPoint.faction === faction;
-        if (complete)
-        {
-          that.say('attack project complete');
-          that.attackProject = null;
-          that.attackTarget = null;
-        }
-        return complete;
-      };
-      this.projects.push(this.attackProject);
-    }
-    // Update attack project
-    else if (this.attackTarget && this.attackProject)
-    {
-      this.attackTimer += dt;
-      if (this.attackTimer > this.attackTime)
-      {
-        this.say('attack group queued');
-        this.attackTimer = 0;
-        this.attackProject.buildShipsForThreat(this.attackStrength);
-        this.attackProject.refresh();
-        if (Math.random() < 0.5)
-          this.attackStrength += Math.random() * 5;
-        else
-          this.attackStrength += 10 * (Math.random() * 3.1);
-        this.attackTime *= 1.1;
-        this.attackTime += Math.random() * 20;
-        this.attackTime = Math.round(this.attackTime);
-        this.attackStrength = Math.round(this.attackStrength);
-        this.say('next attack in ' + this.attackTime + ' seconds with strength ' + this.attackStrength);
-      }
-    }
-
-    // Find idle ships
-    this.idleShipScanTimer -= dt;
-    if (this.idleShipScanTimer <= 0)
-    {
-      this.idleShipScanTimer = this.idleShipScanTime;
-      this.findIdleShips();
-    }
-
-    // Update existing projects
-    for (var i = 0; i < this.projects.length; ++i)
-    {
-      this.projects[i].update(dt);
-      if (this.projects[i].complete)
-        this.projects[i] = null;
-    }
-    this.projects = this.projects.filter(function(val) {return val !== null;});
-  };
-});
-
-
-})();
-function AIProject(aiFaction)
-{
-  this.target = null;
-  this.shipsQueued = 0;
-  this.shipsRequired = [];
-  this.ready = false;
-  this.inProgress = false;
-  this.complete = false;
-
-  var faction = aiFaction._entity.Faction;
-
-  this.completeCondition = function()
-  {
-    return false;
-  };
-
-  this.buildCombatGroup = function(threat)
-  {
-    var tries = 50;
-    var selectedShip = null;
-    do
-    {
-      --tries;
-
-      // Find the ship with the closest threat level
-      selectedShip = null;
-      var highestThreat = 0;
-      for (var i in Ships)
-      {
-        var shipData = new Ships[i];
-        if (shipData.threat <= threat && shipData.threat > highestThreat)
-        {
-          highestThreat = shipData.threat;
-          selectedShip = i;
-        }
-      }
-
-      // Add the selected ship
-      if (selectedShip)
-      {
-        threat -= highestThreat;
-        this.shipsRequired.push({type: selectedShip});
-      }
-    } while (threat > 0 && selectedShip);
-  };
-
-  this.buildShipsForThreat = function(threat)
-  {
-    // Find current strength
-    var currentStrength = 0;
-    for (var i = 0; i < this.shipsRequired.length; ++i)
-    {
-      var shipData = new Ships[this.shipsRequired[i].type]();
-      currentStrength += shipData.threat;
-    }
-
-    // Add ships to match threat
-    if (currentStrength < threat)
-    {
-      var diff = threat - currentStrength;
-      this.buildCombatGroup(diff);
-    }
-  };
-
-  this.acquireShips = function()
-  {
-    // Assign any existing idle ships
-    for (var i = 0; i < this.shipsRequired.length; ++i)
-    {
-      for (var j = 0; j < aiFaction.idleShips.length; ++j)
-      {
-        if (!this.shipsRequired[i].assignedShip && aiFaction.idleShips[j] && aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
-        {
-          this.shipsRequired[i].assignedShip = aiFaction.idleShips[j];
-          aiFaction.idleShips[j] = null;
-          break;
-        }
-      }
-    }
-    aiFaction.idleShips = aiFaction.idleShips.filter(function(val) {return val !== null;});
-
-    // Queue ships for construction to fill remaining places
-    var that = this;
-    for (var i = 0; i < this.shipsRequired.length; ++i)
-    {
-      if (!this.shipsRequired[i].assignedShip)
-      {
-        ++this.shipsQueued;
-        aiFaction._entity.Faction.buyShip(this.shipsRequired[i].type, function(e, requiredShip)
-        {
-          requiredShip.assignedShip = e;
-        }, this.shipsRequired[i]);
-      }
-    }
-  };
-
-  this.refresh = function()
-  {
-    this.inProgress = false;
-    this.ready = false;
-    this.acquireShips();
-  };
-
-  this.update = function(dt)
-  {
-    // Check if the project is ready
-    if (!this.inProgress && this.shipsRequired.length > 0)
-    {
-      this.ready = true;
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        if (!this.shipsRequired[i].assignedShip)
-          this.ready = false;
-      }
-    }
-
-    // Once the project is ready, assign allocated ships to the target
-    if (this.ready && !this.inProgress)
-    {
-      this.inProgress = true;
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        this.shipsRequired[i].assignedShip.AIShip.giveContextOrder(this.target);
-      }
-    }
-
-    // Check if the project is complete
-    this.complete = this.completeCondition.call(this);
-    if (this.complete)
-    {
-      // If so, cancel all orders for the assigned ships
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        var item = this.shipsRequired[i];
-        if (item.assignedShip && TANK.main.getChild(item.assignedShip._id))
-        {
-          item.assignedShip.AIShip.clearOrders();
-        }
-      }
-    }
-  };
-};
 TANK.registerComponent("AIShip")
 
 .includes(["Ship"])
@@ -585,61 +139,6 @@ TANK.registerComponent("AIShip")
   {
 
   });
-
-  // Get the name of a context order
-  this.getContextOrder = function(target)
-  {
-    if (!target)
-      return null;
-
-    // Do something with a ship
-    if (target.Ship)
-    {
-      // Attack the ship if it is an enemy
-      if (target.Ship.faction.team !== ship.faction.team)
-        return "Attack";
-      else
-        return "Escort";
-    }
-    // Go to a control point
-    else if (target.ControlPoint)
-    {
-      if (!target.ControlPoint.faction || target.ControlPoint.faction.team !== ship.faction.team)
-        return "Capture";
-      else
-        return "Defend";
-    }
-
-    return null;
-  };
-
-  // Handle being given an order to do something with an object
-  this.giveContextOrder = function(target)
-  {
-    if (!target)
-      return;
-
-    // Do something with a ship
-    if (target.Ship)
-    {
-      this.clearOrders();
-      // Attack the ship if it is an enemy
-      if (target.Ship.faction.team != ship.faction.team)
-        this.addOrder(new Action.AIAttack(this._entity, target));
-      // Otherwise, escort the ship
-      else
-        this.addOrder(new Action.AIEscort(this._entity, target));
-    }
-    // Go to a control point
-    else if (target.ControlPoint)
-    {
-      this.clearOrders();
-      if (!target.ControlPoint.faction || target.ControlPoint.faction.team !== ship.faction.team)
-        this.addOrder(new Action.AIDefend(this._entity, target));
-      else
-        this.addOrder(new Action.AIDefend(this._entity, target));
-    }
-  };
 
   // Add an action to the queue
   this.addOrder = function(order)
@@ -853,749 +352,6 @@ TANK.registerComponent("Bullet")
 {
   TANK.main.removeChild(this.trailEmitter);
 });
-TANK.registerComponent("CampaignMap")
-
-.construct(function()
-{
-  this.zdepth = 0;
-  this.barCommands = [];
-  this.currentPlayer = null;
-  this.currentTurn = 0;
-  this.turnsTaken = -1;
-})
-
-.initialize(function()
-{
-  var that = this;
-  this.systems = TANK.main.MapGeneration.systems;
-  TANK.main.Renderer2D.add(this);
-
-  // Build bottom command bar ractive
-  this.barCommands = [];
-  this.barUI = new Ractive(
-  {
-    el: 'barContainer',
-    template: '#barTemplate',
-    data: {commands: this.barCommands}
-  });
-
-  this.barCommands.push(
-  {
-    name: 'Fortify System',
-    active: false,
-    activate: function()
-    {
-      that.mode = 'fortify';
-    }
-  });
-  this.barCommands.push(
-  {
-    name: 'Attack System',
-    active: false,
-    activate: function()
-    {
-      that.mode = 'attack';
-    }
-  });
-  this.barCommands.push(
-  {
-    name: 'Move Flagship',
-    active: false,
-    activate: function()
-    {
-      that.mode = 'move';
-    }
-  });
-  this.barUI.on('activate', function(e)
-  {
-    that.barCommands.forEach(function(cmd)
-    {
-      cmd.active = false;
-    });
-    e.context.active = true;
-    e.context.activate();
-    that.barUI.update();
-  });
-
-  //
-  // Show the win screen menu
-  //
-  this.showWinScreen = function()
-  {
-    if (this.popupUI)
-      this.popupUI.teardown();
-
-    this.popupUI = new Ractive(
-    {
-      el: 'popupContainer',
-      template: '#winGameTemplate',
-    });
-
-    this.popupUI.on('back', function()
-    {
-      that.popupUI.teardown();
-      that.popupUI = null;
-      TANK.main.Game.goToMainMenu();
-    });
-  };
-
-  //
-  // Show the lose screen menu
-  //
-  this.showLoseScreen = function()
-  {
-    if (this.popupUI)
-      this.popupUI.teardown();
-
-    this.popupUI = new Ractive(
-    {
-      el: 'popupContainer',
-      template: '#loseGameTemplate',
-    });
-
-    this.popupUI.on('back', function()
-    {
-      that.popupUI.teardown();
-      that.popupUI = null;
-      TANK.main.Game.goToMainMenu();
-    });
-  };
-
-  //
-  // Go to next turn
-  //
-  this.nextTurn = function()
-  {
-    // Check for win
-    if (this.checkForEndCondition())
-      return;
-
-    ++this.turnsTaken;
-    this.currentTurn = this.turnsTaken % TANK.main.Game.players.length;
-    this.currentPlayer = TANK.main.Game.players[this.currentTurn];
-    if (!this.currentPlayer.player)
-    {
-      this.startAITurn();
-    }
-  };
-
-  //
-  // Check for end condition
-  //
-  this.checkForEndCondition = function()
-  {
-    // Check if all systems are owned by someone
-    var owner = this.systems[0].owner;
-    var win = true;
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      if (this.systems[i].owner !== owner)
-      {
-        win = false;
-        break;
-      }
-    }
-
-    // If there was a win, check if it was the player
-    if (win)
-    {
-      if (owner.player)
-        this.showWinScreen();
-      else
-        this.showLoseScreen();
-
-      return true;
-    }
-
-    return false;
-  };
-
-  //
-  // Turn taking methods
-  //
-  this.startAttack = function(system)
-  {
-    // Check that the system isn't owned by the attacker
-    if (system.owner === this.currentPlayer)
-    {
-      return;
-    }
-
-    // Check that the system has an adjacent system owned by attacker
-    var hasAdjacentOwned = false;
-    for (var j = 0; j < system.edges.length; ++j)
-      if (system.edges[j].owner === this.currentPlayer)
-        hasAdjacentOwned = true;
-
-    if (hasAdjacentOwned)
-    {
-      system.isBeingAttacked = true;
-      TANK.main.dispatchTimed(2, 'completeTurn', 'attack', system);
-    }
-  };
-
-  this.startFortify = function(system)
-  {
-    // Check that system is owned by turn taker
-    if (system.owner !== this.currentPlayer)
-    {
-      return;
-    }
-
-    system.isBeingFortified = true;
-    TANK.main.dispatchTimed(2, 'completeTurn', 'fortify', system);
-  };
-
-  this.startMove = function(system)
-  {
-    // Check that an adjacent system has a flagship
-    var flagshipSystem;
-    var flagshipIndex;
-    for (var i = 0; i < system.edges.length; ++i)
-    {
-      if (system.edges[i].flagships[this.currentTurn])
-      {
-        flagshipSystem = system.edges[i];
-        break;
-      }
-    }
-
-    if (flagshipSystem)
-    {
-      flagshipSystem.flagships[this.currentTurn] = false;
-      system.flagships[this.currentTurn] = true;
-    }
-
-    TANK.main.dispatchTimed(2, 'completeTurn', 'move', system);
-  };
-
-  //
-  // AI Turn Logic
-  //
-  this.startAITurn = function()
-  {
-    console.log('AI Turn...');
-
-    var modes = ['attack', 'fortify', 'move'];
-    var choice = Math.floor(Math.random() * 3);
-    var mode = modes[choice];
-
-    TANK.main.dispatchTimed(2, 'takeAITurn', mode);
-  };
-
-  this.aiTurnAttack = function()
-  {
-    console.log('AI attacked');
-
-    // Find a player owned node with an adjacent enemy node
-    var attackSystem = null;
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      if (system.owner !== this.currentPlayer)
-        continue;
-
-      system.edges.forEach(function(s)
-      {
-        if (s.owner !== that.currentPlayer)
-          attackSystem = s;
-      });
-
-      if (attackSystem)
-        break;
-    }
-
-    if (attackSystem)
-    {
-      this.startAttack(attackSystem);
-    }
-    else
-    {
-      console.log('Couldn\'t find a system to attack');
-    }
-  };
-
-  this.aiTurnFortify = function()
-  {
-    // Find AI owned systems
-    var aiOwnedSystems = [];
-    for (var i = 0; i < this.systems.length; ++i)
-      if (this.systems[i].owner === this.currentPlayer)
-        aiOwnedSystems.push(this.systems[i]);
-
-    // No systems to fortify
-    if (!aiOwnedSystems.length)
-    {
-      console.log('Couldn\'t find a system to fortify');
-      return;
-    }
-
-    // Pick a random system and fortify it
-    var system = aiOwnedSystems[Math.floor(Math.random() * aiOwnedSystems.length)];
-    this.startFortify(system);
-  };
-
-  this.aiTurnMove = function()
-  {
-    // Find current flagship pos
-    var flagshipSystem;
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      if (this.systems[i].flagships[this.currentTurn])
-      {
-        flagshipSystem = this.systems[i];
-        break;
-      }
-    }
-
-    // Just try again if we have no flagship
-    if (!flagshipSystem)
-    {
-      this.startAITurn();
-      return;
-    }
-
-    // Pick an edge to move flagship to
-    var index = Math.floor(Math.random() * flagshipSystem.edges.length);
-    var system = flagshipSystem.edges[index];
-
-    this.startMove(system);
-  };
-
-  //
-  // AI turn listener
-  //
-  this.listenTo(TANK.main, 'takeAITurn', function(mode)
-  {
-    if (mode === 'attack')
-      this.aiTurnAttack();
-    else if (mode === 'fortify')
-      this.aiTurnFortify();
-    else if (mode === 'move')
-      this.aiTurnMove();
-  });
-
-  //
-  // End of turn listener
-  //
-  this.listenTo(TANK.main, 'completeTurn', function(mode, system)
-  {
-    TANK.main.Renderer2D.camera.z = 1;
-    TANK.main.Renderer2D.camera.x = 0;
-    TANK.main.Renderer2D.camera.y = 0;
-
-    this.barCommands.forEach(function(cmd)
-    {
-      cmd.active = false;
-    });
-    this.barUI.update();
-    this.mode = '';
-
-    if (mode === 'attack')
-    {
-      system.isBeingAttacked = false;
-      if (!system.owner)
-      {
-        system.owner = this.currentPlayer;
-        this.nextTurn();
-      }
-      else
-      {
-        TANK.main.Game.goToSystemBattle(system, system.owner, this.currentPlayer);
-      }
-    }
-    else if (mode === 'fortify')
-    {
-      ++system.fortifyLevel;
-      system.isBeingFortified = false;
-      this.nextTurn();
-    }
-    else if (mode === 'move')
-    {
-      this.nextTurn();
-    }
-  });
-
-  //
-  // Handle clicking on a system
-  //
-  this.listenTo(TANK.main, 'mousedown', function(e)
-  {
-    if (!this.currentPlayer.player)
-      return;
-
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      var dist = TANK.Math2D.pointDistancePoint(system.pos, TANK.main.Game.mousePosWorld);
-      if (dist < system.radius)
-      {
-        if (this.mode === 'attack')
-          this.startAttack(system);
-        else if (this.mode === 'fortify')
-          this.startFortify(system);
-        else if (this.mode === 'move')
-          this.startMove(system);
-      }
-    }
-  });
-
-  //
-  // Render
-  //
-  this.draw = function(ctx, camera, dt)
-  {
-    ctx.save();
-    ctx.translate(-camera.x, -camera.y);
-
-    // Draw edges
-    var drawnEdges = [];
-    ctx.lineWidth = 3;
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      var owner = system.owner;
-      for (var j = 0; j < system.edges.length; ++j)
-      {
-        var systemB = system.edges[j];
-        if (drawnEdges.indexOf(systemB) >= 0)
-          continue;
-
-        ctx.strokeStyle = owner ? owner.color : '#666';
-
-        ctx.beginPath();
-        ctx.moveTo(system.pos[0], system.pos[1]);
-        ctx.lineTo(systemB.pos[0], systemB.pos[1]);
-        ctx.stroke();
-        ctx.closePath();
-      }
-      drawnEdges.push(system);
-    }
-
-    // Draw systems
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      var owner = system.owner;
-
-      // Draw attack state
-      if (system.isBeingAttacked)
-      {
-        ctx.fillStyle = '#b22';
-        ctx.beginPath();
-        ctx.arc(system.pos[0], system.pos[1], system.radius * 2, Math.PI * 2, false);
-        ctx.fill();
-        ctx.closePath();
-        camera.z *= 0.99;
-        camera.x = camera.x + (system.pos[0] - camera.x) * dt;
-        camera.y = camera.y + (system.pos[1] - camera.y) * dt;
-      }
-
-      // Draw fortify state
-      if (system.isBeingFortified)
-      {
-        ctx.fillStyle = '#55f';
-        ctx.beginPath();
-        ctx.arc(system.pos[0], system.pos[1], system.radius * 2, Math.PI * 2, false);
-        ctx.fill();
-        ctx.closePath();
-      }
-
-      // Draw system
-      ctx.fillStyle = owner ? owner.color : '#666';
-      ctx.beginPath();
-      ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
-      ctx.fill();
-      ctx.closePath();
-
-      // Draw fortify level
-      if (system.owner)
-      {
-        ctx.fillStyle = '#fff';
-        ctx.font = '18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(system.fortifyLevel, system.pos[0], system.pos[1]);
-      }
-
-      // Draw flagship
-      for (var j = 0; j < TANK.main.Game.players.length; ++j)
-      {
-        var player = TANK.main.Game.players[j];
-        var flagship = system.flagships[j];
-        var offset = 0;
-        if (flagship)
-        {
-          ctx.textAlign = 'left';
-          ctx.fillStyle = player.color;
-          ctx.fillText('Flagship', system.pos[0] + system.radius + 10, system.pos[1] + system.radius * offset);
-          ++offset;
-        }
-      }
-    }
-
-    ctx.restore();
-  };
-
-  //
-  // Go to next turn
-  //
-  this.nextTurn();
-})
-
-.uninitialize(function()
-{
-});
-
-TANK.registerComponent("Clickable")
-
-.includes("Pos2D")
-
-.construct(function()
-{
-  this.width = 0;
-  this.height = 0;
-  this.radius = 0;
-})
-
-.initialize(function()
-{
-  var t = this._entity.Pos2D;
-
-  this.checkClick = function(pos)
-  {
-    if (this.radius)
-    {
-      return TANK.Math2D.pointDistancePoint(pos, [t.x, t.y]) < this.radius;
-    }
-
-    return TANK.Math2D.pointInAABB(pos, [t.x, t.y], [this.width, this.height]);
-  };
-});
-TANK.registerComponent('ControlPoint')
-
-.includes(['Planet', 'OrderTarget'])
-
-.construct(function()
-{
-  this.zdepth = 1;
-  this.faction = null;
-  this.value = 5;
-  this.moneyTime = 10;
-  this.moneyTimer = 0;
-  this.scanTimer = 0;
-  this.radius = 300;
-  this.pendingFaction = null;
-  this.capturePercent = 0;
-  this.captureDistance = 500;
-  this.passiveCapture = 0.05;
-  this.queuedShips = [];
-})
-
-.initialize(function()
-{
-  var t = this._entity.Pos2D;
-
-  TANK.main.Renderer2D.add(this);
-
-  this._entity.Clickable.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
-  this.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
-
-  this.tryCapture = function(faction, amount)
-  {
-    // If no one is trying to capture us currently, start being captured by them
-    if (!this.pendingFaction)
-      this.pendingFaction = faction;
-
-    // If the faction is currently trying to capture us, then increase their capture percent
-    if (this.pendingFaction === faction)
-      this.capturePercent += amount;
-
-    // If the faction is trying to restore us, then decrease the capture percent
-    if (this.pendingFaction && this.pendingFaction.team !== faction.team)
-      this.capturePercent -= amount;
-
-    // If our capture percent reaches 1, transition ownerships
-    if (this.capturePercent >= 1)
-    {
-      this.capturePercent = 0;
-
-      var oldFaction = this.faction;
-
-      // If we are currently owned, move to neutral state
-      // Otherwise, we are now owned by pending faction
-      if (this.faction)
-        this.faction = null;
-      else
-        this.faction = this.pendingFaction;
-
-      this.pendingFaction = null;
-
-      if (oldFaction)
-        oldFaction.removeControlPoint(this);
-      if (this.faction)
-        this.faction.addControlPoint(this);
-
-      if (!this.faction)
-        console.log('Team ' + oldFaction.team + ' lost its control point');
-      else
-        console.log('Team ' + this.faction.team + ' gained a control point');
-    }
-
-    // If our capture percent reaches 0, lose the pending faction
-    if (this.capturePercent <= 0 && this.pendingFaction)
-    {
-      this.capturePercent = 0;
-      this.pendingFaction = null;
-    }
-  };
-
-  this.buyShip = function(shipType, callback, data)
-  {
-    var shipData = new Ships[shipType]();
-
-    if (this.faction.money >= shipData.cost)
-    {
-      this.faction.money -= shipData.cost;
-      this.queuedShips.push({shipData: shipData, time: shipData.buildTime, callback: callback, data: data});
-      return true;
-    }
-
-    return false;
-  };
-
-  this.draw = function(ctx, camera)
-  {
-    if (camera.z >= 8)
-    {
-      // Draw strategic icon
-      ctx.save();
-      ctx.globalAlpha = Math.min(1, (camera.z - 8) / 4);
-      ctx.fillStyle = this.faction ? this.faction.color : '#555';
-      ctx.lineWidth = 2;
-      ctx.translate(t.x - camera.x, t.y - camera.y);
-
-      ctx.beginPath();
-      ctx.arc(0, 0, this.radius, Math.PI * 2, false);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-    else if (this.faction && this.faction.team === 0)
-    {
-      // Draw queue
-      ctx.save();
-      ctx.fillStyle = '#ddd';
-      ctx.font =  20 * camera.z + 'px sans-serif';
-      ctx.translate(t.x - camera.x, t.y - camera.y);
-      for (var i = 0; i < this.queuedShips.length; ++i)
-      {
-        var timeRemaining = Math.round(this.queuedShips[i].time);
-        ctx.fillText(this.queuedShips[i].shipData.name + ' - ' + timeRemaining + ' seconds', 400, -400 + i * 40);
-      }
-      ctx.restore();
-    }
-  };
-
-  this.update = function(dt)
-  {
-    // Lose queue if captures
-    if (!this.faction)
-      this.queuedShips = [];
-
-    // Passively re-capture self
-    if (this.capturePercent > 0 && this.faction)
-      this.tryCapture(this.faction, this.passiveCapture * dt);
-
-    // Earn money
-    this.moneyTimer += dt;
-    if (this.moneyTimer >= this.moneyTime)
-    {
-      this.moneyTimer = 0;
-
-      if (this.faction)
-        this.faction.money += this.value;
-    }
-
-    // Scan for nearby friendly ships that would prevent capturing
-    this.scanTimer -= dt;
-    if (this.scanTimer < 0 && this.faction)
-    {
-      this.scanTimer = 3;
-      this.friendliesNearby = false;
-      var ships = TANK.main.getChildrenWithComponent('Ship');
-      for (var i in ships)
-      {
-        var e = ships[i];
-        if (TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [t.x, t.y]) < this.captureDistance)
-        {
-          this.friendliesNearby = true;
-          break;
-        }
-      }
-    }
-
-    // Process build queue
-    if (this.queuedShips.length > 0)
-    {
-      var item = this.queuedShips[0];
-      item.time -= dt;
-      if (item.time <= 0)
-      {
-        var e = TANK.createEntity('AIShip');
-        e.Ship.faction = this.faction;
-        e.Ship.shipData = item.shipData;
-        e.Pos2D.x = t.x - 400 + Math.random() * 800;
-        e.Pos2D.y = t.y - 400 + Math.random() * 800;
-        TANK.main.addChild(e);
-
-        this.queuedShips.splice(0, 1);
-
-        if (item.callback)
-          item.callback(e, item.data);
-      }
-    }
-  };
-});
-TANK.registerComponent("Cursor")
-
-.includes(["Pos2D", "Collider2D"])
-
-.construct(function()
-{
-  this.zdepth = 5;
-})
-
-.initialize(function()
-{
-  // TANK.main.Renderer2D.add(this);
-  this._entity.Collider2D.collisionLayer = "cursors";
-
-  this.update = function(dt)
-  {
-    this.updatePos();
-  };
-
-  this.updatePos = function()
-  {
-    var t = this._entity.Pos2D;
-
-    t.x = TANK.main.Game.mousePosWorld[0];
-    t.y = TANK.main.Game.mousePosWorld[1];
-  };
-
-  this.draw = function(ctx, camera)
-  {
-    var t = this._entity.Pos2D;
-    ctx.save();
-
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(t.x - camera.x - 25, t.y - camera.y - 25, 50, 50);
-
-    ctx.restore();
-  };
-});
-
 TANK.registerComponent("DustField")
 
 .construct(function()
@@ -1690,7 +446,7 @@ TANK.registerComponent("Engines")
 
   this.draw = function(ctx, camera)
   {
-    if (ship.thrustAlpha <= 0 || camera.z > 6)
+    if (ship.thrustAlpha <= 0)
       return;
 
     ctx.save();
@@ -1718,73 +474,7 @@ TANK.registerComponent("Engines")
 
   this.drawEngine();
 });
-TANK.registerComponent("Faction")
-
-.construct(function()
-{
-  this.team = 0;
-  this.color = "#666";
-  this.money = 10;
-  this.controlPoints = [];
-  this.shipsToBuy = [];
-})
-
-.initialize(function()
-{
-  this.listenTo(TANK.main, "systemBattleEnd", function()
-  {
-    TANK.main.removeChild(this._entity);
-  });
-
-  this.listenTo(this._entity, "buyship", function(ship, callback, data)
-  {
-    this.buyShip(ship, callback, data);
-  });
-
-  this.buyShip = function(type, callback, data)
-  {
-    // Find a control point with small queue
-    var shortestQueueLength = Infinity;
-    var chosenControlPoint = null;
-    for (var i = 0; i < this.controlPoints.length; ++i)
-    {
-      if (this.controlPoints[i].queuedShips.length < shortestQueueLength)
-      {
-        shortestQueueLength = this.controlPoints[i].queuedShips.length;
-        chosenControlPoint = this.controlPoints[i];
-      }
-    }
-
-    if (chosenControlPoint)
-    {
-      if (!chosenControlPoint.buyShip(type, callback, data))
-      {
-        this._entity.dispatchTimed(5, "buyship", type, callback, data);
-      }
-    }
-  };
-
-  this.addControlPoint = function(controlPoint)
-  {
-    controlPoint.faction = this;
-    this.controlPoints.push(controlPoint);
-  };
-
-  this.removeControlPoint = function(controlPoint)
-  {
-    for (var i = 0; i < this.controlPoints.length; ++i)
-    {
-      if (this.controlPoints[i] === controlPoint)
-      {
-        this.controlPoints.splice(i, 1);
-        break;
-      }
-    }
-  };
-});
 TANK.registerComponent('Game')
-
-.includes(['MapGeneration'])
 
 .construct(function()
 {
@@ -1792,34 +482,9 @@ TANK.registerComponent('Game')
   this.scaleFactor = 2;
   this.volume = 0.5;
 
-  // Current existing factions
-  this.players =
-  [
-    {
-      player: true,
-      color: '#3c3',
-      shipColor: '#6f6',
-      battleAI: 'Faction',
-      team: 0,
-    },
-    {
-      player: false,
-      color: '#d55',
-      shipColor: '#b33',
-      battleAI: 'AIFaction',
-      team: 1
-    }
-  ];
-  this.player = this.players[0];
-
   // Menu options
   this.menuOptions = [];
-  this.levelOptions = [];
   this.menuObjects = [];
-
-  // Command options
-  this.barCommands = [];
-  this.topBarItems = [];
 
   // Mouse positions
   this.mousePosWorld = [0, 0];
@@ -1827,12 +492,6 @@ TANK.registerComponent('Game')
 
   // Global light direction
   this.lightDir = 0;
-
-  // Level settings
-  this.currentSystem = null;
-  this.pendingLoad = false;
-
-  this.aiArenaMode = false;
 })
 
 .initialize(function()
@@ -1840,47 +499,20 @@ TANK.registerComponent('Game')
   var that = this;
 
   //
-  // Build up bar commands
-  //
-  for (var i in Ships)
-  {
-    var shipData = new Ships[i]();
-    this.barCommands.push(
-    {
-      name: 'Build ' + shipData.name,
-      shipType: i,
-      activate: function()
-      {
-        Wave.play('blip-01');
-        that.player.faction.buyShip(this.shipType);
-      }
-    });
-  }
-
-  // Money counter
-  this.topBarItems.push({name: ''});
-
-  //
   // Save the current game
   //
   this.save = function(slot)
   {
     var save = {};
-    save.currentTurn = this.campaignObject.CampaignMap.currentTurn;
-    save.turnsTaken = this.campaignObject.CampaignMap.turnsTaken;
-    save.systems = TANK.main.MapGeneration.save();
     localStorage['save-' + slot] = JSON.stringify(save);
   };
 
   //
-  // Load the current game
+  // Load a save slot
   //
   this.load = function(slot)
   {
     var save = JSON.parse(localStorage['save-' + slot]);
-    this.currentTurn = save.currentTurn;
-    this.turnsTaken = save.turnsTaken;
-    TANK.main.MapGeneration.load(save.systems);
   };
 
   //
@@ -1903,11 +535,6 @@ TANK.registerComponent('Game')
   //
   this.goToMainMenu = function()
   {
-    if (this.campaignObject)
-      TANK.main.removeChild(this.campaignObject);
-
-    var save = localStorage['save'];
-
     // Build menu options
     this.menuOptions = [];
     this.menuOptions.push(
@@ -1916,13 +543,15 @@ TANK.registerComponent('Game')
       activate: function()
       {
         that.menuUI.teardown();
-        TANK.main.MapGeneration.generateMap();
-        that.goToCampaignMap();
         that.menuObjects.forEach(function(obj)
         {
           TANK.main.removeChild(obj);
         });
         that.menuObjects = [];
+
+        var player = TANK.createEntity('Player');
+        player.Ship.shipData = new Ships.frigate();
+        TANK.main.addChild(player, 'player');
       }
     });
     this.menuOptions.push(
@@ -1974,166 +603,8 @@ TANK.registerComponent('Game')
     ship.Pos2D.x = 400;
     ship.Pos2D.y = 300;
     ship.Ship.shipData = new Ships.bomber();
-    ship.Ship.faction = null;
     TANK.main.addChild(ship);
     this.menuObjects.push(ship);
-
-    // ship = TANK.createEntity('Ship');
-    // ship.Pos2D.x = 300;
-    // ship.Pos2D.y = 100;
-    // ship.Ship.shipData = new Ships.frigate();
-    // ship.Ship.faction = null;
-    // TANK.main.addChild(ship);
-    // this.menuObjects.push(ship);
-
-    // ship = TANK.createEntity('Ship');
-    // ship.Pos2D.x = 200;
-    // ship.Pos2D.y = 300;
-    // ship.Ship.shipData = new Ships.fighter();
-    // ship.Ship.faction = null;
-    // TANK.main.addChild(ship);
-    // this.menuObjects.push(ship);
-  };
-
-  //
-  // Show the win screen menu
-  //
-  this.showWinScreen = function()
-  {
-    if (this.popupUI)
-      this.popupUI.teardown();
-
-    this.popupUI = new Ractive(
-    {
-      el: 'popupContainer',
-      template: '#winTemplate',
-    });
-
-    this.popupUI.on('back', function()
-    {
-      that.popupUI.teardown();
-      that.popupUI = null;
-      TANK.main.dispatch('systemBattleEnd');
-      that.goToCampaignMap();
-    });
-  };
-
-  //
-  // Show the lose screen menu
-  //
-  this.showLoseScreen = function()
-  {
-    if (this.popupUI)
-      this.popupUI.teardown();
-
-    this.popupUI = new Ractive(
-    {
-      el: 'popupContainer',
-      template: '#loseTemplate',
-    });
-
-    this.popupUI.on('back', function()
-    {
-      that.popupUI.teardown();
-      that.popupUI = null;
-      TANK.main.dispatch('systemBattleEnd');
-      that.goToCampaignMap();
-    });
-  };
-
-  //
-  // Load a new level
-  //
-  this.loadLevelNow = function(system)
-  {
-    var players = [this.currentSystemDefender, this.currentSystemAttacker];
-
-    // Generate a level
-    var level = GenerateLevel(system);
-
-    // Player start ships
-    var cp0 = level.controlPoints[0];
-    var cp1 = level.attackerCP;
-    level.ships.push({player: players[0].player, faction: 0, ship: 'frigate', x: cp0.x, y: cp0.y});
-
-    if (cp1)
-      level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: cp1.x, y: cp1.y});
-    else
-      level.ships.push({player: players[1].player, faction: 1, ship: 'frigate', x: 10000, y: 0});
-
-    // Create faction entities
-    for (var i = 0; i < players.length; ++i)
-    {
-      var e = TANK.createEntity(players[i].battleAI);
-      e.Faction.team = players[i].team;
-      e.Faction.color = players[i].color;
-      e.Faction.shipColor = players[i].shipColor;
-      players[i].faction = e.Faction;
-      TANK.main.addChild(e);
-    }
-
-    // Increase money based on fortify
-    this.currentSystemDefender.faction.money += system.fortifyLevel * 20;
-
-    // Create control points
-    for (var i = 0; i < level.controlPoints.length; ++i)
-    {
-      var cp = level.controlPoints[i];
-      e = TANK.createEntity('ControlPoint');
-      e.Pos2D.x = cp.x;
-      e.Pos2D.y = cp.y;
-      e.Planet.radius = 128 + Math.random() * 128;
-      if (cp.faction >= 0)
-        players[cp.faction].faction.addControlPoint(e.ControlPoint);
-      TANK.main.addChild(e);
-    }
-
-    // Create ships
-    for (var i = 0; i < level.ships.length; ++i)
-    {
-      e = level.ships[i].player ? TANK.createEntity('Player') : TANK.createEntity('AIShip');
-      e.Pos2D.x = level.ships[i].x;
-      e.Pos2D.y = level.ships[i].y;
-      e.Ship.shipData = new Ships[level.ships[i].ship];
-      e.Ship.faction = players[level.ships[i].faction].faction;
-      TANK.main.addChild(e);
-    }
-
-    // Other level attributes
-    this.lightDir = level.lightDir;
-    Lightr.lightDiffuse = level.lightDiffuse;
-    bakeShipLighting();
-
-    TANK.main.dispatch('systemBattleStart', system);
-  };
-
-  //
-  // Begin a real time system battle
-  //
-  this.goToSystemBattle = function(system, defender, attacker)
-  {
-    // Send out a message to all existing level objects to be destroyed
-    TANK.main.removeChild(this.campaignObject);
-
-    // Set current level marker and set a pending load
-    this.currentSystem = system;
-    this.currentSystemDefender = defender;
-    this.currentSystemAttacker = attacker;
-    this.pendingLoad = true;
-  };
-
-  //
-  // Go to campaign map
-  //
-  this.goToCampaignMap = function()
-  {
-    TANK.main.Renderer2D.camera.x = 0;
-    TANK.main.Renderer2D.camera.y = 0;
-
-    if (!this.campaignObject)
-      this.campaignObject = TANK.createEntity('CampaignMap');
-
-    TANK.main.addChild(this.campaignObject);
   };
 
   //
@@ -2145,153 +616,11 @@ TANK.registerComponent('Game')
   });
 
   //
-  // Level start handler
-  //
-  this.listenTo(TANK.main, 'systemBattleStart', function(system)
-  {
-    // Build bottom command bar ractive
-    this.barUI = new Ractive(
-    {
-      el: 'barContainer',
-      template: '#barTemplate',
-      data: {commands: this.barCommands}
-    });
-
-    // Build top command bar ractive
-    this.topBarUI = new Ractive(
-    {
-      el: 'topBarContainer',
-      template: '#topBarTemplate',
-      data: {items: this.topBarItems}
-    });
-
-    // Set ractive event listeners
-    this.barUI.on('activate', function(e)
-    {
-      e.context.activate();
-    });
-
-    TANK.main.dispatchTimed(3, 'scanForEndCondition');
-  });
-
-  //
-  // Level end handler
-  //
-  this.listenTo(TANK.main, 'systemBattleEnd', function()
-  {
-    // Remove command bars
-    if (this.topBarUI)
-      this.topBarUI.teardown();
-    if (this.barUI)
-      this.barUI.teardown();
-    this.topBarUI = null;
-    this.barUI = null;
-  });
-
-  //
-  // Look for a ship for player to transfer to while dead
-  //
-  this.listenTo(TANK.main, 'scanforplayership', function(faction, pos)
-  {
-    console.log('Looking for ship to transfer to...');
-    var ships = TANK.main.getChildrenWithComponent('Ship');
-    var closestShip = null;
-    var minDist = Infinity;
-    if (!pos)
-      pos = [0, 0];
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction !== faction)
-        continue;
-
-      var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
-      var dist = TANK.Math2D.pointDistancePoint(pos, shipPos);
-      if (dist < minDist)
-      {
-        minDist = dist;
-        closestShip = ships[i];
-        console.log('Found ship ' + i);
-      }
-    }
-
-    if (closestShip)
-    {
-      console.log('Transferring to ship ' + closestShip._id);
-      // Transfer control to closest ship
-      closestShip.removeComponent('AIShip');
-      closestShip.removeComponent('AIWatch');
-      closestShip.addComponent('Player');
-    }
-    else
-    {
-      // If we couldn't find a ship to transfer control to, inform the game to wait for
-      // a new ship to be built
-      TANK.main.dispatchTimed(3, 'scanforplayership', faction, pos);
-    }
-  });
-
-  //
-  // Check for level end condition
-  //
-  this.listenTo(TANK.main, 'scanForEndCondition', function()
-  {
-    var attackerWin = true;
-    var defenderWin = true;
-
-    // Check if the attacker owns any or all control points
-    var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
-    for (var i in controlPoints)
-    {
-      if (controlPoints[i].ControlPoint.faction === this.currentSystemDefender.faction)
-        attackerWin = false;
-      else
-        defenderWin = false;
-    }
-
-    // Check if there are any friendly or enemy ships left
-    var ships = TANK.main.getChildrenWithComponent('Ship');
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction === this.currentSystemDefender.faction)
-        attackerWin = false;
-      else
-        defenderWin = false;
-    }
-
-    var winner;
-    if (attackerWin)
-      winner = this.currentSystemAttacker;
-    if (defenderWin)
-      winner = this.currentSystemDefender;
-
-    if (winner)
-    {
-      this.currentSystem.owner = winner;
-      if (winner.player)
-        this.showWinScreen();
-      else
-        this.showLoseScreen();
-      return;
-    }
-
-    TANK.main.dispatchTimed(3, 'scanForEndCondition');
-  });
-
-  //
   // Input handlers
   //
   this.listenTo(TANK.main, 'mousemove', function(e)
   {
     this.updateMousePos([e.x, e.y]);
-  });
-
-  this.listenTo(TANK.main, 'touchmove', function(e)
-  {
-    this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
-  });
-  this.listenTo(TANK.main, 'touchstart', function(e)
-  {
-    this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
   });
 
   this.listenTo(TANK.main, 'mousewheel', function(e)
@@ -2309,81 +638,9 @@ TANK.registerComponent('Game')
   //
   this.update = function(dt)
   {
-    // Load levels
-    if (this.pendingLoad)
-    {
-      this.loadLevelNow(this.currentSystem);
-      this.pendingLoad = false;
-    }
-
-    // Update faction money count
-    if (this.players[0] && this.players[0].faction && this.topBarUI)
-      this.topBarUI.set('items[0].name', 'Funds: ' + this.players[0].faction.money);
   };
 });
 
-function GenerateLevel(system)
-{
-  var rng = new RNG(system.seed);
-
-  // Basic info
-  var level = {};
-  level.lightDir = rng.uniform() * Math.PI * 2;
-  level.lightDiffuse = [0.8, 1, 1];
-  level.controlPoints = [];
-  level.ships = [];
-
-  // Level size
-  var levelSize = 10000;
-
-  // Min dist between planets
-  var minPlanetDist = 3000;
-
-  // Generate control point locations
-  for (var i = 0; i < system.numPlanets; ++i)
-  {
-    var cp = {x: rng.uniform() * levelSize, y: rng.uniform() * levelSize, faction: -1};
-
-    // Ensure points are far apart
-    var angle = rng.uniform() * Math.PI * 2;
-    for (;;)
-    {
-      var minDist = level.controlPoints.reduce(function(prev, cur)
-      {
-        if (cur === cp)
-          return prev;
-        return Math.min(prev, TANK.Math2D.pointDistancePoint([cp.x, cp.y], [cur.x, cur.y]));
-      }, Infinity);
-
-      if (minDist > minPlanetDist)
-        break;
-
-      cp.x += Math.cos(angle) * 100;
-      cp.y += Math.sin(angle) * 100;
-    }
-
-    // Defender owns fortifyLevel amount of planets
-    if (i < system.fortifyLevel)
-      cp.faction = 0;
-
-    level.controlPoints.push(cp);
-  }
-
-  // Assign an attacker owned planet if fortify level isn't max
-  if (system.fortifyLevel < system.numPlanets)
-  {
-    level.attackerCP = level.controlPoints[level.controlPoints.length - 1];
-    level.attackerCP.faction = 1;
-  }
-  // If fortifyLevel is maxed, spawn an attack force?
-  else
-  {
-    level.ships.push({player: false, faction: 1, ship: 'frigate', x: levelSize, y: 200});
-  }
-
-
-  return level;
-};
 TANK.registerComponent("Glow")
 
 .includes(["Pos2D", "Velocity", "Life"])
@@ -2759,264 +1016,6 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
-TANK.registerComponent("MapGeneration")
-
-.construct(function()
-{
-  this.size = 400;
-  this.minDist = 100;
-  this.systems = [];
-  this.islands = [];
-})
-
-.initialize(function()
-{
-  var that = this;
-
-  //
-  // Map generation logic
-  //
-  this.generateMap = function()
-  {
-    this.systems = [];
-
-    // Generate systems
-    for (var i = 0; i < 10; ++i)
-    {
-      this.systems.push(
-      {
-        index: i,
-        pos:
-        [
-          -this.size + Math.random() * this.size * 2,
-          -this.size + Math.random() * this.size * 2
-        ],
-        radius: 20,
-        edges: [],
-        owner: TANK.main.Game.players[0],
-        flagships: [],
-        numPlanets: Math.round(Math.random() * 4) + 2,
-        seed: Math.random(),
-        fortifyLevel: 1
-      });
-
-      // Ensure systems are far apart
-      var system = this.systems[i];
-      var angle = Math.random() * Math.PI * 2;
-      for (;;)
-      {
-        var minDist = this.systems.reduce(function(prev, cur)
-        {
-          if (cur === system)
-            return prev;
-          return Math.min(prev, TANK.Math2D.pointDistancePoint(system.pos, cur.pos));
-        }, Infinity);
-
-        if (minDist > this.minDist)
-          break;
-
-        system.pos[0] += Math.cos(angle) * 10;
-        system.pos[1] += Math.sin(angle) * 10;
-      }
-    }
-
-    // Center map on screen
-    var minPos = [Infinity, Infinity];
-    var maxPos = [-Infinity, -Infinity];
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      minPos[0] = Math.min(minPos[0], system.pos[0]);
-      minPos[1] = Math.min(minPos[1], system.pos[1]);
-      maxPos[0] = Math.max(maxPos[0], system.pos[0]);
-      maxPos[1] = Math.max(maxPos[1], system.pos[1]);
-    }
-    var center = [minPos[0] + (maxPos[0] - minPos[0]) / 2, minPos[1] + (maxPos[1] - minPos[1]) / 2];
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      system.pos[0] -= center[0];
-      system.pos[1] -= center[1];
-    }
-
-    // Make edges
-    this.systems.forEach(function(system)
-    {
-      // Get systems in distance order
-      var systemsOrdered = this.systems.slice();
-      systemsOrdered.sort(function(a, b)
-      {
-        var distA = TANK.Math2D.pointDistancePoint(system.pos, a.pos);
-        var distB = TANK.Math2D.pointDistancePoint(system.pos, b.pos);
-        return distA > distB;
-      });
-      systemsOrdered.splice(0, 1);
-
-      // Connect to closest system
-      var closest = systemsOrdered[0];
-      system.edges.push(closest);
-      closest.edges.push(system);
-      systemsOrdered.splice(0, 1);
-
-      // Find the next closest system that is not inline with the previous
-      var closestVec = TANK.Math2D.normalize(TANK.Math2D.subtract(closest.pos, system.pos));
-      var nextClosest = null;
-      for (var i = 0; i < systemsOrdered.length; ++i)
-      {
-        var s= systemsOrdered[i];
-        var systemVec = TANK.Math2D.normalize(TANK.Math2D.subtract(s.pos, system.pos));
-        var dot = TANK.Math2D.dot(closestVec, systemVec);
-        if (Math.abs(1 - dot) > 0.1)
-        {
-          nextClosest = s;
-          break;
-        }
-      };
-
-      if (nextClosest)
-      {
-        system.edges.push(nextClosest);
-        nextClosest.edges.push(system);
-      }
-
-    }.bind(this));
-
-    // Make the first node owned
-    this.systems[0].owner = TANK.main.Game.players[0];
-
-    // Make the farther node from that owned by the enemy
-    var maxDist = 0;
-    var farthest = null;
-    for (var i = 1; i < this.systems.length; ++i)
-    {
-      var dist = TANK.Math2D.pointDistancePoint(this.systems[0].pos, this.systems[i].pos);
-      if (dist > maxDist)
-      {
-        maxDist = dist;
-        farthest = this.systems[i];
-      }
-    }
-    farthest.owner = TANK.main.Game.players[1];
-
-    // Init flagships
-    this.systems[0].flagships[0] = true;
-    farthest.flagships[1] = true;
-
-    // Helper to recursively explore a graph
-    var exploreNode = function(node, islandNodes)
-    {
-      if (node.visited)
-        return false;
-
-      // Visit the node
-      node.visited = true;
-      islandNodes.push(node);
-
-      // Explore each adjacent node
-      for (var i = 0; i < node.edges.length; ++i)
-        exploreNode(node.edges[i], islandNodes);
-
-      return true;
-    };
-
-    // Helper to connect two islands
-    var connectIslands = function(a, b)
-    {
-      // Find the two closest nodes between the islands
-      var minDist = Infinity;
-      var nodeA = null;
-      var nodeB = null;
-
-      for (var i = 0; i < a.length; ++i)
-      {
-        for (var j = 0; j < b.length; ++j)
-        {
-          var dist = TANK.Math2D.pointDistancePoint(a[i].pos, b[j].pos);
-          if (dist < minDist)
-          {
-            minDist = dist;
-            nodeA = a[i];
-            nodeB = b[j];
-          }
-        }
-      }
-
-      nodeA.edges.push(nodeB);
-      nodeB.edges.push(nodeA);
-    };
-
-    // Explore every node to find islands
-    this.islands = [];
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var node = this.systems[i];
-      var island = [];
-      if (exploreNode(node, island))
-        this.islands.push(island);
-    }
-
-    // Connect each island to the next
-    for (var i = 1; i < this.islands.length; ++i)
-    {
-      var islandA = this.islands[i - 1];
-      var islandB = this.islands[i];
-      connectIslands(islandA, islandB);
-    }
-  };
-
-  this.save = function()
-  {
-    var systems = [];
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      var systemSave = {};
-      systemSave.index = system.index;
-      systemSave.pos = system.pos;
-      systemSave.radius = system.radius;
-      systemSave.owner = TANK.main.Game.players.indexOf(system.owner);
-      systemSave.fortifyLevel = system.fortifyLevel;
-      systemSave.edges = [];
-      system.edges.forEach(function(s)
-      {
-        systemSave.edges.push(s.index);
-      });
-      systems.push(systemSave);
-    }
-
-    return systems;
-  };
-
-  this.load = function(systems)
-  {
-    this.systems = [];
-    this.islands = [];
-
-    for (var i = 0; i < systems.length; ++i)
-    {
-      var systemSave = systems[i];
-      var system = {};
-      system.index = systemSave.index;
-      system.pos = systemSave.pos;
-      system.radius = systemSave.radius;
-      system.owner = TANK.main.Game.players[systemSave.owner];
-      system.fortifyLevel = systemSave.fortifyLevel;
-      system.edges = [];
-      this.systems.push(system);
-    }
-
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var systemSave = systems[i];
-      var system = this.systems[i];
-      systemSave.edges.forEach(function(systemIndex)
-      {
-        system.edges.push(that.systems[systemIndex]);
-      });
-    }
-  };
-});
-TANK.registerComponent("OrderTarget").includes("Clickable");
 var ParticleLibrary = {};
 
 ParticleLibrary.slowMediumFire = function()
@@ -3757,7 +1756,6 @@ TANK.registerComponent("Player")
 {
   this.zdepth = 5;
   this.shakeTime = 0;
-  this.clickTimer = 1;
 
   this.headingPos = [0, 0];
   this.headingLeft = false;
@@ -3765,7 +1763,6 @@ TANK.registerComponent("Player")
   this.speedUp = false;
   this.speedDown = false;
   this.fireButtons = [];
-  this.selectedShips = [];
 })
 
 .initialize(function()
@@ -3791,19 +1788,10 @@ TANK.registerComponent("Player")
   {
     this.mouseDown = true;
 
-    // Handle double tap
-    if (this.clickTimer < .3)
-    {
-        TANK.main.dispatch("doubleclick", e);
-        return;
-    }
-    this.clickTimer = 0;
-
     // Handle tapping a fire button
     var mousePos = TANK.Math2D.subtract(TANK.main.Game.mousePosScreen, [window.innerWidth / 2, window.innerHeight / 2]);
     for (var i = 0; i < this.fireButtons.length; ++i)
     {
-      // var pos = TANK.Math2D.rotate(this.fireButtons[i].pos, t.rotation);
       var pos = TANK.Math2D.scale(this.fireButtons[i].pos, TANK.main.Game.scaleFactor);
       pos = TANK.Math2D.add(pos, this.headingPos);
       var dist = TANK.Math2D.pointDistancePoint(pos, mousePos);
@@ -3814,77 +1802,12 @@ TANK.registerComponent("Player")
         return;
       }
     }
-
-    // Handle giving an order to an already made selection
-    if (this.selectedShips.length > 0)
-    {
-      var targets = TANK.main.getChildrenWithComponent("OrderTarget");
-      for (var i in targets)
-      {
-        if (targets[i].Clickable.checkClick(TANK.main.Game.mousePosWorld))
-        {
-          this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(targets[i]);
-          this.pendingTarget = targets[i];
-          return;
-        }
-      }
-    }
-
-    // Handle the beginning of a selection drag if the mouse down was outside
-    // of the heading radius
-    var distToHUD = TANK.Math2D.pointDistancePoint(this.headingPos, mousePos);
-    if (distToHUD > this.headingRadiusScaled && !TANK.main.Game.zooming)
-    {
-      this.selecting = true;
-      this.selectPos = [TANK.main.Game.mousePosWorld[0], TANK.main.Game.mousePosWorld[1]];
-      this.selectRadius = 0;
-    }
   };
 
   this.mouseUpHandler = function(e)
   {
-    // Handle giving an order to an already made selection
-    var mousePos = TANK.main.Game.mousePosWorld;
-    if (this.selectedShips.length > 0 && this.pendingOrder)
-    {
-      var targets = TANK.main.getChildrenWithComponent("OrderTarget");
-      for (var i in targets)
-      {
-        if (targets[i].Clickable.checkClick(mousePos))
-        {
-          for (var j = 0; j < this.selectedShips.length; ++j)
-            this.selectedShips[j].AIShip.giveContextOrder(targets[i]);
-          this.clearSelection();
-          break;
-        }
-      }
-    }
-
-    // If we were in selection mode, we should find out what we selected
-    if (this.selecting)
-    {
-      // Only ships in our faction can be selected
-      this.clearSelection();
-      var ships = TANK.main.getChildrenWithComponent("AIShip");
-      for (var i in ships)
-      {
-        if (ships[i].Ship.faction === ship.faction)
-        {
-          if (TANK.Math2D.pointDistancePoint([ships[i].Pos2D.x, ships[i].Pos2D.y], this.selectPos) < this.selectRadius)
-          {
-            this.selectedShips.push(ships[i]);
-            ships[i].Ship.selected = true;
-          }
-        }
-      }
-    }
-
-    TANK.main.Game.zooming = false;
     this.mouseDown = false;
     this.fireButtonDown = false;
-    this.selecting = false;
-    this.pendingTarget = null;
-    this.pendingOrder = null;
   };
 
   this.mouseMoveHandler = function(e)
@@ -3924,42 +1847,9 @@ TANK.registerComponent("Player")
     this.shakeCamera(duration);
   });
 
-  this.listenTo(TANK.main, "doubleclick", function(e)
-  {
-    // If we double click a ship in the same faction, we can
-    // transfer control to it
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    for (var i in ships)
-    {
-        // Skip our own ship
-        if (ships[i] === this._entity)
-            continue;
-
-        // Skip ships not on our faction
-        if (ships[i].Ship.faction !== this._entity.Ship.faction)
-          continue;
-
-        // Check if mouse is over the ship
-        var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
-        var shipSize = [ships[i].Collider2D.width, ships[i].Collider2D.height];
-        if (TANK.Math2D.pointInOBB(TANK.main.Game.mousePosWorld, shipPos, shipSize, ships[i].Pos2D.rotation))
-        {
-            // Transfer control to the ship
-            this._entity.removeComponent("Player");
-            this._entity.addComponent("AIShip");
-            ships[i].addComponent("Player");
-            ships[i].removeComponent("AIShip");
-            ships[i].removeComponent("AIWatch");
-        }
-    }
-  });
-
   this.listenTo(TANK.main, "mousedown", this.mouseDownHandler);
   this.listenTo(TANK.main, "mouseup", this.mouseUpHandler);
   this.listenTo(TANK.main, "mousemove", this.mouseMoveHandler);
-  this.listenTo(TANK.main, "touchstart", this.mouseDownHandler);
-  this.listenTo(TANK.main, "touchend", this.mouseUpHandler);
-  this.listenTo(TANK.main, "touchmove", this.mouseMoveHandler);
 
   this.listenTo(TANK.main, "keydown", function(e)
   {
@@ -3996,24 +1886,6 @@ TANK.registerComponent("Player")
 
   this.update = function(dt)
   {
-    // Timers
-    this.clickTimer += dt;
-
-    // Calculate selection radius
-    if (this.selecting)
-    {
-      this.selectRadius = TANK.Math2D.pointDistancePoint(this.selectPos, TANK.main.Game.mousePosWorld);
-    }
-
-    // Check if mouse is still over order target
-    if (this.pendingTarget)
-    {
-      if (this.pendingTarget.Clickable.checkClick(TANK.main.Game.mousePosWorld))
-        this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(this.pendingTarget);
-      else
-        this.pendingOrder = null;
-    }
-
     // Calculate HUD size
     this.headingRadius = 50;
     this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
@@ -4053,42 +1925,6 @@ TANK.registerComponent("Player")
 
   this.draw = function(ctx, camera)
   {
-    // Draw selection radius
-    if (this.selecting)
-    {
-      ctx.save()
-      ctx.translate(-camera.x, -camera.y);
-
-      // Inner circle
-      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.beginPath();
-      ctx.arc(this.selectPos[0], this.selectPos[1], 10 * camera.z, Math.PI * 2, false);
-      ctx.closePath();
-      ctx.fill();
-
-      // Selection radius
-      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.beginPath();
-      ctx.arc(this.selectPos[0], this.selectPos[1], this.selectRadius, Math.PI * 2, false);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // Draw context order text
-    if (this.pendingOrder)
-    {
-      var mousePos = TANK.main.Game.mousePosWorld;
-      ctx.save()
-      ctx.translate(-camera.x, -camera.y);
-      var fontSize = 20 * camera.z;
-      ctx.font = fontSize + "px sans-serif";
-      ctx.fillStyle = "#ddd";
-      ctx.fillText(this.pendingOrder, mousePos[0], mousePos[1]);
-      ctx.restore();
-    }
-
     // Draw player HUD
     ctx.save();
     ctx.scale(camera.z, camera.z);
@@ -4140,8 +1976,6 @@ TANK.registerComponent("Player")
 
     // Draw weapon buttons
     ctx.fillStyle = "rgba(255, 80, 80, 0.5)";
-
-    // Front Back
     for (var i = 0; i < this.fireButtons.length; ++i)
     {
       drawGun(this.fireButtons[i]);
@@ -4152,7 +1986,7 @@ TANK.registerComponent("Player")
 });
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter', 'OrderTarget'])
+.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter'])
 
 .construct(function()
 {
@@ -4166,7 +2000,6 @@ TANK.registerComponent('Ship')
   this.dead = false;
 
   this.shipData = null;
-  this.faction = null;
   this.deadTimer = 0;
 })
 
@@ -4200,8 +2033,6 @@ TANK.registerComponent('Ship')
   this._entity.Lights.redrawLights();
   this._entity.Collider2D.width = this.image.width * TANK.main.Game.scaleFactor;
   this._entity.Collider2D.height = this.image.height * TANK.main.Game.scaleFactor;
-  this._entity.Clickable.width = this.image.width * TANK.main.Game.scaleFactor;
-  this._entity.Clickable.height = this.image.height * TANK.main.Game.scaleFactor;
   this._entity.Weapons.width = this.image.width;
   this._entity.Weapons.height = this.image.height;
   this._entity.Engines.size = this.shipData.engineSize;
@@ -4283,12 +2114,6 @@ TANK.registerComponent('Ship')
   // Explode the ship
   this.explode = function()
   {
-    // If we are the player, we should transfer player control to another ship
-    if (this._entity.Player)
-    {
-      TANK.main.dispatchTimed(1, 'scanforplayership', this.faction, [t.x, t.y]);
-    }
-
     // Remove objects
     TANK.main.removeChild(this._entity);
     TANK.main.removeChild(this.exploder);
@@ -4303,11 +2128,6 @@ TANK.registerComponent('Ship')
     if (dist < window.innerWidth / 2)
       TANK.main.dispatch('camerashake', 0.5);
   };
-
-  this.listenTo(TANK.main, 'systemBattleEnd', function()
-  {
-    TANK.main.removeChild(this._entity);
-  });
 
   // Damage response
   this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
@@ -4433,25 +2253,6 @@ TANK.registerComponent('Ship')
       this.thrustAlpha -= dt;
     this.thrustAlpha = Math.max(0, this.thrustAlpha);
     this.thrustAlpha = Math.min(1, this.thrustAlpha);
-
-    // Capture nearby control points
-    var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
-    for (var i in controlPoints)
-    {
-      var e = controlPoints[i];
-
-      // Skip control points that belong to us and aren't contested
-      if (e.ControlPoint.faction && e.ControlPoint.faction.team === this.faction.team && !e.ControlPoint.pendingFaction)
-        continue;
-
-      // Try to capture or restore control point if it is within range
-      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [e.Pos2D.x, e.Pos2D.y]);
-      if (dist < e.ControlPoint.captureDistance)
-      {
-        e.ControlPoint.tryCapture(this.faction, 0.1 * dt);
-        break;
-      }
-    };
   };
 
   this.redrawShip = function()
@@ -4494,82 +2295,8 @@ TANK.registerComponent('Ship')
     ctx.translate(this.image.width / -2, this.image.height / -2);
 
     // Draw the main ship buffer
-    if (camera.z <= 8)
-    {
-      this.redrawShip();
-      ctx.drawImage(this.mainBuffer.canvas, 0, 0);
-    }
-
-    if (camera.z >= 6)
-    {
-      // Draw ship indicator
-      ctx.save();
-      ctx.globalAlpha = Math.min(1, (camera.z - 6) / 4);
-      ctx.scale(this.image.width, this.image.height);
-
-      // Simple triangle for fighter
-      ctx.fillStyle = this.faction ? this.faction.shipColor : '#555';
-      ctx.beginPath();
-      if (this.shipData.class === 1)
-      {
-        ctx.moveTo(0, 0.1);
-        ctx.lineTo(1, 0.5);
-        ctx.lineTo(0, 0.9);
-      }
-      // Arrow for bomber
-      else if (this.shipData.class === 2)
-      {
-        ctx.moveTo(0.0, 0.0);
-        ctx.lineTo(1.0, 0.5);
-        ctx.lineTo(0.0, 1.0);
-        ctx.lineTo(0.3, 0.5);
-      }
-      // Diamond for frigate
-      else if (this.shipData.class === 3)
-      {
-        ctx.moveTo(0.5, 0.9);
-        ctx.lineTo(1.0, 0.5);
-        ctx.lineTo(0.5, 0.1);
-        ctx.lineTo(0.0, 0.5);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Draw team indicator
-    if (camera.z <= 6 && this.faction)
-    {
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = this.faction.color;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-5, -2.5);
-      ctx.lineTo(-2.5, -5);
-
-      ctx.moveTo(this.image.width, 0);
-      ctx.lineTo(this.image.width + 5, -2.5);
-      ctx.lineTo(this.image.width + 2.5, -5);
-
-      ctx.moveTo(this.image.width, this.image.height);
-      ctx.lineTo(this.image.width + 5, this.image.height + 2.5);
-      ctx.lineTo(this.image.width + 2.5, this.image.height + 5);
-
-      ctx.moveTo(0, this.image.height);
-      ctx.lineTo(-5, this.image.height + 2.5);
-      ctx.lineTo(-2.5, this.image.height + 5);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // Draw selection box
-    if (this.selected)
-    {
-      ctx.globalAlpha = 1;
-      ctx.lineWidth = 1 * camera.z;
-      ctx.strokeStyle = 'rgba(150, 255, 150, 0.8)';
-      ctx.strokeRect(0, 0, this.image.width, this.image.height);
-    }
+    this.redrawShip();
+    ctx.drawImage(this.mainBuffer.canvas, 0, 0);
 
     ctx.restore();
   };
@@ -4947,37 +2674,6 @@ TANK.registerComponent("StarField")
   this.redraw();
 });
 
-TANK.registerComponent("Template")
-
-.includes("Pos2D")
-
-.construct(function()
-{
-})
-
-.initialize(function()
-{
-});
-var isMobile = {
-    android: function() {
-        return navigator.userAgent.match(/Android/i);
-    },
-    blackberry: function() {
-        return navigator.userAgent.match(/BlackBerry/i);
-    },
-    ios: function() {
-        return navigator.userAgent.match(/iPhone|iPad|iPod/i);
-    },
-    opera: function() {
-        return navigator.userAgent.match(/Opera Mini/i);
-    },
-    windows: function() {
-        return navigator.userAgent.match(/IEMobile/i);
-    },
-    any: function() {
-        return (isMobile.android() || isMobile.blackberry() || isMobile.ios() || isMobile.opera() || isMobile.windows());
-    }
-};
 TANK.registerComponent("Weapons")
 
 .includes("Pos2D")

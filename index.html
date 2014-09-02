@@ -50,56 +50,7 @@
     </script>
 
     <!-- Ractive containers -->
-    <div id='popupContainer'></div>
     <div id='menuContainer'></div>
-    <div id='barContainer'></div>
-    <div id='topBarContainer'></div>
-
-    <!-- Win screen template -->
-    <script id='winTemplate' type='text/ractive'>
-      <div class='popup-window'>
-        <div class='popup-title'>You win!</div>
-        <div class='popup-info'>Time - 0</div>
-        <div class='popup-info'>Ships built - 0</div>
-        <div class='popup-info'>Ships lost - 0</div>
-        <div class='popup-info'>Ships destroyed - 0</div>
-        <div class='popup-footer'>
-          <div class='popup-button' on-click='back'>Back</div>
-        </div>
-      </div>
-    </script>
-
-    <script id='winGameTemplate' type='text/ractive'>
-      <div class='popup-window'>
-        <div class='popup-title'>You win!</div>
-        <div class='popup-footer'>
-          <div class='popup-button' on-click='back'>Back</div>
-        </div>
-      </div>
-    </script>
-
-    <!-- Lose screen template -->
-    <script id='loseTemplate' type='text/ractive'>
-      <div class='popup-window'>
-        <div class='popup-title'>You lost</div>
-        <div class='popup-info'>Time - 0</div>
-        <div class='popup-info'>Ships built - 0</div>
-        <div class='popup-info'>Ships lost - 0</div>
-        <div class='popup-info'>Ships destroyed - 0</div>
-        <div class='popup-footer'>
-          <div class='popup-button' on-click='back'>Back</div>
-        </div>
-      </div>
-    </script>
-
-    <script id='loseGameTemplate' type='text/ractive'>
-      <div class='popup-window'>
-        <div class='popup-title'>You lost</div>
-        <div class='popup-footer'>
-          <div class='popup-button' on-click='back'>Back</div>
-        </div>
-      </div>
-    </script>
 
     <!-- Main menu template -->
     <script id='menuTemplate' type='text/ractive'>
@@ -110,35 +61,6 @@
             <div class='menu-option' on-click='activate'>{{name}}</div>
           {{/options}}
         </div>
-      </div>
-    </script>
-
-    <!-- Level menu template -->
-    <script id='levelTemplate' type='text/ractive'>
-      <div class='level-menu'>
-        <div class='level-options'>
-          {{#options}}
-            <div class='level-option' on-click='activate'>{{name}}</div>
-          {{/options}}
-        </div>
-      </div>
-    </script>
-
-    <!-- Bottom command bar template -->
-    <script id='barTemplate' type='text/ractive'>
-      <div class='bar'>
-        {{#commands}}
-          <div class='bar-button {{active ? "on" : "off"}}' on-click='activate'>{{name}}</div>
-        {{/commands}}
-      </div>
-    </script>
-
-    <!-- Top bar template -->
-    <script id='topBarTemplate' type='text/ractive'>
-      <div class='top-bar'>
-        {{#items}}
-          <div class='bar-item'>{{name}}</div>
-        {{/items}}
       </div>
     </script>
 
