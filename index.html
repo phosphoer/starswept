@@ -69,6 +69,15 @@
       </div>
     </script>
 
+    <script id='winGameTemplate' type='text/ractive'>
+      <div class='popup-window'>
+        <div class='popup-title'>You win!</div>
+        <div class='popup-footer'>
+          <div class='popup-button' on-click='back'>Back</div>
+        </div>
+      </div>
+    </script>
+
     <!-- Lose screen template -->
     <script id='loseTemplate' type='text/ractive'>
       <div class='popup-window'>
@@ -77,6 +86,15 @@
         <div class='popup-info'>Ships built - 0</div>
         <div class='popup-info'>Ships lost - 0</div>
         <div class='popup-info'>Ships destroyed - 0</div>
+        <div class='popup-footer'>
+          <div class='popup-button' on-click='back'>Back</div>
+        </div>
+      </div>
+    </script>
+
+    <script id='loseGameTemplate' type='text/ractive'>
+      <div class='popup-window'>
+        <div class='popup-title'>You lost</div>
         <div class='popup-footer'>
           <div class='popup-button' on-click='back'>Back</div>
         </div>

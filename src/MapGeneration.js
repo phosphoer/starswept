@@ -32,7 +32,7 @@ TANK.registerComponent("MapGeneration")
         ],
         radius: 20,
         edges: [],
-        owner: null,
+        owner: TANK.main.Game.players[0],
         flagships: [],
         numPlanets: Math.round(Math.random() * 4) + 2,
         seed: Math.random(),

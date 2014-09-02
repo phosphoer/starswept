@@ -63,10 +63,58 @@ TANK.registerComponent("CampaignMap")
   });
 
   //
+  // Show the win screen menu
+  //
+  this.showWinScreen = function()
+  {
+    if (this.popupUI)
+      this.popupUI.teardown();
+
+    this.popupUI = new Ractive(
+    {
+      el: 'popupContainer',
+      template: '#winGameTemplate',
+    });
+
+    this.popupUI.on('back', function()
+    {
+      that.popupUI.teardown();
+      that.popupUI = null;
+      TANK.main.Game.goToMainMenu();
+    });
+  };
+
+  //
+  // Show the lose screen menu
+  //
+  this.showLoseScreen = function()
+  {
+    if (this.popupUI)
+      this.popupUI.teardown();
+
+    this.popupUI = new Ractive(
+    {
+      el: 'popupContainer',
+      template: '#loseGameTemplate',
+    });
+
+    this.popupUI.on('back', function()
+    {
+      that.popupUI.teardown();
+      that.popupUI = null;
+      TANK.main.Game.goToMainMenu();
+    });
+  };
+
+  //
   // Go to next turn
   //
   this.nextTurn = function()
   {
+    // Check for win
+    if (this.checkForEndCondition())
+      return;
+
     ++this.turnsTaken;
     this.currentTurn = this.turnsTaken % TANK.main.Game.players.length;
     this.currentPlayer = TANK.main.Game.players[this.currentTurn];
@@ -74,6 +122,37 @@ TANK.registerComponent("CampaignMap")
     {
       this.startAITurn();
     }
+  };
+
+  //
+  // Check for end condition
+  //
+  this.checkForEndCondition = function()
+  {
+    // Check if all systems are owned by someone
+    var owner = this.systems[0].owner;
+    var win = true;
+    for (var i = 0; i < this.systems.length; ++i)
+    {
+      if (this.systems[i].owner !== owner)
+      {
+        win = false;
+        break;
+      }
+    }
+
+    // If there was a win, check if it was the player
+    if (win)
+    {
+      if (owner.player)
+        this.showWinScreen();
+      else
+        this.showLoseScreen();
+
+      return true;
+    }
+
+    return false;
   };
 
   //
@@ -228,6 +307,9 @@ TANK.registerComponent("CampaignMap")
     this.startMove(system);
   };
 
+  //
+  // AI turn listener
+  //
   this.listenTo(TANK.main, 'takeAITurn', function(mode)
   {
     if (mode === 'attack')
@@ -238,6 +320,9 @@ TANK.registerComponent("CampaignMap")
       this.aiTurnMove();
   });
 
+  //
+  // End of turn listener
+  //
   this.listenTo(TANK.main, 'completeTurn', function(mode, system)
   {
     TANK.main.Renderer2D.camera.z = 1;
