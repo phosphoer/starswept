@@ -32,8 +32,8 @@ TANK.registerComponent("Bullet")
     if (obj.Ship)
     {
       hit = false;
-      if (this.owner.Ship && this.owner.Ship.faction === obj.Ship.faction)
-        return;
+      // if (this.owner.Ship && this.owner.Ship.iff === obj.Ship.iff)
+      //   return;
 
       var testPos = [t.x, t.y];
       var shipPos = [obj.Pos2D.x, obj.Pos2D.y];

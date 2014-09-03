@@ -117,13 +117,12 @@ Action.AIEscort = function(e, target)
   };
 };
 
-TANK.registerComponent("AIShip")
+TANK.registerComponent('AIShip')
 
-.includes(["Ship"])
+.includes(['Ship', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
-  this.idle = true;
   this.actions = [];
   this.removedActions = [];
 })
@@ -135,7 +134,7 @@ TANK.registerComponent("AIShip")
   var ship = this._entity.Ship;
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
+  this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
   {
 
   });
@@ -144,7 +143,6 @@ TANK.registerComponent("AIShip")
   this.addOrder = function(order)
   {
     this.actions.push(order);
-    this.idle = false;
   };
 
   // Clear the current queue of orders
@@ -155,13 +153,6 @@ TANK.registerComponent("AIShip")
 
   this.update = function(dt)
   {
-    // If we have no orders, go defend the nearest control point
-    if (this.actions.length === 0)
-    {
-      this.addOrder(new Action.AIDefendNearest(this._entity));
-      this.idle = true;
-    }
-
     // Run current orders
     if (this.actions.length > 0)
     {
@@ -172,12 +163,12 @@ TANK.registerComponent("AIShip")
 
     // Always scan for enemies in range and fire guns if they come within
     // sights
-    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var ships = TANK.main.getChildrenWithComponent('Ship');
     for (var i in ships)
     {
       // Skip ships on our team
       var e = ships[i];
-      if (e.Ship.faction.team === ship.faction.team)
+      if (e.Ship.iff === ship.iff)
         continue;
 
       // Try to shoot at this ship if it is in range
@@ -216,6 +207,20 @@ TANK.registerComponent("AIShip")
     }
   };
 });
+this.Action = this.Action || {};
+
+Action.AITravel = function(e)
+{
+  var t = e.Pos2D;
+  var ship = e.Ship;
+  var targetDir = Math.atan2(0 - t.y, 0 - t.x);
+  ship.heading = targetDir;
+  ship.setSpeedPercent(1);
+
+  this.update = function(dt)
+  {
+  };
+};
 TANK.registerComponent("AIWatch")
 
 .includes("AIShip")
@@ -287,8 +292,8 @@ TANK.registerComponent("Bullet")
     if (obj.Ship)
     {
       hit = false;
-      if (this.owner.Ship && this.owner.Ship.faction === obj.Ship.faction)
-        return;
+      // if (this.owner.Ship && this.owner.Ship.iff === obj.Ship.iff)
+      //   return;
 
       var testPos = [t.x, t.y];
       var shipPos = [obj.Pos2D.x, obj.Pos2D.y];
@@ -474,6 +479,13 @@ TANK.registerComponent("Engines")
 
   this.drawEngine();
 });
+var Events = {};
+
+Events.civilian =
+{
+  text: 'Your scanners pick up the signature of a small ship nearby',
+  spawns: ['civilian']
+};
 TANK.registerComponent('Game')
 
 .construct(function()
@@ -485,6 +497,9 @@ TANK.registerComponent('Game')
   // Menu options
   this.menuOptions = [];
   this.menuObjects = [];
+
+  // Event log
+  this.eventLogs = [];
 
   // Mouse positions
   this.mousePosWorld = [0, 0];
@@ -548,10 +563,7 @@ TANK.registerComponent('Game')
           TANK.main.removeChild(obj);
         });
         that.menuObjects = [];
-
-        var player = TANK.createEntity('Player');
-        player.Ship.shipData = new Ships.frigate();
-        TANK.main.addChild(player, 'player');
+        that.goToNode(TANK.main.MapGeneration.map);
       }
     });
     this.menuOptions.push(
@@ -583,6 +595,14 @@ TANK.registerComponent('Game')
       e.context.activate();
     });
 
+    // Build event log ractive
+    this.eventLogUI = new Ractive(
+    {
+      el: 'eventLogContainer',
+      template: '#eventLogTemplate',
+      data: {logs: this.eventLogs}
+    });
+
     // Build main menu scene
     this.lightDir = Math.random() * Math.PI * 2;
 
@@ -605,6 +625,126 @@ TANK.registerComponent('Game')
     ship.Ship.shipData = new Ships.bomber();
     TANK.main.addChild(ship);
     this.menuObjects.push(ship);
+  };
+
+  //
+  // Pick a random weighted index
+  //
+  this.randomWeighted = function(weights)
+  {
+    var rand = Math.random();
+    var intervals = [];
+    var min = 0;
+    var max = 0;
+    for (var i = 0; i < weights.length; ++i)
+    {
+      max = min + weights[i];
+      if (rand >= min && rand <= max)
+        return i;
+      min += weights[i];
+    }
+  };
+
+  //
+  // Add an event log
+  //
+  this.addEventLog = function(logText)
+  {
+    this.eventLogs.push({text: logText});
+  };
+
+  //
+  // Show location options
+  //
+  this.showLocationOptions = function()
+  {
+    for (var i = 0; i < this.currentNode.paths.length; ++i)
+    {
+      var node = this.currentNode.paths[i];
+      var location = Locations[node.locationName];
+      this.addEventLog((i + 1) + '. ' + location.name);
+    }
+
+    this.waitingForJump = true;
+  };
+
+  //
+  // Go to a new node on the map
+  //
+  this.goToNode = function(node)
+  {
+    var e = TANK.createEntity('WarpEffect');
+    TANK.main.addChild(e);
+    this.warping = true;
+    this.warpTimer = 5;
+    this.pendingNode = node;
+  };
+
+  //
+  // Load a location
+  //
+  this.loadNewLocation = function(name)
+  {
+    // Clear existing objects
+    TANK.main.dispatch('locationchange');
+
+    // Grab the location object
+    var location = Locations[name];
+    this.currentLocation = location;
+
+    // Create player entity if it doesn't exist
+    if (!this.player)
+    {
+      this.player = TANK.createEntity('Player');
+      this.player.Ship.shipData = new Ships.frigate();
+      TANK.main.addChild(this.player);
+    }
+
+    // Log location text
+    this.addEventLog(location.text);
+
+    // Trigger location event
+    if (location.events)
+    {
+      var weights = location.events.map(function(ev) {return ev.probability;});
+      var chosenIndex = this.randomWeighted(weights);
+      var chosenEvent = location.events[chosenIndex];
+      this.triggerEvent(chosenEvent.name);
+    }
+
+    // Log default tutorial message
+    this.addEventLog('Press J to warp when ready');
+  };
+
+  //
+  // Trigger an event
+  //
+  this.triggerEvent = function(eventName)
+  {
+    var event = Events[eventName];
+    event.spawns = event.spawns || [];
+
+    // Show event text
+    this.addEventLog(event.text);
+
+    // Spawn event entities
+    for (var i = 0; i < event.spawns.length; ++i)
+    {
+      var spawn = event.spawns[i];
+
+      // Using Spawns library
+      if (typeof spawn === 'string')
+      {
+        Spawns[spawn]();
+      }
+      // Or using an object literal as a prototype
+      else
+      {
+        var e = TANK.createEntity();
+        e.load(spawn);
+        TANK.main.addChild(e);
+      }
+    }
   };
 
   //
@@ -633,11 +773,50 @@ TANK.registerComponent('Game')
       TANK.main.Renderer2D.camera.z = 20;
   });
 
+  this.listenTo(TANK.main, 'keydown', function(e)
+  {
+    // Key to begin jump
+    if (e.keyCode === TANK.Key.J)
+    {
+      this.showLocationOptions();
+    }
+
+    // Numbered choice keys
+    if (e.keyCode >= TANK.Key.NUM0 && e.keyCode <= TANK.Key.NUM9)
+    {
+      // 0 index choice from 1 key
+      var choice = e.keyCode - TANK.Key.NUM1;
+
+      // Choose to jump to a location
+      if (this.waitingForJump)
+      {
+        if (choice < this.currentNode.paths.length)
+          this.goToNode(this.currentNode.paths[choice]);
+      }
+      // Choose an answer for an event
+      else
+      {
+      }
+    }
+  });
+
   //
   // Update
   //
   this.update = function(dt)
   {
+    // Handle warp logic
+    if (this.warpTimer > 0)
+    {
+      // Countdown timer to warp
+      this.warpTimer -= dt;
+      if (this.warpTimer <= 0)
+      {
+        this.warping = false;
+        this.currentNode = this.pendingNode;
+        this.loadNewLocation(this.currentNode.locationName);
+      }
+    }
   };
 });
 
@@ -1016,6 +1195,62 @@ TANK.registerComponent("Lights")
     ctx.restore();
   };
 });
+var Locations = {};
+
+Locations.start =
+{
+  text: 'Some placeholder text that should be displayed upon entering this location.',
+  events: [{probability: 1, name: 'civilian'}]
+};
+
+Locations.test =
+{
+  text: 'You arrive in the test location. You feel testy.',
+  name: 'A test location'
+};
+TANK.registerComponent('MapGeneration')
+
+.construct(function()
+{
+  this.numLevels = 5;
+  this.minPaths = 1;
+  this.maxPaths = 3;
+  this.map = {};
+  var rng = new RNG();
+
+  this.generateMap = function(node, currentDepth)
+  {
+    // Base
+    if (currentDepth >= this.numLevels)
+      return null;
+
+    // Defaults
+    if (!node)
+      node = this.map;
+    if (!currentDepth)
+      currentDepth = 0;
+
+    // Generate the current node
+    node.locationName = 'test';
+    node.paths = [];
+    if (currentDepth === 0)
+      node.locationName = 'start';
+
+    // Generate child nodes recursively
+    var numPaths = rng.random(this.minPaths, this.maxPaths + 1);
+    for (var i = 0; i < numPaths; ++i)
+    {
+      var childNode = this.generateMap({}, currentDepth + 1);
+      if (childNode)
+        node.paths.push(childNode);
+    }
+
+    return node;
+  };
+
+  this.generateMap();
+});
+
 var ParticleLibrary = {};
 
 ParticleLibrary.slowMediumFire = function()
@@ -1984,6 +2219,14 @@ TANK.registerComponent("Player")
     ctx.restore();
   };
 });
+TANK.registerComponent('RemoveOnLevelChange')
+.initialize(function()
+{
+  this.listenTo(TANK.main, 'locationchange', function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+});
 TANK.registerComponent('Ship')
 
 .includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter'])
@@ -1999,6 +2242,7 @@ TANK.registerComponent('Ship')
 
   this.dead = false;
 
+  this.iff = 0;
   this.shipData = null;
   this.deadTimer = 0;
 })
@@ -2618,6 +2862,17 @@ TANK.registerComponent('SoundEmitter')
     Wave.play(name, volume);
   };
 });
+var Spawns = {};
+
+Spawns.civilian = function()
+{
+  var e = TANK.createEntity('AIShip');
+  e.Ship.shipData = new Ships.fighter();
+  e.Pos2D.x = -2000 + Math.random() * 4000;
+  e.Pos2D.y = -2000 + Math.random() * 4000;
+  TANK.main.addChild(e);
+  e.AIShip.addOrder(new Action.AITravel(e));
+};
 TANK.registerComponent("StarField")
 
 .construct(function()
@@ -2674,6 +2929,46 @@ TANK.registerComponent("StarField")
   this.redraw();
 });
 
+TANK.registerComponent('WarpEffect')
+.includes(['RemoveOnLevelChange'])
+.construct(function()
+{
+  this.et = 0;
+  this.zdepth = 10;
+})
+.initialize(function()
+{
+  TANK.main.Renderer2D.add(this);
+
+  var scale = 5;
+  var context = TANK.main.Renderer2D.context;
+  var pixelBuffer = new PixelBuffer();
+  pixelBuffer.createBuffer(Math.floor(context.canvas.width / scale), Math.floor(context.canvas.height / scale));
+  pixelBuffer.context.scale(1 / scale, 1 / scale);
+  pixelBuffer.context.drawImage(context.canvas, 0, 0);
+
+  this.draw = function(ctx, camera, dt)
+  {
+    ctx.save();
+    this.et += dt;
+    pixelBuffer.readBuffer();
+    for (var y = 0; y < pixelBuffer.height; y += 1)
+    {
+      for (var x = 0; x < pixelBuffer.width; x += 1)
+      {
+        var delta = [Math.floor(-5 + Math.random() * 10), Math.floor(-5 + Math.random() * 10)];
+        var sample = pixelBuffer.getPixel(x + delta[0], y + delta[1]);
+        pixelBuffer.setPixel(x, y, sample);
+      }
+    }
+    pixelBuffer.applyBuffer();
+
+    ctx.scale(scale, scale);
+    ctx.translate(-pixelBuffer.width / 2, -pixelBuffer.height / 2);
+    ctx.drawImage(pixelBuffer.canvas, 0, 0);
+    ctx.restore();
+  };
+});
 TANK.registerComponent("Weapons")
 
 .includes("Pos2D")
@@ -2858,10 +3153,10 @@ function main()
 {
   LoadSounds();
 
-  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField", "DustField"]);
+  TANK.createEngine(['Input', 'Renderer2D', 'Game', 'MapGeneration', 'StarField', 'DustField']);
 
-  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
-  TANK.main.Input.context = document.querySelector("#stage");
+  TANK.main.Renderer2D.context = document.querySelector('#canvas').getContext('2d');
+  TANK.main.Input.context = document.querySelector('#stage');
 
   TANK.start();
 }

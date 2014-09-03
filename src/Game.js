@@ -10,6 +10,9 @@ TANK.registerComponent('Game')
   this.menuOptions = [];
   this.menuObjects = [];
 
+  // Event log
+  this.eventLogs = [];
+
   // Mouse positions
   this.mousePosWorld = [0, 0];
   this.mousePosScreen = [0, 0];
@@ -72,10 +75,7 @@ TANK.registerComponent('Game')
           TANK.main.removeChild(obj);
         });
         that.menuObjects = [];
-
-        var player = TANK.createEntity('Player');
-        player.Ship.shipData = new Ships.frigate();
-        TANK.main.addChild(player, 'player');
+        that.goToNode(TANK.main.MapGeneration.map);
       }
     });
     this.menuOptions.push(
@@ -107,6 +107,14 @@ TANK.registerComponent('Game')
       e.context.activate();
     });
 
+    // Build event log ractive
+    this.eventLogUI = new Ractive(
+    {
+      el: 'eventLogContainer',
+      template: '#eventLogTemplate',
+      data: {logs: this.eventLogs}
+    });
+
     // Build main menu scene
     this.lightDir = Math.random() * Math.PI * 2;
 
@@ -129,6 +137,126 @@ TANK.registerComponent('Game')
     ship.Ship.shipData = new Ships.bomber();
     TANK.main.addChild(ship);
     this.menuObjects.push(ship);
+  };
+
+  //
+  // Pick a random weighted index
+  //
+  this.randomWeighted = function(weights)
+  {
+    var rand = Math.random();
+    var intervals = [];
+    var min = 0;
+    var max = 0;
+    for (var i = 0; i < weights.length; ++i)
+    {
+      max = min + weights[i];
+      if (rand >= min && rand <= max)
+        return i;
+      min += weights[i];
+    }
+  };
+
+  //
+  // Add an event log
+  //
+  this.addEventLog = function(logText)
+  {
+    this.eventLogs.push({text: logText});
+  };
+
+  //
+  // Show location options
+  //
+  this.showLocationOptions = function()
+  {
+    for (var i = 0; i < this.currentNode.paths.length; ++i)
+    {
+      var node = this.currentNode.paths[i];
+      var location = Locations[node.locationName];
+      this.addEventLog((i + 1) + '. ' + location.name);
+    }
+
+    this.waitingForJump = true;
+  };
+
+  //
+  // Go to a new node on the map
+  //
+  this.goToNode = function(node)
+  {
+    var e = TANK.createEntity('WarpEffect');
+    TANK.main.addChild(e);
+    this.warping = true;
+    this.warpTimer = 5;
+    this.pendingNode = node;
+  };
+
+  //
+  // Load a location
+  //
+  this.loadNewLocation = function(name)
+  {
+    // Clear existing objects
+    TANK.main.dispatch('locationchange');
+
+    // Grab the location object
+    var location = Locations[name];
+    this.currentLocation = location;
+
+    // Create player entity if it doesn't exist
+    if (!this.player)
+    {
+      this.player = TANK.createEntity('Player');
+      this.player.Ship.shipData = new Ships.frigate();
+      TANK.main.addChild(this.player);
+    }
+
+    // Log location text
+    this.addEventLog(location.text);
+
+    // Trigger location event
+    if (location.events)
+    {
+      var weights = location.events.map(function(ev) {return ev.probability;});
+      var chosenIndex = this.randomWeighted(weights);
+      var chosenEvent = location.events[chosenIndex];
+      this.triggerEvent(chosenEvent.name);
+    }
+
+    // Log default tutorial message
+    this.addEventLog('Press J to warp when ready');
+  };
+
+  //
+  // Trigger an event
+  //
+  this.triggerEvent = function(eventName)
+  {
+    var event = Events[eventName];
+    event.spawns = event.spawns || [];
+
+    // Show event text
+    this.addEventLog(event.text);
+
+    // Spawn event entities
+    for (var i = 0; i < event.spawns.length; ++i)
+    {
+      var spawn = event.spawns[i];
+
+      // Using Spawns library
+      if (typeof spawn === 'string')
+      {
+        Spawns[spawn]();
+      }
+      // Or using an object literal as a prototype
+      else
+      {
+        var e = TANK.createEntity();
+        e.load(spawn);
+        TANK.main.addChild(e);
+      }
+    }
   };
 
   //
@@ -157,10 +285,49 @@ TANK.registerComponent('Game')
       TANK.main.Renderer2D.camera.z = 20;
   });
 
+  this.listenTo(TANK.main, 'keydown', function(e)
+  {
+    // Key to begin jump
+    if (e.keyCode === TANK.Key.J)
+    {
+      this.showLocationOptions();
+    }
+
+    // Numbered choice keys
+    if (e.keyCode >= TANK.Key.NUM0 && e.keyCode <= TANK.Key.NUM9)
+    {
+      // 0 index choice from 1 key
+      var choice = e.keyCode - TANK.Key.NUM1;
+
+      // Choose to jump to a location
+      if (this.waitingForJump)
+      {
+        if (choice < this.currentNode.paths.length)
+          this.goToNode(this.currentNode.paths[choice]);
+      }
+      // Choose an answer for an event
+      else
+      {
+      }
+    }
+  });
+
   //
   // Update
   //
   this.update = function(dt)
   {
+    // Handle warp logic
+    if (this.warpTimer > 0)
+    {
+      // Countdown timer to warp
+      this.warpTimer -= dt;
+      if (this.warpTimer <= 0)
+      {
+        this.warping = false;
+        this.currentNode = this.pendingNode;
+        this.loadNewLocation(this.currentNode.locationName);
+      }
+    }
   };
 });

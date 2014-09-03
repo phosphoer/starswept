@@ -13,6 +13,7 @@ TANK.registerComponent('Ship')
 
   this.dead = false;
 
+  this.iff = 0;
   this.shipData = null;
   this.deadTimer = 0;
 })

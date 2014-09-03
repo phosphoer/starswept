@@ -51,6 +51,7 @@
 
     <!-- Ractive containers -->
     <div id='menuContainer'></div>
+    <div id='eventLogContainer'></div>
 
     <!-- Main menu template -->
     <script id='menuTemplate' type='text/ractive'>
@@ -61,6 +62,15 @@
             <div class='menu-option' on-click='activate'>{{name}}</div>
           {{/options}}
         </div>
+      </div>
+    </script>
+
+    <!-- Log text template -->
+    <script id='eventLogTemplate' type='text/ractive'>
+      <div class='event-log'>
+        {{#logs}}
+          <div class='event-log-item'>{{text}}</div>
+        {{/logs}}
       </div>
     </script>
 

@@ -52,3 +52,19 @@ html, body
 {
   background: rgba(255, 255, 255, 0.2);
 }
+
+.event-log
+{
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 10px;
+  width: 400px;
+  height: 300px;
+  overflow-y: auto;
+  color: #ddd;
+}
+
+.event-log-item
+{
+}

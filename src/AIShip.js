@@ -1,10 +1,9 @@
-TANK.registerComponent("AIShip")
+TANK.registerComponent('AIShip')
 
-.includes(["Ship"])
+.includes(['Ship', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
-  this.idle = true;
   this.actions = [];
   this.removedActions = [];
 })
@@ -16,7 +15,7 @@ TANK.registerComponent("AIShip")
   var ship = this._entity.Ship;
 
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
+  this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
   {
 
   });
@@ -25,7 +24,6 @@ TANK.registerComponent("AIShip")
   this.addOrder = function(order)
   {
     this.actions.push(order);
-    this.idle = false;
   };
 
   // Clear the current queue of orders
@@ -36,13 +34,6 @@ TANK.registerComponent("AIShip")
 
   this.update = function(dt)
   {
-    // If we have no orders, go defend the nearest control point
-    if (this.actions.length === 0)
-    {
-      this.addOrder(new Action.AIDefendNearest(this._entity));
-      this.idle = true;
-    }
-
     // Run current orders
     if (this.actions.length > 0)
     {
@@ -53,12 +44,12 @@ TANK.registerComponent("AIShip")
 
     // Always scan for enemies in range and fire guns if they come within
     // sights
-    var ships = TANK.main.getChildrenWithComponent("Ship");
+    var ships = TANK.main.getChildrenWithComponent('Ship');
     for (var i in ships)
     {
       // Skip ships on our team
       var e = ships[i];
-      if (e.Ship.faction.team === ship.faction.team)
+      if (e.Ship.iff === ship.iff)
         continue;
 
       // Try to shoot at this ship if it is in range
