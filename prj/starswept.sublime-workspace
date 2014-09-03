@@ -1,1 +1,941 @@
-{}
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"dere",
+				"derelict_2b"
+			],
+			[
+				"far",
+				"farthest"
+			],
+			[
+				"system-pane",
+				"system-panel-fleets"
+			],
+			[
+				"camp",
+				"campaignObject"
+			],
+			[
+				"curr",
+				"currentPlayer"
+			],
+			[
+				"ata",
+				"attackerWin"
+			],
+			[
+				"defe",
+				"currentSystemDefender"
+			],
+			[
+				"adjacent",
+				"adjacentPlayerSystem"
+			],
+			[
+				"cam",
+				"campaignObject"
+			],
+			[
+				"goto",
+				"goToCampaignMap"
+			],
+			[
+				"sort",
+				"sortedByDist"
+			],
+			[
+				"sear",
+				"searching"
+			],
+			[
+				"got",
+				"goToCampaignMap"
+			],
+			[
+				"fir",
+				"friendliesNearby"
+			],
+			[
+				"attackt",
+				"attackTime"
+			],
+			[
+				"pro",
+				"prototype"
+			],
+			[
+				"dif",
+				"diffuseMap"
+			],
+			[
+				"buffer",
+				"bufferDiffuse"
+			],
+			[
+				"defenseinc",
+				"defenseIncreaseTimer"
+			],
+			[
+				"def",
+				"defenseIncreaseTimer"
+			],
+			[
+				"defent",
+				"defenseTime"
+			],
+			[
+				"Re",
+				"Renderer2D"
+			],
+			[
+				"menui",
+				"menuUI"
+			],
+			[
+				"contro",
+				"controlPoints"
+			],
+			[
+				"headingra",
+				"headingRadiusScaled"
+			],
+			[
+				"bul",
+				"Bullet"
+			],
+			[
+				"spawnsc",
+				"spawnScaleMin"
+			],
+			[
+				"Particle",
+				"ParticleLibrary"
+			],
+			[
+				"contr",
+				"controlPoints"
+			],
+			[
+				"queu",
+				"queuedShips"
+			],
+			[
+				"contrpo",
+				"ControlPoint"
+			],
+			[
+				"curre",
+				"currentCaptureTarget"
+			],
+			[
+				"reload",
+				"reloadTime"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
+			"settings":
+			{
+				"buffer_size": 1898,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
+			"settings":
+			{
+				"buffer_size": 3546,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 125.0,
+		"selected_items":
+		[
+			[
+				"javasc",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"list",
+				"Package Control: List Packages"
+			],
+			[
+				"user",
+				"Preferences: Settings - User"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"",
+				"AutoFileName: Default Settings"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"key",
+				"Preferences: Key Bindings - Default"
+			],
+			[
+				"prefer",
+				"Preferences: Settings - Default"
+			]
+		],
+		"width": 417.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404' + 'e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src"
+	],
+	"file_history":
+	[
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Engines.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/style.css",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIShip.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Player.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/MapGeneration.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/CampaignMap.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/ParticleLibrary.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/GenerateLevel.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Planet.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIDefend.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/PixelBuffer.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/perlin.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Guns.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Fleet.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/System.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ships.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/UI.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/ControlPoint.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Template.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Faction.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/main.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIAttack.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/StarField.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Weapons.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/img/alien.pxi",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/SoundEmitter.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Sound.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/wave.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Life.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Lights.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Bullet.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/LoadSounds.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/lowLag.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/snd/explode-01.wav",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIFaction.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Levels.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Lights.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Game.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/CampaignMap.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/MapGeneration.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/main.js",
+		"/Users/david/Documents/Game Projects/ANewSky/style.css",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Ship.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Engines.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Ships.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/ControlPoint.js",
+		"/Users/david/Documents/Game Projects/ANewSky/index.html",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Lightr.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Levels.js",
+		"/Users/david/Documents/Game Projects/ANewSky/res/alien.pxi",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Faction.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Planet.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/AIShip.js",
+		"/Users/david/Library/Application Support/minecraft/shaderpacks/SEUS/shaders/gbuffers_textured_lit.fsh",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Player.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/PixelBuffer.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/StarField.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/ParticleLibrary.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Guns.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Bullet.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Weapons.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/AIProject.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/AIFaction2.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/AIFaction3.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/AIFaction.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/AIAttack.js",
+		"/Users/david/Documents/Game Projects/ANewSky/prj/anewsky.sublime-project",
+		"/Users/david/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/Users/david/Documents/Game Projects/ANewSky/res/bomber.pxi",
+		"/Users/david/Documents/Game Projects/ANewSky/src/DustField.js",
+		"/Users/david/Documents/Game Projects/Space/src/DustField.js",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/liftoff/node_modules/findup-sync/test/findup-sync_test.js",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/gulp-util/node_modules/through2/node_modules/readable-stream/duplex.js",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/gulp-util/lib/date.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/LightingTest.js",
+		"/Users/david/Documents/Game Projects/Lightr/Lightr.js",
+		"/Users/david/Library/Application Support/Sublime Text 3/Packages/AutoFileName/autofilename.sublime-settings",
+		"/Users/david/Documents/Game Projects/ANewSky/lib/tank.js",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/liftoff/node_modules/findup-sync/node_modules/glob/test/globstar-match.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/OrderTarget.js",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp-concat/LICENSE",
+		"/Users/david/Documents/Game Projects/ANewSky/bin/game.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/Clickable.js",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/liftoff/lib/silent_require.js",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/liftoff/node_modules/resolve/test/resolver/incorrect_main/package.json",
+		"/Users/david/Documents/Game Projects/ANewSky/src/AIWatch.js",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/gulp-util/node_modules/through2/node_modules/readable-stream/lib/_stream_writable.js",
+		"/Users/david/Documents/Game Projects/ANewSky/package.json",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/gulp-util/node_modules/lodash.template/node_modules/lodash.keys/node_modules/lodash._shimkeys/node_modules/lodash._objecttypes/package.json",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/gulp-util/lib/isNull.js",
+		"/Users/david/Documents/Game Projects/ANewSky/res/frigate.pxm",
+		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/chalk/node_modules/strip-ansi/index.js",
+		"/Users/david/Documents/Game Projects/TankJS/src/OrderTarget.js",
+		"/Users/david/Documents/Game Projects/TankJS/src/Clickable.js",
+		"/Users/david/Documents/Game Projects/TankJS/docs/Math.html",
+		"/Users/david/Documents/Game Projects/TankJS/node_modules/gulp-uglify/node_modules/uglify-js/lib/mozilla-ast.js",
+		"/Users/david/Documents/Game Projects/TankJS/bin/tank.js",
+		"/Users/david/Documents/Game Projects/TankJS/docs/Component.html",
+		"/Users/david/Documents/Game Projects/TankJS/bin/components.js",
+		"/Users/david/Documents/Game Projects/TankJS/node_modules/gulp-uglify/node_modules/uglify-js/node_modules/optimist/example/line_count_options.js",
+		"/Users/david/Documents/Game Projects/TankJS/docs/Entity.html",
+		"/Users/david/Documents/Game Projects/TankJS/docs/Engine.html",
+		"/Users/david/Documents/Game Projects/ANewSky/lib/components.js",
+		"/Users/david/Documents/Game Projects/ANewSky/src/AIApproach.js",
+		"/Users/david/Library/Application Support/Sublime Text 3/Packages/User/Default (OSX).sublime-keymap",
+		"/Users/david/Library/Application Support/Sublime Text 3/Packages/Default/Default (OSX).sublime-keymap",
+		"/Users/david/Library/Application Support/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/Users/david/Documents/Game Projects/ANewSky/gulpfile.js"
+	],
+	"find":
+	{
+		"height": 54.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"volume",
+			"levelOptions",
+			"TANK.main.goToMainMenu",
+			"gotomain",
+			"15",
+			"isbeingatta",
+			"isbeingatt",
+			"owner",
+			"Math.random",
+			"res/",
+			"topbar",
+			"'",
+			"campaignmap",
+			"system",
+			"\"",
+			"10",
+			"$",
+			"fortifylevel",
+			"points",
+			"fortifyLevel",
+			"Wave.play",
+			"\"",
+			"gain",
+			"explode-01",
+			"adddamage",
+			"\"",
+			"res/",
+			"\"",
+			"planet",
+			"level",
+			"\"",
+			"0",
+			"min",
+			"0",
+			"];\n",
+			"50",
+			"0",
+			"\"",
+			"this",
+			"this.",
+			"flagsh",
+			"flags",
+			"loadleveln",
+			"this.ingame",
+			"mapgenerat",
+			".mapgener",
+			"this.systems",
+			"save.systems",
+			"this.",
+			"scanforend",
+			"startAttack",
+			".owner",
+			"this.startaiturn",
+			"this.factions",
+			"level",
+			".level",
+			"0",
+			"ai",
+			"faction",
+			"loadlevel",
+			"scanfore",
+			"factions",
+			"gotosystem",
+			"owned",
+			"\n      ",
+			"owned",
+			"\n    ",
+			".owned",
+			"currentTurn",
+			"owned",
+			"aiOwnedSystems",
+			"isPlayerTurn",
+			"this.isPlayerTurn = !this.isPlayerTurn;",
+			"isPlayerTurn",
+			" + system.radius",
+			"foreach",
+			".x",
+			"endOfTurn",
+			"startaitur",
+			"isPlayerTurn",
+			"startAITurn",
+			"system",
+			"dispatchtimed",
+			"takeAITurn",
+			"start",
+			"listento",
+			"systembattleend",
+			"adjacentPlayerSystem",
+			"(e)",
+			"barCommands",
+			"gotocam",
+			"campaignmap",
+			"gotocam",
+			"mainmenu",
+			"mainMenu",
+			"levelend",
+			"levelEnd",
+			"levelStart",
+			"levelstart",
+			"currentLevel",
+			"scan",
+			"loadlevelnow",
+			"levelstart",
+			"gotole",
+			"systemsOrdered[0]",
+			"this",
+			"this.systems[i]",
+			"system",
+			"this.systems[i]",
+			"bomber",
+			"localst",
+			"1",
+			"\"",
+			"value",
+			"\"",
+			"attackTime",
+			"currentCaptureTarget",
+			"infinity",
+			"infint",
+			"threatatpos",
+			"threat",
+			"attackTarget",
+			"1 + Math.random()",
+			"TANK.RenderManager.camera",
+			"lightbuffer",
+			"lightdif",
+			"this",
+			"faction"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"systemBattleEnd",
+			""
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1898,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1835,
+								1835
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 325.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3546,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2070,
+								2070
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 1635.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 24.0
+	},
+	"input":
+	{
+		"height": 33.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"project": "starswept.sublime-project",
+	"replace":
+	{
+		"height": 44.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"eng",
+				"src/Engines.js"
+			],
+			[
+				"shi",
+				"src/Ship.js"
+			],
+			[
+				"ais",
+				"src/AIShip.js"
+			],
+			[
+				"inde",
+				"index.html"
+			],
+			[
+				"par",
+				"src/ParticleLibrary.js"
+			],
+			[
+				"perl",
+				"lib/perlin.js"
+			],
+			[
+				"gen",
+				"src/GenerateLevel.js"
+			],
+			[
+				"gam",
+				"src/Game.js"
+			],
+			[
+				"tem",
+				"src/Template.js"
+			],
+			[
+				"st",
+				"style.css"
+			],
+			[
+				"mapg",
+				"src/MapGeneration.js"
+			],
+			[
+				"cam",
+				"src/CampaignMap.js"
+			],
+			[
+				"starfi",
+				"src/StarField.js"
+			],
+			[
+				"sounde",
+				"src/SoundEmitter.js"
+			],
+			[
+				"wea",
+				"src/Weapons.js"
+			],
+			[
+				"aiat",
+				"src/AIAttack.js"
+			],
+			[
+				"gu",
+				"src/Guns.js"
+			],
+			[
+				"wav",
+				"lib/wave.js"
+			],
+			[
+				"life",
+				"src/Life.js"
+			],
+			[
+				"sou",
+				"src/LoadSounds.js"
+			],
+			[
+				"wa",
+				"lib/wave.js"
+			],
+			[
+				"bu",
+				"src/Bullet.js"
+			],
+			[
+				"ship",
+				"src/Ship.js"
+			],
+			[
+				"con",
+				"src/ControlPoint.js"
+			],
+			[
+				"ma",
+				"src/main.js"
+			],
+			[
+				"load",
+				"src/LoadSounds.js"
+			],
+			[
+				"game",
+				"src/Game.js"
+			],
+			[
+				"mai",
+				"src/main.js"
+			],
+			[
+				"guns",
+				"src/Guns.js"
+			],
+			[
+				"lev",
+				"src/GenerateLevel.js"
+			],
+			[
+				"ligh",
+				"src/Lights.js"
+			],
+			[
+				"ships",
+				"src/Ships.js"
+			],
+			[
+				"cont",
+				"src/ControlPoint.js"
+			],
+			[
+				"pla",
+				"src/Planet.js"
+			],
+			[
+				"mapge",
+				"src/MapGeneration.js"
+			],
+			[
+				"sty",
+				"style.css"
+			],
+			[
+				"lig",
+				"src/Lights.js"
+			],
+			[
+				"lights",
+				"src/Lights.js"
+			],
+			[
+				"le",
+				"src/Levels.js"
+			],
+			[
+				"campa",
+				"src/CampaignMap.js"
+			],
+			[
+				"aishi",
+				"src/AIShip.js"
+			],
+			[
+				"play",
+				"src/Player.js"
+			],
+			[
+				"level",
+				"src/Levels.js"
+			],
+			[
+				"star",
+				"src/StarField.js"
+			],
+			[
+				"leve",
+				"src/Levels.js"
+			],
+			[
+				"fa",
+				"src/Faction.js"
+			],
+			[
+				"aifac",
+				"src/AIFaction.js"
+			],
+			[
+				"aiship",
+				"src/AIShip.js"
+			],
+			[
+				"bomb",
+				"res/bomber.pxi"
+			],
+			[
+				"aipr",
+				"src/AIProject.js"
+			],
+			[
+				"aipro",
+				"src/AIProject.js"
+			],
+			[
+				"aifa",
+				"src/AIFaction.js"
+			],
+			[
+				"ais2",
+				"src/AIFaction2.js"
+			],
+			[
+				"plan",
+				"src/Planet.js"
+			],
+			[
+				"pix",
+				"src/PixelBuffer.js"
+			],
+			[
+				"pixel",
+				"src/PixelBuffer.js"
+			],
+			[
+				"ga",
+				"src/Game.js"
+			],
+			[
+				"gun",
+				"src/Guns.js"
+			],
+			[
+				"fac",
+				"src/Faction.js"
+			],
+			[
+				"click",
+				"src/Clickable.js"
+			],
+			[
+				"contr",
+				"src/ControlPoint.js"
+			],
+			[
+				"aisi",
+				"src/AIShip.js"
+			],
+			[
+				"planet",
+				"src/Planet.js"
+			],
+			[
+				"weap",
+				"src/Weapons.js"
+			],
+			[
+				"player",
+				"src/Player.js"
+			],
+			[
+				"aiis",
+				"src/AIShip.js"
+			],
+			[
+				"order",
+				"src/OrderTarget.js"
+			],
+			[
+				"mat",
+				"src/Math.js"
+			],
+			[
+				"compon",
+				"src/Component.js"
+			],
+			[
+				"entijs",
+				"src/Entity.js"
+			],
+			[
+				"enti",
+				"docs/Entity.html"
+			],
+			[
+				"aiwa",
+				"src/AIWatch.js"
+			],
+			[
+				"pack",
+				"package.json"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+			[
+				"",
+				"~/Documents/Game Projects/TankJS/projects/sublime3/tankjs.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 368.0,
+		"selected_items":
+		[
+		],
+		"width": 750.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 215.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
