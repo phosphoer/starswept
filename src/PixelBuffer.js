@@ -81,6 +81,8 @@ function PixelBuffer()
   {
     x = Math.round(x);
     y = Math.round(y);
+    x = Math.min(this.buffer.width, Math.max(0, x));
+    y = Math.min(this.buffer.height, Math.max(0, y));
     var index = x * 4 + (y * this.buffer.width * 4);
     var pixel = [];
     pixel[0] = this.buffer.data[index + 0];

@@ -188,7 +188,7 @@ TANK.registerComponent('Game')
     var e = TANK.createEntity('WarpEffect');
     TANK.main.addChild(e);
     this.warping = true;
-    this.warpTimer = 5;
+    this.warpTimer = 3;
     this.pendingNode = node;
   };
 
@@ -277,6 +277,8 @@ TANK.registerComponent('Game')
 
   this.listenTo(TANK.main, 'mousewheel', function(e)
   {
+    if (this.warping)
+      return;
     var delta = e.wheelDelta;
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
     if (TANK.main.Renderer2D.camera.z < 0.5)
