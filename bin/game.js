@@ -966,6 +966,73 @@ TANK.registerComponent("Life")
       this._entity._parent.removeChild(this._entity);
   };
 });
+TANK.registerComponent('LightingAndDamage')
+
+.includes(['Pos2D'])
+
+.construct(function()
+{
+  this.image = null;
+  this.lightBuffers = null;
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  this.setImage = function(image, lightBuffers)
+  {
+    this.image = image;
+    this.lightBuffers = lightBuffers;
+
+    // Create texture buffers
+    this.mainBuffer = new PixelBuffer();
+    this.damageBuffer = new PixelBuffer();
+    this.decalBuffer = new PixelBuffer();
+
+    // Setup texture buffers
+    this.mainBuffer.createBuffer(this.image.width, this.image.height);
+    this.damageBuffer.createBuffer(this.image.width, this.image.height);
+    this.decalBuffer.createBuffer(this.image.width, this.image.height);
+  }
+
+  // Add damage decals
+  this.addDamage = function(x, y, radius)
+  {
+    // Cut out radius around damage
+    this.damageBuffer.setPixelRadiusRand(x, y, radius - 2, [255, 255, 255, 255], 0.7, radius, [0, 0, 0, 0], 0.0);
+    this.damageBuffer.applyBuffer();
+
+    // Draw burnt edge around damage
+    this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
+    this.decalBuffer.applyBuffer();
+  };
+
+  this.redraw = function()
+  {
+    this.mainBuffer.context.save();
+    this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
+    this.mainBuffer.context.drawImage(this.image, 0, 0);
+
+    // Draw lighting
+    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
+    for (var i = 0; i < this.lightBuffers.length; ++i)
+    {
+      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i - Math.PI / 2;
+      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
+      if (this.mainBuffer.context.globalAlpha > 0)
+        this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
+    }
+
+    // Draw damage buffer
+    this.mainBuffer.context.globalAlpha = 1;
+    this.mainBuffer.context.globalCompositeOperation = 'source-atop';
+    this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
+    this.mainBuffer.context.globalCompositeOperation = 'destination-out';
+    this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
+    this.mainBuffer.context.restore();
+  };
+});
 (function(api)
 {
 
@@ -2233,7 +2300,7 @@ TANK.registerComponent('RemoveOnLevelChange')
 });
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter'])
+.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter'])
 
 .construct(function()
 {
@@ -2268,6 +2335,8 @@ TANK.registerComponent('Ship')
   this.lightBuffers = this.shipData.__proto__.lightBuffers;
   this.health = this.shipData.health;
 
+  this._entity.LightingAndDamage.setImage(this.image, this.lightBuffers);
+
   // Create texture buffers
   this.mainBuffer = new PixelBuffer();
   this.damageBuffer = new PixelBuffer();
@@ -2286,13 +2355,9 @@ TANK.registerComponent('Ship')
   this._entity.Engines.size = this.shipData.engineSize;
 
   // Setup texture buffers
-  this.mainBuffer.createBuffer(this.image.width, this.image.height);
-  this.damageBuffer.createBuffer(this.image.width, this.image.height);
-  this.decalBuffer.createBuffer(this.image.width, this.image.height);
   this.collisionBuffer.createBuffer(this.image.width, this.image.height);
   this.collisionBuffer.context.drawImage(this.image, 0, 0);
   this.collisionBuffer.readBuffer();
-
 
   // Add weapons
   for (var gunSide in this.shipData.guns)
@@ -2308,7 +2373,9 @@ TANK.registerComponent('Ship')
     }
   };
 
+  //
   // Move towards a given point
+  //
   this.moveTowards = function(pos, speedPercent)
   {
     this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
@@ -2325,22 +2392,20 @@ TANK.registerComponent('Ship')
       this.setSpeedPercent(0);
   };
 
+  //
+  // Set speed
+  //
   this.setSpeedPercent = function(percent)
   {
     this.desiredSpeed = Math.min(this.shipData.maxSpeed, this.shipData.maxSpeed * percent);
   };
 
-  // Add damage decals to the ship
+  //
+  // Apply damage
+  //
   this.addDamage = function(x, y, radius)
   {
-    // Cut out radius around damage
-    this.damageBuffer.setPixelRadiusRand(x, y, radius - 2, [255, 255, 255, 255], 0.7, radius, [0, 0, 0, 0], 0.0);
-    this.damageBuffer.applyBuffer();
-
-    // Draw burnt edge around damage
-    this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
-    this.decalBuffer.applyBuffer();
-
+    this._entity.LightingAndDamage.addDamage(x, y, radius);
     this._entity.SoundEmitter.play('hit-01');
 
     // Do damage to weapons on the ship
@@ -2359,7 +2424,9 @@ TANK.registerComponent('Ship')
     }
   };
 
+  //
   // Explode the ship
+  //
   this.explode = function()
   {
     // Remove objects
@@ -2377,7 +2444,9 @@ TANK.registerComponent('Ship')
       TANK.main.dispatch('camerashake', 0.5);
   };
 
+  //
   // Damage response
+  //
   this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
   {
     // Affect trajectory
@@ -2390,6 +2459,9 @@ TANK.registerComponent('Ship')
     this.health -= damage;
   });
 
+  //
+  // Handle thrust on / off states
+  //
   this.listenTo(this._entity, 'thrustOn', function()
   {
     for (var i = 0; i < this.shipData.lights.length; ++i)
@@ -2406,7 +2478,9 @@ TANK.registerComponent('Ship')
     this._entity.Lights.redrawLights();
   });
 
+  //
   // Update loop
+  //
   this.update = function(dt)
   {
     // Check if dead
@@ -2503,37 +2577,8 @@ TANK.registerComponent('Ship')
     this.thrustAlpha = Math.min(1, this.thrustAlpha);
   };
 
-  this.redrawShip = function()
-  {
-    this.mainBuffer.context.save();
-    this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
-    this.mainBuffer.context.drawImage(this.image, 0, 0);
-
-    // Draw lighting
-    this.lightBuffers = this.shipData.__proto__.lightBuffers;
-    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    for (var i = 0; i < this.lightBuffers.length; ++i)
-    {
-      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i - Math.PI / 2;
-      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
-      if (this.mainBuffer.context.globalAlpha > 0)
-        this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
-    }
-
-    // Draw damage buffer
-    this.mainBuffer.context.globalAlpha = 1;
-    this.mainBuffer.context.globalCompositeOperation = 'source-atop';
-    this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
-    this.mainBuffer.context.globalCompositeOperation = 'destination-out';
-    this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
-    this.mainBuffer.context.restore();
-  };
-
   this.draw = function(ctx, camera)
   {
-    if (!this.lightBuffers)
-      return;
-
     ctx.save();
 
     // Set up transform
@@ -2543,8 +2588,8 @@ TANK.registerComponent('Ship')
     ctx.translate(this.image.width / -2, this.image.height / -2);
 
     // Draw the main ship buffer
-    this.redrawShip();
-    ctx.drawImage(this.mainBuffer.canvas, 0, 0);
+    this._entity.LightingAndDamage.redraw();
+    ctx.drawImage(this._entity.LightingAndDamage.mainBuffer.canvas, 0, 0);
 
     ctx.restore();
   };
