@@ -86,6 +86,11 @@ TANK.registerComponent("Player")
     }
   };
 
+  this.listenTo(this._entity, 'explode', function()
+  {
+    TANK.main.dispatchTimed(3, 'gamelose');
+  });
+
   this.listenTo(this._entity, "collide", function(obj)
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)

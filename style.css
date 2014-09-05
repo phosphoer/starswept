@@ -72,6 +72,35 @@ html, body
   text-indent: 50px;
 }
 
+.ship-select
+{
+  position: absolute;
+  top: 50%;
+  margin-top: -150px;
+  width: 50px;
+  height: 300px;
+  line-height: 275px;
+  text-align: center;
+  font-size: 96px;
+  color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.ship-select:hover
+{
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.ship-select-left
+{
+  left: 300px;
+}
+
+.ship-select-right
+{
+  right: 300px;
+}
+
 .event-log
 {
   position: absolute;

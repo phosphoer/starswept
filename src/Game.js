@@ -18,6 +18,8 @@ TANK.registerComponent('Game')
 
   // Global light direction
   this.lightDir = 0;
+
+  this.playerShipSelection = 'frigate';
 })
 
 .initialize(function()
@@ -82,6 +84,24 @@ TANK.registerComponent('Game')
     this.listenTo(this.mainMenu, 'newgame', function()
     {
       TANK.main.removeChild(this.mainMenu);
+      this.goToShipSelection();
+    });
+  };
+
+  //
+  // Go to selection screen
+  //
+  this.goToShipSelection = function()
+  {
+    // Build menu
+    this.shipSelection = TANK.createEntity('ShipSelection');
+    TANK.main.addChild(this.shipSelection);
+
+    // Handle interaction
+    this.listenTo(this.shipSelection, 'selectionmade', function(selection)
+    {
+      TANK.main.removeChild(this.shipSelection);
+      this.playerShipSelection = selection;
       this.goToNode(TANK.main.MapGeneration.map);
     });
   };
@@ -193,7 +213,7 @@ TANK.registerComponent('Game')
     if (!this.player)
     {
       this.player = TANK.createEntity('Player');
-      this.player.Ship.shipData = new Ships.frigate();
+      this.player.Ship.shipData = new Ships[this.playerShipSelection]();
       TANK.main.addChild(this.player);
     }
 
@@ -254,6 +274,19 @@ TANK.registerComponent('Game')
   this.listenTo(TANK.main, 'start', function()
   {
     this.goToMainMenu();
+  });
+
+  //
+  // Game end handler
+  //
+  this.listenTo(TANK.main, 'gamewin', function()
+  {
+    this.goToWinScreen();
+  });
+
+  this.listenTo(TANK.main, 'gamelose', function()
+  {
+    this.goToLoseScreen();
   });
 
   //

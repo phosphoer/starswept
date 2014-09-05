@@ -560,6 +560,8 @@ TANK.registerComponent('Game')
 
   // Global light direction
   this.lightDir = 0;
+
+  this.playerShipSelection = 'frigate';
 })
 
 .initialize(function()
@@ -624,6 +626,24 @@ TANK.registerComponent('Game')
     this.listenTo(this.mainMenu, 'newgame', function()
     {
       TANK.main.removeChild(this.mainMenu);
+      this.goToShipSelection();
+    });
+  };
+
+  //
+  // Go to selection screen
+  //
+  this.goToShipSelection = function()
+  {
+    // Build menu
+    this.shipSelection = TANK.createEntity('ShipSelection');
+    TANK.main.addChild(this.shipSelection);
+
+    // Handle interaction
+    this.listenTo(this.shipSelection, 'selectionmade', function(selection)
+    {
+      TANK.main.removeChild(this.shipSelection);
+      this.playerShipSelection = selection;
       this.goToNode(TANK.main.MapGeneration.map);
     });
   };
@@ -735,7 +755,7 @@ TANK.registerComponent('Game')
     if (!this.player)
     {
       this.player = TANK.createEntity('Player');
-      this.player.Ship.shipData = new Ships.frigate();
+      this.player.Ship.shipData = new Ships[this.playerShipSelection]();
       TANK.main.addChild(this.player);
     }
 
@@ -796,6 +816,19 @@ TANK.registerComponent('Game')
   this.listenTo(TANK.main, 'start', function()
   {
     this.goToMainMenu();
+  });
+
+  //
+  // Game end handler
+  //
+  this.listenTo(TANK.main, 'gamewin', function()
+  {
+    this.goToWinScreen();
+  });
+
+  this.listenTo(TANK.main, 'gamelose', function()
+  {
+    this.goToLoseScreen();
   });
 
   //
@@ -2275,6 +2308,11 @@ TANK.registerComponent("Player")
     }
   };
 
+  this.listenTo(this._entity, 'explode', function()
+  {
+    TANK.main.dispatchTimed(3, 'gamelose');
+  });
+
   this.listenTo(this._entity, "collide", function(obj)
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
@@ -2566,6 +2604,8 @@ TANK.registerComponent('Ship')
   //
   this.explode = function()
   {
+    this._entity.dispatch('explode');
+
     // Remove objects
     TANK.main.removeChild(this._entity);
     TANK.main.removeChild(this.exploder);
@@ -2731,6 +2771,101 @@ TANK.registerComponent('Ship')
 
     ctx.restore();
   };
+});
+TANK.registerComponent('ShipSelection')
+
+.construct(function()
+{
+  this.htmlText =
+  [
+    '<div class="main-menu">',
+    '  <div class="menu-title">Select a Ship</div>',
+    '  <div class="ship-select ship-select-left">&lt;</div>',
+    '  <div class="ship-select ship-select-right">&gt;</div>',
+    '  <div class="menu-options">',
+    '    <div class="menu-option menu-option-go">Start</div>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
+
+  this.ships = [];
+  this.selection = 0;
+})
+
+.initialize(function()
+{
+  //
+  // Create UI
+  //
+  this.container = document.createElement('div');
+  this.container.innerHTML = this.htmlText;
+  document.body.appendChild(this.container)
+
+  this.container.querySelector('.menu-options').style.height = '30%';
+
+  //
+  // Handle interactions
+  //
+  this.container.querySelector('.ship-select-left').addEventListener('click', function()
+  {
+    this.shiftSelection(-1);
+  }.bind(this));
+  this.container.querySelector('.ship-select-right').addEventListener('click', function()
+  {
+    this.shiftSelection(1);
+  }.bind(this));
+  this.container.querySelector('.menu-option-go').addEventListener('click', function()
+  {
+    this._entity.dispatch('selectionmade', this.ships[this.selection].shipType);
+  }.bind(this));
+
+  //
+  // Create scene
+  //
+  var x = 0;
+  for (var i in Ships)
+  {
+    var e = TANK.createEntity('Ship');
+    e.Pos2D.x = x;
+    e.Pos2D.y = 0;
+    e.Ship.shipData = new Ships[i]();
+    e.shipType = i;
+    TANK.main.addChild(e);
+    this.ships.push(e);
+    x += 500;
+  }
+
+  //
+  // Move selection
+  //
+  this.shiftSelection = function(amount)
+  {
+    this.selection += amount;
+    this.selection = Math.max(0, this.selection);
+    this.selection = Math.min(this.ships.length - 1, this.selection);
+  };
+
+  //
+  // Update
+  //
+  this.update = function(dt)
+  {
+    for (var i = 0; i < this.ships.length; ++i)
+    {
+      var dist = i - this.selection;
+      var desiredPos = dist * 500;
+      var t = this.ships[i].Pos2D;
+      t.x = t.x + (desiredPos - t.x) * 0.2;
+    }
+  };
+})
+
+.uninitialize(function()
+{
+  document.body.removeChild(this.container);
+  for (var i = 0; i < this.ships.length; ++i)
+    TANK.main.removeChild(this.ships[i]);
+  this.ship = [];
 });
 var Ships = {};
 

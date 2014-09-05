@@ -132,6 +132,8 @@ TANK.registerComponent('Ship')
   //
   this.explode = function()
   {
+    this._entity.dispatch('explode');
+
     // Remove objects
     TANK.main.removeChild(this._entity);
     TANK.main.removeChild(this.exploder);
