@@ -10,6 +10,7 @@ TANK.registerComponent('Ship')
   this.thrustAlpha = 0;
   this.heading = 0;
   this.desiredSpeed = 0;
+  this.warpCharge = 0;
 
   this.dead = false;
 
@@ -267,6 +268,7 @@ TANK.registerComponent('Ship')
 
     // Timers
     this.reloadTimer -= dt;
+    this.warpCharge += dt;
 
     // Handle engine alpha
     if (this.thrustOn)

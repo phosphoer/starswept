@@ -713,7 +713,8 @@ TANK.registerComponent('Game')
     }
 
     // Log default tutorial message
-    this.addEventLog('Press J to warp when ready');
+    this.warpReady = false;
+    this.addEventLog('Warp drive charging...');
   };
 
   //
@@ -792,6 +793,14 @@ TANK.registerComponent('Game')
       // Choose to jump to a location
       if (this.waitingForJump)
       {
+        if (!this.warpReady)
+        {
+          this.waitingForJump = false;
+          var timeRemaining = this.player.Ship.shipData.warpChargeTime - this.player.Ship.warpCharge;
+          this.addEventLog('Warp drive charged in ' + Math.round(timeRemaining) + ' seconds.');
+          return;
+        }
+
         if (choice < this.currentNode.paths.length)
           this.goToNode(this.currentNode.paths[choice]);
       }
@@ -807,6 +816,16 @@ TANK.registerComponent('Game')
   //
   this.update = function(dt)
   {
+    // Check if player is ready to warp
+    if (this.player)
+    {
+      if (this.player.Ship.warpCharge >= this.player.Ship.shipData.warpChargeTime && !this.warpReady)
+      {
+        this.addEventLog('...Warp drive charged. Press J to warp when ready.');
+        this.warpReady = true;
+      }
+    }
+
     // Handle warp logic
     if (this.warpTimer > 0)
     {
@@ -2310,6 +2329,7 @@ TANK.registerComponent('Ship')
   this.thrustAlpha = 0;
   this.heading = 0;
   this.desiredSpeed = 0;
+  this.warpCharge = 0;
 
   this.dead = false;
 
@@ -2567,6 +2587,7 @@ TANK.registerComponent('Ship')
 
     // Timers
     this.reloadTimer -= dt;
+    this.warpCharge += dt;
 
     // Handle engine alpha
     if (this.thrustOn)
@@ -2606,8 +2627,7 @@ Ships.fighter = function()
   this.accel = 35;
   this.turnAccel = 2.0;
   this.health = 0.2;
-  this.cost = 5;
-  this.buildTime = 5;
+  this.warpChargeTime = 10;
   this.threat = 1;
   this.optimalAngle = 0;
   this.engineSize = [18, 8];
@@ -2669,8 +2689,7 @@ Ships.bomber = function()
   this.accel = 35;
   this.turnAccel = 1.6;
   this.health = 0.4;
-  this.cost = 15;
-  this.buildTime = 10;
+  this.warpChargeTime = 15;
   this.threat = 3;
   this.optimalAngle = 0;
   this.engineSize = [24, 12];
@@ -2732,8 +2751,7 @@ Ships.frigate = function()
   this.accel = 15;
   this.turnAccel = 1.2;
   this.health = 1;
-  this.cost = 30;
-  this.buildTime = 15;
+  this.warpChargeTime = 30;
   this.threat = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [24, 16];
