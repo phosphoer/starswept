@@ -751,6 +751,12 @@ TANK.registerComponent('Game')
     var location = Locations[name];
     this.currentLocation = location;
 
+    // Set location attributes
+    TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
+    Lightr.lightDiffuse = location.lightColor;
+    this.lightDir = location.lightDir;
+    bakeShipLighting();
+
     // Create player entity if it doesn't exist
     if (!this.player)
     {
@@ -760,6 +766,25 @@ TANK.registerComponent('Game')
     }
 
     this.addEventLog('Warp complete. ' + this.player.Ship.fuel + ' fuel cells remaining.');
+
+    // Spawn location objects
+    for (var i = 0; i < location.spawns.length; ++i)
+    {
+      var spawn = location.spawns[i];
+
+      // Using Spawns library
+      if (typeof spawn === 'string')
+      {
+        Spawns[spawn]();
+      }
+      // Or using an object literal as a prototype
+      else
+      {
+        var e = TANK.createEntity();
+        e.load(spawn);
+        TANK.main.addChild(e);
+      }
+    }
 
     // Log location text
     this.addEventLog(location.text);
@@ -1372,13 +1397,24 @@ var Locations = {};
 Locations.start =
 {
   text: 'Some placeholder text that should be displayed upon entering this location.',
-  events: [{probability: 1, name: 'civilian'}]
+  events: [{probability: 1, name: 'civilian'}],
+  bgColor: [0, 0, 20, 1],
+  lightColor: [0.7, 0.7, 1],
+  lightDir: Math.PI * 2 * 0.8,
+  spawns:
+  [
+    {components: {Pos2D: {x: 0, y: 0}, Planet: {}}}
+  ]
 };
 
 Locations.test =
 {
   text: 'You arrive in the test location. You feel testy.',
-  name: 'A test location'
+  name: 'A test location',
+  bgColor: [0, 0, 0, 1],
+  lightColor: [1, 1, 0.8],
+  lightDir: Math.PI * 2 * 0.5,
+  spawns: []
 };
 TANK.registerComponent('MainMenu')
 
@@ -1979,9 +2015,9 @@ function PixelBuffer()
 (function()
 {
 
-TANK.registerComponent("Planet")
+TANK.registerComponent('Planet')
 
-.includes(["Pos2D", "Collider2D"])
+.includes(['Pos2D', 'Collider2D', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
@@ -2016,7 +2052,7 @@ TANK.registerComponent("Planet")
 
   this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
   this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.collidesWith.push("cursors");
+  this._entity.Collider2D.collidesWith.push('cursors');
 
   // Iterate over every pixel
   this.forEachPixel = function(func)
@@ -2121,14 +2157,14 @@ TANK.registerComponent("Planet")
   this.pixelBuffer.applyBuffer();
 
   // Draw atmosphere
-  var atmosColor = this.atmosColor[0] + "," + this.atmosColor[1] + "," + this.atmosColor[2];
-  var atmosColorAlpha = atmosColor + "," + this.atmosColor[3];
+  var atmosColor = this.atmosColor[0] + ',' + this.atmosColor[1] + ',' + this.atmosColor[2];
+  var atmosColorAlpha = atmosColor + ',' + this.atmosColor[3];
   this.lightBuffer.context.translate((this.lightSize) / 2, (this.lightSize) / 2);
   var grad = this.lightBuffer.context.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius * 1.1);
-  grad.addColorStop(0, "rgba(" + atmosColor + ", 0.0)");
-  grad.addColorStop(0.5, "rgba(" + atmosColor + ", 0.0)");
-  grad.addColorStop(0.8, "rgba(" + atmosColorAlpha + ")");
-  grad.addColorStop(1, "rgba(" + atmosColor + ", 0.0)");
+  grad.addColorStop(0, 'rgba(' + atmosColor + ', 0.0)');
+  grad.addColorStop(0.5, 'rgba(' + atmosColor + ', 0.0)');
+  grad.addColorStop(0.8, 'rgba(' + atmosColorAlpha + ')');
+  grad.addColorStop(1, 'rgba(' + atmosColor + ', 0.0)');
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
   this.lightBuffer.context.arc(0, 0, this.radius * 1.2, 2 * Math.PI, false);
@@ -2139,10 +2175,10 @@ TANK.registerComponent("Planet")
   var x = -this.radius;
   var y = 0;
   grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.2, x, y, this.radius * 1.8);
-  grad.addColorStop(0, "rgba(0, 0, 0, 0.0)");
-  grad.addColorStop(0.6, "rgba(0, 0, 0, 0.6)");
-  grad.addColorStop(0.8, "rgba(0, 0, 0, 0.7)");
-  grad.addColorStop(1, "rgba(0, 0, 0, 0.9)");
+  grad.addColorStop(0, 'rgba(0, 0, 0, 0.0)');
+  grad.addColorStop(0.6, 'rgba(0, 0, 0, 0.6)');
+  grad.addColorStop(0.8, 'rgba(0, 0, 0, 0.7)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
 
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
@@ -2150,7 +2186,7 @@ TANK.registerComponent("Planet")
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
-  this.listenTo(TANK.main, "systemBattleEnd", function()
+  this.listenTo(TANK.main, 'systemBattleEnd', function()
   {
     TANK.main.removeChild(this._entity);
   });
@@ -3141,7 +3177,12 @@ var bakeShipLighting = function()
   for (var i in Ships)
   {
     var ship = Ships[i];
-    ship.prototype.lightBuffers = Lightr.bake(8, ship.prototype.image, ship.prototype.imageNormals);
+    var buffers = Lightr.bake(8, ship.prototype.image, ship.prototype.imageNormals);
+    while (ship.prototype.lightBuffers.length)
+      ship.prototype.lightBuffers.pop();
+
+    for (var i = 0; i < buffers.length; ++i)
+      ship.prototype.lightBuffers.push(buffers[i]);
   }
 };
 

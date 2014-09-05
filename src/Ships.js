@@ -272,6 +272,11 @@ var bakeShipLighting = function()
   for (var i in Ships)
   {
     var ship = Ships[i];
-    ship.prototype.lightBuffers = Lightr.bake(8, ship.prototype.image, ship.prototype.imageNormals);
+    var buffers = Lightr.bake(8, ship.prototype.image, ship.prototype.imageNormals);
+    while (ship.prototype.lightBuffers.length)
+      ship.prototype.lightBuffers.pop();
+
+    for (var i = 0; i < buffers.length; ++i)
+      ship.prototype.lightBuffers.push(buffers[i]);
   }
 };

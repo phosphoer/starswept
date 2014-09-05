@@ -209,6 +209,12 @@ TANK.registerComponent('Game')
     var location = Locations[name];
     this.currentLocation = location;
 
+    // Set location attributes
+    TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
+    Lightr.lightDiffuse = location.lightColor;
+    this.lightDir = location.lightDir;
+    bakeShipLighting();
+
     // Create player entity if it doesn't exist
     if (!this.player)
     {
@@ -218,6 +224,25 @@ TANK.registerComponent('Game')
     }
 
     this.addEventLog('Warp complete. ' + this.player.Ship.fuel + ' fuel cells remaining.');
+
+    // Spawn location objects
+    for (var i = 0; i < location.spawns.length; ++i)
+    {
+      var spawn = location.spawns[i];
+
+      // Using Spawns library
+      if (typeof spawn === 'string')
+      {
+        Spawns[spawn]();
+      }
+      // Or using an object literal as a prototype
+      else
+      {
+        var e = TANK.createEntity();
+        e.load(spawn);
+        TANK.main.addChild(e);
+      }
+    }
 
     // Log location text
     this.addEventLog(location.text);
