@@ -50,20 +50,7 @@
     </script>
 
     <!-- Ractive containers -->
-    <div id='menuContainer'></div>
     <div id='eventLogContainer'></div>
-
-    <!-- Main menu template -->
-    <script id='menuTemplate' type='text/ractive'>
-      <div class='main-menu'>
-        <div class='menu-title'>Starswept Admiral</div>
-        <div class='menu-options'>
-          {{#options}}
-            <div class='menu-option' on-click='activate'>{{name}}</div>
-          {{/options}}
-        </div>
-      </div>
-    </script>
 
     <!-- Log text template -->
     <script id='eventLogTemplate' type='text/ractive'>

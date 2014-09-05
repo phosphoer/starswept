@@ -11,6 +11,7 @@ TANK.registerComponent('Ship')
   this.heading = 0;
   this.desiredSpeed = 0;
   this.warpCharge = 0;
+  this.fuel = 0;
 
   this.dead = false;
 
@@ -35,6 +36,7 @@ TANK.registerComponent('Ship')
   this.imageNormals = this.shipData.__proto__.imageNormals;
   this.lightBuffers = this.shipData.__proto__.lightBuffers;
   this.health = this.shipData.health;
+  this.fuel = this.shipData.maxFuel;
 
   this._entity.LightingAndDamage.setImage(this.image, this.lightBuffers);
 

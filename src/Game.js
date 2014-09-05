@@ -8,7 +8,6 @@ TANK.registerComponent('Game')
 
   // Menu options
   this.menuOptions = [];
-  this.menuObjects = [];
 
   // Event log
   this.eventLogs = [];
@@ -24,6 +23,14 @@ TANK.registerComponent('Game')
 .initialize(function()
 {
   var that = this;
+
+  // Build event log ractive
+  this.eventLogUI = new Ractive(
+  {
+    el: 'eventLogContainer',
+    template: '#eventLogTemplate',
+    data: {logs: this.eventLogs}
+  });
 
   //
   // Save the current game
@@ -62,81 +69,21 @@ TANK.registerComponent('Game')
   //
   this.goToMainMenu = function()
   {
-    // Build menu options
-    this.menuOptions = [];
-    this.menuOptions.push(
-    {
-      name: 'New Game',
-      activate: function()
-      {
-        that.menuUI.teardown();
-        that.menuObjects.forEach(function(obj)
-        {
-          TANK.main.removeChild(obj);
-        });
-        that.menuObjects = [];
-        that.goToNode(TANK.main.MapGeneration.map);
-      }
-    });
-    this.menuOptions.push(
-    {
-      name: 'Options',
-      activate: function()
-      {
-      }
-    });
-    this.menuOptions.push(
-    {
-      name: 'Quit',
-      activate: function()
-      {
-      }
-    });
-
-    // Build main menu ractive
-    this.menuUI = new Ractive(
-    {
-      el: 'menuContainer',
-      template: '#menuTemplate',
-      data: {options: this.menuOptions}
-    });
-
-    // Set ractive event listeners
-    this.menuUI.on('activate', function(e)
-    {
-      e.context.activate();
-    });
-
-    // Build event log ractive
-    this.eventLogUI = new Ractive(
-    {
-      el: 'eventLogContainer',
-      template: '#eventLogTemplate',
-      data: {logs: this.eventLogs}
-    });
+    // Remove any existing objects
+    TANK.main.removeAllChildren();
+    this.clearEventLog();
 
     // Build main menu scene
     this.lightDir = Math.random() * Math.PI * 2;
+    this.mainMenu = TANK.createEntity('MainMenu');
+    TANK.main.addChild(this.mainMenu);
 
-    var planet = TANK.createEntity('Planet');
-    planet.Pos2D.x = 0;
-    planet.Pos2D.y = -400;
-    TANK.main.addChild(planet);
-    this.menuObjects.push(planet);
-
-    var moon = TANK.createEntity('Planet');
-    moon.Pos2D.x = -400;
-    moon.Pos2D.y = 400;
-    moon.Planet.radius = 48;
-    TANK.main.addChild(moon);
-    this.menuObjects.push(moon);
-
-    var ship = TANK.createEntity('Ship');
-    ship.Pos2D.x = 400;
-    ship.Pos2D.y = 300;
-    ship.Ship.shipData = new Ships.bomber();
-    TANK.main.addChild(ship);
-    this.menuObjects.push(ship);
+    // Handle main menu interactions
+    this.listenTo(this.mainMenu, 'newgame', function()
+    {
+      TANK.main.removeChild(this.mainMenu);
+      this.goToNode(TANK.main.MapGeneration.map);
+    });
   };
 
   //
@@ -163,6 +110,15 @@ TANK.registerComponent('Game')
   this.addEventLog = function(logText)
   {
     this.eventLogs.push({text: logText});
+  };
+
+  //
+  // Clear event log
+  //
+  this.clearEventLog = function()
+  {
+    while (this.eventLogs.length)
+      this.eventLogs.pop();
   };
 
   //
@@ -212,6 +168,8 @@ TANK.registerComponent('Game')
       TANK.main.addChild(this.player);
     }
 
+    this.addEventLog('Warp complete. ' + this.player.Ship.fuel + ' fuel cells remaining.');
+
     // Log location text
     this.addEventLog(location.text);
 
@@ -226,6 +184,7 @@ TANK.registerComponent('Game')
 
     // Log default tutorial message
     this.warpReady = false;
+    this.player.Ship.warpCharge = 0;
     this.addEventLog('Warp drive charging...');
   };
 
@@ -313,8 +272,17 @@ TANK.registerComponent('Game')
           return;
         }
 
+        if (this.player.Ship.fuel < 1)
+        {
+          this.addEventLog('No fuel.');
+          return;
+        }
+
         if (choice < this.currentNode.paths.length)
+        {
+          this.player.Ship.fuel -= 1;
           this.goToNode(this.currentNode.paths[choice]);
+        }
       }
       // Choose an answer for an event
       else
