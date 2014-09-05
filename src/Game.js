@@ -87,6 +87,35 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Go to end screen
+  //
+  this.goToWinScreen = function()
+  {
+    this.clearEventLog();
+    this.endScreen = TANK.createEntity('EndScreen');
+    this.endScreen.EndScreen.won = true;
+    TANK.main.addChild(this.endScreen);
+
+    this.listenTo(this.endScreen, 'back', function()
+    {
+      this.goToMainMenu();
+    });
+  };
+
+  this.goToLoseScreen = function()
+  {
+    this.clearEventLog();
+    this.endScreen = TANK.createEntity('EndScreen');
+    this.endScreen.EndScreen.won = false;
+    TANK.main.addChild(this.endScreen);
+
+    this.listenTo(this.endScreen, 'back', function()
+    {
+      this.goToMainMenu();
+    });
+  };
+
+  //
   // Pick a random weighted index
   //
   this.randomWeighted = function(weights)
