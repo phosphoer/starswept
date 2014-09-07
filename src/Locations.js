@@ -9,7 +9,8 @@ Locations.start =
   lightDir: Math.PI * 2 * 0.8,
   spawns:
   [
-    {components: {Pos2D: {x: 0, y: 0}, Planet: {}}}
+    {components: {Pos2D: {x: 0, y: 0}, Planet: {}}},
+    {components: {Pos2D: {x: 0, y: 0}, Asteroid: {}}}
   ]
 };
 
