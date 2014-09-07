@@ -10,7 +10,6 @@ Locations.start =
   spawns:
   [
     {components: {Pos2D: {x: 0, y: 0}, Planet: {}}},
-    {components: {Pos2D: {x: 0, y: 0}, Asteroid: {}}}
   ]
 };
 
@@ -41,5 +40,14 @@ Locations.asteroidField =
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
   lightDir: Math.PI * 2 * 0.2,
-  spawns: [{components: {Clouds: {cloudColor: [220, 180, 180]}}}]
+  spawns: [
+    {components: {Clouds: {cloudColor: [220, 180, 180]}}},
+    {components: {Pos2D: {x: 500, y: 0}, Asteroid: {}}},
+    {components: {Pos2D: {x: -500, y: -500}, Asteroid: {}}},
+    {components: {Pos2D: {x: -1000, y: -2000}, Asteroid: {}}},
+    {components: {Pos2D: {x: 1000, y: -1500}, Asteroid: {}}},
+    {components: {Pos2D: {x: 2000, y: -1800}, Asteroid: {}}},
+    {components: {Pos2D: {x: 3000, y: 1500}, Asteroid: {}}},
+    {components: {Pos2D: {x: 3500, y: 400}, Asteroid: {}}},
+  ]
 };
