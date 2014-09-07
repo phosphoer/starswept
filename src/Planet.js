@@ -3,7 +3,7 @@
 
 TANK.registerComponent('Planet')
 
-.includes(['Pos2D', 'Collider2D', 'RemoveOnLevelChange'])
+.includes(['Pos2D', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
@@ -35,10 +35,6 @@ TANK.registerComponent('Planet')
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
-
-  this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.collidesWith.push('cursors');
 
   // Iterate over every pixel
   this.forEachPixel = function(func)
@@ -179,9 +175,6 @@ TANK.registerComponent('Planet')
 
   this.draw = function(ctx, camera, dt)
   {
-    if (camera.z >= 12)
-      return;
-
     ctx.save();
 
     // Draw planet

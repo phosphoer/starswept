@@ -28,6 +28,8 @@ TANK.registerComponent('EndScreen')
   this.container.innerHTML = this.htmlText;
   document.body.appendChild(this.container);
 
+  this.container.querySelector('.menu-options').style.height = '30%';
+
   // Fill out title
   if (this.won)
     this.container.querySelector('.menu-title').innerHTML = 'You made it';

@@ -357,6 +357,152 @@ TANK.registerComponent("Bullet")
 {
   TANK.main.removeChild(this.trailEmitter);
 });
+TANK.registerComponent('Clouds')
+
+.construct(function()
+{
+  this.clouds = [];
+  this.heightMap = [];
+  this.zdepth = 5;
+
+  this.numClouds = 1;
+  this.fieldSize = [8750, 8750];
+  this.cloudColor = [255, 255, 255];
+  this.cloudSize = 512;
+  this.cloudScale = 3;
+  this.noiseFreq = 0.003 + Math.random() * 0.01;
+  this.noiseAmplitude = 0.5 + Math.random() * 3;
+  this.noisePersistence = 0.7 + Math.random() * 0.29;
+  this.noiseOctaves = 2;
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'numClouds', 100);
+  serializer.property(this, 'cloudColor', [255, 255, 255]);
+})
+
+.initialize(function()
+{
+  this.pixelBuffer = new PixelBuffer();
+  this.pixelBuffer.createBuffer(this.cloudSize, this.cloudSize);
+
+  TANK.main.Renderer2D.add(this);
+
+  // Iterate over every pixel
+  this.forEachPixel = function(func)
+  {
+    for (var i = 0; i < this.cloudSize; ++i)
+    {
+      for (var j = 0; j < this.cloudSize; ++j)
+      {
+        func.apply(this, [i, j]);
+      }
+    }
+  };
+
+  //
+  // Generate the cloud
+  //
+
+  // Fill heightmap
+  for (var i = 0; i < this.cloudSize; ++i)
+  {
+    this.heightMap[i] = [];
+    for (var j = 0; j < this.cloudSize; ++j)
+      this.heightMap[i][j] = 0;
+  }
+
+  // Calculate height map
+  noise.seed(Math.random());
+  for (var n = 0; n < this.noiseOctaves; ++n)
+  {
+    this.forEachPixel(function(i, j)
+    {
+      this.heightMap[i][j] += noise.perlin2(i * this.noiseFreq, j * this.noiseFreq) * this.noiseAmplitude;
+    });
+    this.noiseAmplitude *= this.noisePersistence;
+    this.noiseFreq *= 2;
+  }
+
+  // Normalize height map to [0, 1]
+  this.heighestPoint = -Infinity;
+  this.lowestPoint = Infinity;
+  this.forEachPixel(function(i, j)
+  {
+    this.heighestPoint = Math.max(this.heighestPoint, this.heightMap[i][j]);
+    this.lowestPoint = Math.min(this.lowestPoint, this.heightMap[i][j]);
+  });
+  this.forEachPixel(function(i, j)
+  {
+    this.heightMap[i][j] = (-this.lowestPoint + this.heightMap[i][j]) / (-this.lowestPoint + this.heighestPoint);
+  });
+  this.forEachPixel(function(i, j)
+  {
+    this.heightMap[i][j] = Math.round(this.heightMap[i][j] * 100) / 100;
+  });
+  this.forEachPixel(function(i, j)
+  {
+    var dist = TANK.Math2D.pointDistancePoint([i, j], [this.cloudSize / 2, this.cloudSize / 2]);
+    this.heightMap[i][j] *= 1 - (dist / (this.cloudSize / 2));
+  });
+
+  // Set pixels based on height
+  this.forEachPixel(function(i, j)
+  {
+    var color = this.cloudColor.slice();
+    color.push(Math.floor(this.heightMap[i][j] * 255));
+    this.pixelBuffer.setPixel(i, j, color);
+  });
+
+  this.pixelBuffer.applyBuffer();
+
+  //
+  // Generate cloud positions
+  //
+  var rng = new RNG();
+  for (var i = 0; i < this.numClouds; ++i)
+  {
+    this.clouds.push(
+    {
+      x: rng.random(-this.fieldSize[0] / 2, this.fieldSize[1] / 2),
+      y: rng.random(-this.fieldSize[0] / 2, this.fieldSize[1] / 2),
+      z: 0.2 + Math.random() * 0.8,
+      r: Math.random() * Math.PI * 2
+    });
+  }
+
+  this.draw = function(ctx, camera)
+  {
+    for (var i = 0; i < this.clouds.length; ++i)
+    {
+      ctx.save();
+      var x = (this.clouds[i].x - camera.x * this.clouds[i].z) - window.innerWidth / 2;
+      var y = (this.clouds[i].y - camera.y * this.clouds[i].z) - window.innerHeight / 2;
+      while (x > this.fieldSize[0] / 2)
+        x -= this.fieldSize[0];
+      while (y > this.fieldSize[1] / 2)
+        y -= this.fieldSize[1];
+      while (x < -this.fieldSize[0] / 2)
+        x += this.fieldSize[0];
+      while (y < -this.fieldSize[1] / 2)
+        y += this.fieldSize[1];
+
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(x, y);
+      ctx.scale(this.cloudScale, this.cloudScale);
+      ctx.rotate(this.clouds[i].r);
+      ctx.translate(-this.cloudSize / 2, -this.cloudSize / 2);
+      ctx.drawImage(this.pixelBuffer.canvas, 0, 0);
+      ctx.restore();
+    }
+
+  };
+})
+
+.uninitialize(function()
+{
+});
 TANK.registerComponent("DustField")
 
 .construct(function()
@@ -437,6 +583,8 @@ TANK.registerComponent('EndScreen')
   this.container = document.createElement('div');
   this.container.innerHTML = this.htmlText;
   document.body.appendChild(this.container);
+
+  this.container.querySelector('.menu-options').style.height = '30%';
 
   // Fill out title
   if (this.won)
@@ -613,7 +761,12 @@ TANK.registerComponent('Game')
   //
   this.goToMainMenu = function()
   {
+    TANK.main.Renderer2D.camera.z = 1;
+    TANK.main.Renderer2D.camera.x = 0;
+    TANK.main.Renderer2D.camera.y = 0;
+
     // Remove any existing objects
+    this.player = null;
     TANK.main.removeAllChildren();
     this.clearEventLog();
 
@@ -701,6 +854,8 @@ TANK.registerComponent('Game')
   this.addEventLog = function(logText)
   {
     this.eventLogs.push({text: logText});
+    var logContainer = document.querySelector('.event-log');
+    logContainer.scrollTop = logContainer.scrollHeight;
   };
 
   //
@@ -802,6 +957,10 @@ TANK.registerComponent('Game')
     this.warpReady = false;
     this.player.Ship.warpCharge = 0;
     this.addEventLog('Warp drive charging...');
+
+    // If this node is the end node, then we win
+    if (this.currentNode.depth >= TANK.main.MapGeneration.numLevels)
+      this.goToWinScreen();
   };
 
   //
@@ -872,8 +1031,8 @@ TANK.registerComponent('Game')
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
     if (TANK.main.Renderer2D.camera.z < 0.5)
       TANK.main.Renderer2D.camera.z = 0.5;
-    if (TANK.main.Renderer2D.camera.z > 20)
-      TANK.main.Renderer2D.camera.z = 20;
+    if (TANK.main.Renderer2D.camera.z > 5)
+      TANK.main.Renderer2D.camera.z = 5;
   });
 
   this.listenTo(TANK.main, 'keydown', function(e)
@@ -1396,7 +1555,7 @@ var Locations = {};
 
 Locations.start =
 {
-  text: 'Some placeholder text that should be displayed upon entering this location.',
+  text: 'Here you are, at the edge of civilized space. Your destination lies deep in the heart of the galaxy, where anarchy reigns.',
   events: [{probability: 1, name: 'civilian'}],
   bgColor: [0, 0, 20, 1],
   lightColor: [0.7, 0.7, 1],
@@ -1407,14 +1566,34 @@ Locations.start =
   ]
 };
 
-Locations.test =
+Locations.abandonedOutpost =
 {
-  text: 'You arrive in the test location. You feel testy.',
-  name: 'A test location',
-  bgColor: [0, 0, 0, 1],
-  lightColor: [1, 1, 0.8],
+  text: 'A dingy trading outpost sits ahead, listing heavily to the side.',
+  name: 'An old abandoned trading outpost',
+  bgColor: [0, 20, 0, 1],
+  lightColor: [0.8, 1, 0.8],
   lightDir: Math.PI * 2 * 0.5,
+  spawns: [{components: {Clouds: {cloudColor: [180, 255, 180]}}}]
+};
+
+Locations.deepSpace =
+{
+  text: 'There is nothing to see here, just empty space.',
+  name: 'Deep space',
+  bgColor: [0, 0, 0, 1],
+  lightColor: [0.9, 0.9, 1],
+  lightDir: Math.PI * 2 * 0.2,
   spawns: []
+};
+
+Locations.asteroidField =
+{
+  text: 'Here in the depths of an asteroid field, anything can happen. Watch your back.',
+  name: 'Asteroid field',
+  bgColor: [30, 0, 0, 1],
+  lightColor: [1, 0.7, 0.7],
+  lightDir: Math.PI * 2 * 0.2,
+  spawns: [{components: {Clouds: {cloudColor: [220, 180, 180]}}}]
 };
 TANK.registerComponent('MainMenu')
 
@@ -1501,13 +1680,19 @@ TANK.registerComponent('MapGeneration')
     if (!currentDepth)
       currentDepth = 0;
 
-    // Generate the current node
-    node.locationName = 'test';
-    node.paths = [];
+    // Pick a location for this node to represent
+    var possibleLocations = Object.keys(Locations);
+    possibleLocations.splice(possibleLocations.indexOf('start'), 1);
+    var index = Math.floor(Math.random() * possibleLocations.length);
+    node.locationName = possibleLocations[index];
+    node.depth = currentDepth;
+
+    // Use start location if at beginning
     if (currentDepth === 0)
       node.locationName = 'start';
 
     // Generate child nodes recursively
+    node.paths = [];
     var numPaths = rng.random(this.minPaths, this.maxPaths + 1);
     for (var i = 0; i < numPaths; ++i)
     {
@@ -2017,7 +2202,7 @@ function PixelBuffer()
 
 TANK.registerComponent('Planet')
 
-.includes(['Pos2D', 'Collider2D', 'RemoveOnLevelChange'])
+.includes(['Pos2D', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
@@ -2049,10 +2234,6 @@ TANK.registerComponent('Planet')
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
-
-  this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.collidesWith.push('cursors');
 
   // Iterate over every pixel
   this.forEachPixel = function(func)
@@ -2193,9 +2374,6 @@ TANK.registerComponent('Planet')
 
   this.draw = function(ctx, camera, dt)
   {
-    if (camera.z >= 12)
-      return;
-
     ctx.save();
 
     // Draw planet

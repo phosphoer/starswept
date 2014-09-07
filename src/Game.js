@@ -71,7 +71,12 @@ TANK.registerComponent('Game')
   //
   this.goToMainMenu = function()
   {
+    TANK.main.Renderer2D.camera.z = 1;
+    TANK.main.Renderer2D.camera.x = 0;
+    TANK.main.Renderer2D.camera.y = 0;
+
     // Remove any existing objects
+    this.player = null;
     TANK.main.removeAllChildren();
     this.clearEventLog();
 
@@ -159,6 +164,8 @@ TANK.registerComponent('Game')
   this.addEventLog = function(logText)
   {
     this.eventLogs.push({text: logText});
+    var logContainer = document.querySelector('.event-log');
+    logContainer.scrollTop = logContainer.scrollHeight;
   };
 
   //
@@ -260,6 +267,10 @@ TANK.registerComponent('Game')
     this.warpReady = false;
     this.player.Ship.warpCharge = 0;
     this.addEventLog('Warp drive charging...');
+
+    // If this node is the end node, then we win
+    if (this.currentNode.depth >= TANK.main.MapGeneration.numLevels)
+      this.goToWinScreen();
   };
 
   //
@@ -330,8 +341,8 @@ TANK.registerComponent('Game')
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
     if (TANK.main.Renderer2D.camera.z < 0.5)
       TANK.main.Renderer2D.camera.z = 0.5;
-    if (TANK.main.Renderer2D.camera.z > 20)
-      TANK.main.Renderer2D.camera.z = 20;
+    if (TANK.main.Renderer2D.camera.z > 5)
+      TANK.main.Renderer2D.camera.z = 5;
   });
 
   this.listenTo(TANK.main, 'keydown', function(e)
