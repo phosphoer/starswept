@@ -280,10 +280,7 @@ TANK.registerComponent('Asteroid')
   v.x = (Math.random() - 0.5) * 16;
   v.y = (Math.random() - 0.5) * 16;
   v.r = (Math.random() - 0.5) * 0.5;
-
-  this.update = function(dt)
-  {
-  };
+  t.r = Math.random() * Math.PI * 2;
 
   this.draw = function(ctx, camera)
   {
@@ -300,6 +297,49 @@ TANK.registerComponent('Asteroid')
     ctx.drawImage(this._entity.LightingAndDamage.mainBuffer.canvas, 0, 0);
 
     ctx.restore();
+  };
+});
+TANK.registerComponent('AsteroidField')
+
+.construct(function()
+{
+  this.numAsteroids = 10;
+  this.size = [5000, 5000];
+  this.asteroids = [];
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'numAsteroids', 20);
+  serializer.property(this, 'size', [10000, 10000]);
+})
+
+.initialize(function()
+{
+  var rng = new RNG();
+  for (var i = 0; i < this.numAsteroids; ++i)
+  {
+    var e = TANK.createEntity('Asteroid');
+    e.Pos2D.x = rng.random(-this.size[0] / 2, this.size[0] / 2);
+    e.Pos2D.y = rng.random(-this.size[1] / 2, this.size[1] / 2);
+    TANK.main.addChild(e);
+    this.asteroids.push(e);
+  }
+
+  this.update = function(dt)
+  {
+    for (var i = 0; i < this.asteroids.length; ++i)
+    {
+      var e = this.asteroids[i];
+      if (e.Pos2D.x > this.size[0] / 2)
+        e.Pos2D.x = -this.size[0] / 2;
+      else if (e.Pos2D.y > this.size[1] / 2)
+        e.Pos2D.y = -this.size[1] / 2;
+      else if (e.Pos2D.x < -this.size[0] / 2)
+        e.Pos2D.x = this.size[0] / 2;
+      else if (e.Pos2D.y < -this.size[1] / 2)
+        e.Pos2D.y = this.size[1] / 2;
+    }
   };
 });
 TANK.registerComponent("Bullet")
@@ -731,6 +771,12 @@ Events.civilian =
 {
   text: 'Your scanners pick up the signature of a small ship nearby',
   spawns: ['civilian']
+};
+
+Events.pirate =
+{
+  text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
+  spawns: ['pirate']
 };
 TANK.registerComponent('Game')
 
@@ -1663,8 +1709,7 @@ Locations.start =
   lightDir: Math.PI * 2 * 0.8,
   spawns:
   [
-    {components: {Pos2D: {x: 0, y: 0}, Planet: {}}},
-    {components: {Pos2D: {x: 500, y: 0}, Asteroid: {}}},
+    {components: {Pos2D: {x: 0, y: 0}, Planet: {}}}
   ]
 };
 
@@ -1672,6 +1717,7 @@ Locations.abandonedOutpost =
 {
   text: 'A dingy trading outpost sits ahead, listing heavily to the side.',
   name: 'An old abandoned trading outpost',
+  events: [{probability: 1, name: 'pirate'}],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
   lightDir: Math.PI * 2 * 0.5,
@@ -1692,18 +1738,13 @@ Locations.asteroidField =
 {
   text: 'Here in the depths of an asteroid field, anything can happen. Watch your back.',
   name: 'Asteroid field',
+  events: [{probability: 1, name: 'pirate'}],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
   lightDir: Math.PI * 2 * 0.2,
   spawns: [
     {components: {Clouds: {cloudColor: [220, 180, 180]}}},
-    {components: {Pos2D: {x: 500, y: 0}, Asteroid: {}}},
-    {components: {Pos2D: {x: -500, y: -500}, Asteroid: {}}},
-    {components: {Pos2D: {x: -1000, y: -2000}, Asteroid: {}}},
-    {components: {Pos2D: {x: 1000, y: -1500}, Asteroid: {}}},
-    {components: {Pos2D: {x: 2000, y: -1800}, Asteroid: {}}},
-    {components: {Pos2D: {x: 3000, y: 1500}, Asteroid: {}}},
-    {components: {Pos2D: {x: 3500, y: 400}, Asteroid: {}}},
+    {components: {AsteroidField: {numAsteroids: 50}}}
   ]
 };
 TANK.registerComponent('MainMenu')
@@ -3601,6 +3642,17 @@ Spawns.civilian = function()
   e.Pos2D.y = -2000 + Math.random() * 4000;
   TANK.main.addChild(e);
   e.AIShip.addOrder(new Action.AITravel(e));
+};
+
+Spawns.pirate = function()
+{
+  var e = TANK.createEntity('AIShip');
+  e.Ship.shipData = new Ships.frigate();
+  e.Pos2D.x = -2000 + Math.random() * 4000;
+  e.Pos2D.y = -2000 + Math.random() * 4000;
+  TANK.main.addChild(e);
+  e.AIShip.addOrder(new Action.AIAttack(e, TANK.main.Game.player));
+  e.Ship.iff = 1;
 };
 TANK.registerComponent("StarField")
 

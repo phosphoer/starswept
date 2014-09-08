@@ -20,10 +20,7 @@ TANK.registerComponent('Asteroid')
   v.x = (Math.random() - 0.5) * 16;
   v.y = (Math.random() - 0.5) * 16;
   v.r = (Math.random() - 0.5) * 0.5;
-
-  this.update = function(dt)
-  {
-  };
+  t.r = Math.random() * Math.PI * 2;
 
   this.draw = function(ctx, camera)
   {

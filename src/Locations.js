@@ -9,8 +9,7 @@ Locations.start =
   lightDir: Math.PI * 2 * 0.8,
   spawns:
   [
-    {components: {Pos2D: {x: 0, y: 0}, Planet: {}}},
-    {components: {Pos2D: {x: 500, y: 0}, Asteroid: {}}},
+    {components: {Pos2D: {x: 0, y: 0}, Planet: {}}}
   ]
 };
 
@@ -18,6 +17,7 @@ Locations.abandonedOutpost =
 {
   text: 'A dingy trading outpost sits ahead, listing heavily to the side.',
   name: 'An old abandoned trading outpost',
+  events: [{probability: 1, name: 'pirate'}],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
   lightDir: Math.PI * 2 * 0.5,
@@ -38,17 +38,12 @@ Locations.asteroidField =
 {
   text: 'Here in the depths of an asteroid field, anything can happen. Watch your back.',
   name: 'Asteroid field',
+  events: [{probability: 1, name: 'pirate'}],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
   lightDir: Math.PI * 2 * 0.2,
   spawns: [
     {components: {Clouds: {cloudColor: [220, 180, 180]}}},
-    {components: {Pos2D: {x: 500, y: 0}, Asteroid: {}}},
-    {components: {Pos2D: {x: -500, y: -500}, Asteroid: {}}},
-    {components: {Pos2D: {x: -1000, y: -2000}, Asteroid: {}}},
-    {components: {Pos2D: {x: 1000, y: -1500}, Asteroid: {}}},
-    {components: {Pos2D: {x: 2000, y: -1800}, Asteroid: {}}},
-    {components: {Pos2D: {x: 3000, y: 1500}, Asteroid: {}}},
-    {components: {Pos2D: {x: 3500, y: 400}, Asteroid: {}}},
+    {components: {AsteroidField: {numAsteroids: 50}}}
   ]
 };
