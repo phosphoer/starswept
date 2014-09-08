@@ -32,13 +32,13 @@ TANK.registerComponent('Ship')
   this._entity.Collider2D.collidesWith = ['bullets'];
 
   // Get some data from ship
-  this.image = this.shipData.__proto__.image;
-  this.imageNormals = this.shipData.__proto__.imageNormals;
-  this.lightBuffers = this.shipData.__proto__.lightBuffers;
+  this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
   this.fuel = this.shipData.maxFuel;
+  this.width = this.resource.diffuse.width;
+  this.height = this.resource.diffuse.height;
 
-  this._entity.LightingAndDamage.setImage(this.image, this.lightBuffers);
+  this._entity.LightingAndDamage.setResource(this.resource);
 
   // Create texture buffers
   this.mainBuffer = new PixelBuffer();
@@ -48,18 +48,18 @@ TANK.registerComponent('Ship')
 
   // Set sizes for things
   this._entity.Lights.lights = this.shipData.lights;
-  this._entity.Lights.width = this.image.width;
-  this._entity.Lights.height = this.image.height;
+  this._entity.Lights.width = this.width;
+  this._entity.Lights.height = this.height;
   this._entity.Lights.redrawLights();
-  this._entity.Collider2D.width = this.image.width * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.image.height * TANK.main.Game.scaleFactor;
-  this._entity.Weapons.width = this.image.width;
-  this._entity.Weapons.height = this.image.height;
+  this._entity.Collider2D.width = this.width * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.height = this.height * TANK.main.Game.scaleFactor;
+  this._entity.Weapons.width = this.width;
+  this._entity.Weapons.height = this.height;
   this._entity.Engines.size = this.shipData.engineSize;
 
   // Setup texture buffers
-  this.collisionBuffer.createBuffer(this.image.width, this.image.height);
-  this.collisionBuffer.context.drawImage(this.image, 0, 0);
+  this.collisionBuffer.createBuffer(this.width, this.height);
+  this.collisionBuffer.context.drawImage(this.resource.diffuse, 0, 0);
   this.collisionBuffer.readBuffer();
 
   // Add weapons
@@ -291,7 +291,7 @@ TANK.registerComponent('Ship')
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
-    ctx.translate(this.image.width / -2, this.image.height / -2);
+    ctx.translate(this.resource.diffuse.width / -2, this.resource.diffuse.height / -2);
 
     // Draw the main ship buffer
     this._entity.LightingAndDamage.redraw();

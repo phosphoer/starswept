@@ -4,18 +4,16 @@ TANK.registerComponent('LightingAndDamage')
 
 .construct(function()
 {
-  this.image = null;
-  this.lightBuffers = null;
+  this.resource = null;
 })
 
 .initialize(function()
 {
   var t = this._entity.Pos2D;
 
-  this.setImage = function(image, lightBuffers)
+  this.setResource = function(res)
   {
-    this.image = image;
-    this.lightBuffers = lightBuffers;
+    this.resource = res;
 
     // Create texture buffers
     this.mainBuffer = new PixelBuffer();
@@ -23,9 +21,9 @@ TANK.registerComponent('LightingAndDamage')
     this.decalBuffer = new PixelBuffer();
 
     // Setup texture buffers
-    this.mainBuffer.createBuffer(this.image.width, this.image.height);
-    this.damageBuffer.createBuffer(this.image.width, this.image.height);
-    this.decalBuffer.createBuffer(this.image.width, this.image.height);
+    this.mainBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
+    this.damageBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
+    this.decalBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
   }
 
   // Add damage decals
@@ -44,16 +42,16 @@ TANK.registerComponent('LightingAndDamage')
   {
     this.mainBuffer.context.save();
     this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
-    this.mainBuffer.context.drawImage(this.image, 0, 0);
+    this.mainBuffer.context.drawImage(this.resource.diffuse, 0, 0);
 
     // Draw lighting
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    for (var i = 0; i < this.lightBuffers.length; ++i)
+    for (var i = 0; i < this.resource.lightBuffers.length; ++i)
     {
-      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i - Math.PI / 2;
+      var lightDirOffset = (Math.PI * 2 / this.resource.lightBuffers.length) * i - Math.PI / 2;
       this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
       if (this.mainBuffer.context.globalAlpha > 0)
-        this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
+        this.mainBuffer.context.drawImage(this.resource.lightBuffers[i], 0, 0);
     }
 
     // Draw damage buffer

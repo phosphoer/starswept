@@ -25,6 +25,39 @@ TANK.registerComponent('Game')
 .initialize(function()
 {
   var that = this;
+  var resources = this._entity.Resources;
+
+  // Configure Lightr
+  Lightr.minLightIntensity = 0.2;
+  Lightr.lightDiffuse = [0.8, 0.8, 1];
+
+  //
+  // Load resources
+  //
+  function loadLighting(name, path, resources, doneCallback)
+  {
+    var res = {};
+    res.diffuse = resources.get(name + '-diffuse');
+    res.normals = resources.get(name + '-normals');
+    res.lightBuffers = Lightr.bake(8, res.diffuse, res.normals);
+    doneCallback(res);
+  };
+
+  resources.add('asteroid-01-diffuse', 'res/img/asteroid-01.png');
+  resources.add('asteroid-01-normals', 'res/img/asteroid-01-normals.png');
+  resources.add('asteroid-01', null, ['asteroid-01-diffuse', 'asteroid-01-normals'], loadLighting);
+
+  resources.add('fighter-diffuse', 'res/img/fighter.png');
+  resources.add('fighter-normals', 'res/img/fighter-normals.png');
+  resources.add('fighter', null, ['fighter-diffuse', 'fighter-normals'], loadLighting);
+
+  resources.add('bomber-diffuse', 'res/img/bomber.png');
+  resources.add('bomber-normals', 'res/img/bomber-normals.png');
+  resources.add('bomber', null, ['bomber-diffuse', 'bomber-normals'], loadLighting);
+
+  resources.add('frigate-diffuse', 'res/img/frigate.png');
+  resources.add('frigate-normals', 'res/img/frigate-normals.png');
+  resources.add('frigate', null, ['frigate-diffuse', 'frigate-normals'], loadLighting);
 
   // Build event log ractive
   this.eventLogUI = new Ractive(
@@ -33,6 +66,20 @@ TANK.registerComponent('Game')
     template: '#eventLogTemplate',
     data: {logs: this.eventLogs}
   });
+
+  //
+  // Rebuild lighting
+  //
+  this.rebuildLighting = function()
+  {
+    var resMap = resources.getAll();
+    for (var i in resMap)
+    {
+      var res = resMap[i];
+      if (res.lightBuffers)
+        res.lightBuffers = Lightr.bake(8, res.diffuse, res.normals);
+    }
+  };
 
   //
   // Save the current game
@@ -220,7 +267,7 @@ TANK.registerComponent('Game')
     TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
     Lightr.lightDiffuse = location.lightColor;
     this.lightDir = location.lightDir;
-    bakeShipLighting();
+    this.rebuildLighting();
 
     // Create player entity if it doesn't exist
     if (!this.player)
@@ -229,6 +276,10 @@ TANK.registerComponent('Game')
       this.player.Ship.shipData = new Ships[this.playerShipSelection]();
       TANK.main.addChild(this.player);
     }
+
+    // Position player
+    this.player.Pos2D.x = 0;
+    this.player.Pos2D.y = 0;
 
     this.addEventLog('Warp complete. ' + this.player.Ship.fuel + ' fuel cells remaining.');
 
@@ -305,11 +356,19 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Resource load handler
+  //
+  this.listenTo(TANK.main, 'resourcesloaded', function()
+  {
+    this.goToMainMenu();
+  });
+
+  //
   // Game start handler
   //
   this.listenTo(TANK.main, 'start', function()
   {
-    this.goToMainMenu();
+    resources.load();
   });
 
   //

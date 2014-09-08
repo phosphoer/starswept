@@ -260,16 +260,11 @@ TANK.registerComponent("AIWatch")
 });
 TANK.registerComponent('Asteroid')
 
-.includes(['LightingAndDamage', 'Velocity'])
+.includes(['LightingAndDamage', 'Velocity', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
   this.zdepth = 2;
-
-  this.imageDiffuse = new Image();
-  this.imageNormals = new Image();
-  this.imageDiffuse.src = 'res/img/asteroid-01.png';
-  this.imageNormals.src = 'res/img/asteroid-01-normals.png';
 })
 
 .initialize(function()
@@ -279,14 +274,8 @@ TANK.registerComponent('Asteroid')
 
   TANK.main.Renderer2D.add(this);
 
-  this.imageDiffuse.onload = function()
-  {
-    this.imageNormals.onload = function()
-    {
-      this.lightBuffers = Lightr.bake(8, this.imageDiffuse, this.imageNormals);
-      this._entity.LightingAndDamage.setImage(this.imageDiffuse, this.lightBuffers);
-    }.bind(this);
-  }.bind(this);
+  this.resource = TANK.main.Resources.get('asteroid-01');
+  this._entity.LightingAndDamage.setResource(this.resource);
 
   v.x = (Math.random() - 0.5) * 16;
   v.y = (Math.random() - 0.5) * 16;
@@ -304,7 +293,7 @@ TANK.registerComponent('Asteroid')
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
-    ctx.translate(this.imageDiffuse.width / -2, this.imageDiffuse.height / -2);
+    ctx.translate(this.resource.diffuse.width / -2, this.resource.diffuse.height / -2);
 
     // Draw the main buffer
     this._entity.LightingAndDamage.redraw();
@@ -715,7 +704,7 @@ TANK.registerComponent("Engines")
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
-    ctx.translate(ship.image.width / -2, ship.image.height / -2);
+    ctx.translate(ship.resource.diffuse.width / -2, ship.resource.diffuse.height / -2);
     ctx.globalAlpha = ship.thrustAlpha;
 
     for (var i = 0; i < lights.lights.length; ++i)
@@ -770,6 +759,39 @@ TANK.registerComponent('Game')
 .initialize(function()
 {
   var that = this;
+  var resources = this._entity.Resources;
+
+  // Configure Lightr
+  Lightr.minLightIntensity = 0.2;
+  Lightr.lightDiffuse = [0.8, 0.8, 1];
+
+  //
+  // Load resources
+  //
+  function loadLighting(name, path, resources, doneCallback)
+  {
+    var res = {};
+    res.diffuse = resources.get(name + '-diffuse');
+    res.normals = resources.get(name + '-normals');
+    res.lightBuffers = Lightr.bake(8, res.diffuse, res.normals);
+    doneCallback(res);
+  };
+
+  resources.add('asteroid-01-diffuse', 'res/img/asteroid-01.png');
+  resources.add('asteroid-01-normals', 'res/img/asteroid-01-normals.png');
+  resources.add('asteroid-01', null, ['asteroid-01-diffuse', 'asteroid-01-normals'], loadLighting);
+
+  resources.add('fighter-diffuse', 'res/img/fighter.png');
+  resources.add('fighter-normals', 'res/img/fighter-normals.png');
+  resources.add('fighter', null, ['fighter-diffuse', 'fighter-normals'], loadLighting);
+
+  resources.add('bomber-diffuse', 'res/img/bomber.png');
+  resources.add('bomber-normals', 'res/img/bomber-normals.png');
+  resources.add('bomber', null, ['bomber-diffuse', 'bomber-normals'], loadLighting);
+
+  resources.add('frigate-diffuse', 'res/img/frigate.png');
+  resources.add('frigate-normals', 'res/img/frigate-normals.png');
+  resources.add('frigate', null, ['frigate-diffuse', 'frigate-normals'], loadLighting);
 
   // Build event log ractive
   this.eventLogUI = new Ractive(
@@ -778,6 +800,20 @@ TANK.registerComponent('Game')
     template: '#eventLogTemplate',
     data: {logs: this.eventLogs}
   });
+
+  //
+  // Rebuild lighting
+  //
+  this.rebuildLighting = function()
+  {
+    var resMap = resources.getAll();
+    for (var i in resMap)
+    {
+      var res = resMap[i];
+      if (res.lightBuffers)
+        res.lightBuffers = Lightr.bake(8, res.diffuse, res.normals);
+    }
+  };
 
   //
   // Save the current game
@@ -965,7 +1001,7 @@ TANK.registerComponent('Game')
     TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
     Lightr.lightDiffuse = location.lightColor;
     this.lightDir = location.lightDir;
-    bakeShipLighting();
+    this.rebuildLighting();
 
     // Create player entity if it doesn't exist
     if (!this.player)
@@ -974,6 +1010,10 @@ TANK.registerComponent('Game')
       this.player.Ship.shipData = new Ships[this.playerShipSelection]();
       TANK.main.addChild(this.player);
     }
+
+    // Position player
+    this.player.Pos2D.x = 0;
+    this.player.Pos2D.y = 0;
 
     this.addEventLog('Warp complete. ' + this.player.Ship.fuel + ' fuel cells remaining.');
 
@@ -1050,11 +1090,19 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Resource load handler
+  //
+  this.listenTo(TANK.main, 'resourcesloaded', function()
+  {
+    this.goToMainMenu();
+  });
+
+  //
   // Game start handler
   //
   this.listenTo(TANK.main, 'start', function()
   {
-    this.goToMainMenu();
+    resources.load();
   });
 
   //
@@ -1314,18 +1362,16 @@ TANK.registerComponent('LightingAndDamage')
 
 .construct(function()
 {
-  this.image = null;
-  this.lightBuffers = null;
+  this.resource = null;
 })
 
 .initialize(function()
 {
   var t = this._entity.Pos2D;
 
-  this.setImage = function(image, lightBuffers)
+  this.setResource = function(res)
   {
-    this.image = image;
-    this.lightBuffers = lightBuffers;
+    this.resource = res;
 
     // Create texture buffers
     this.mainBuffer = new PixelBuffer();
@@ -1333,9 +1379,9 @@ TANK.registerComponent('LightingAndDamage')
     this.decalBuffer = new PixelBuffer();
 
     // Setup texture buffers
-    this.mainBuffer.createBuffer(this.image.width, this.image.height);
-    this.damageBuffer.createBuffer(this.image.width, this.image.height);
-    this.decalBuffer.createBuffer(this.image.width, this.image.height);
+    this.mainBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
+    this.damageBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
+    this.decalBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
   }
 
   // Add damage decals
@@ -1354,16 +1400,16 @@ TANK.registerComponent('LightingAndDamage')
   {
     this.mainBuffer.context.save();
     this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
-    this.mainBuffer.context.drawImage(this.image, 0, 0);
+    this.mainBuffer.context.drawImage(this.resource.diffuse, 0, 0);
 
     // Draw lighting
     var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    for (var i = 0; i < this.lightBuffers.length; ++i)
+    for (var i = 0; i < this.resource.lightBuffers.length; ++i)
     {
-      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i - Math.PI / 2;
+      var lightDirOffset = (Math.PI * 2 / this.resource.lightBuffers.length) * i - Math.PI / 2;
       this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
       if (this.mainBuffer.context.globalAlpha > 0)
-        this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
+        this.mainBuffer.context.drawImage(this.resource.lightBuffers[i], 0, 0);
     }
 
     // Draw damage buffer
@@ -1618,6 +1664,7 @@ Locations.start =
   spawns:
   [
     {components: {Pos2D: {x: 0, y: 0}, Planet: {}}},
+    {components: {Pos2D: {x: 500, y: 0}, Asteroid: {}}},
   ]
 };
 
@@ -2748,6 +2795,125 @@ TANK.registerComponent('RemoveOnLevelChange')
   });
 });
 
+TANK.registerComponent('Resources')
+.construct(function()
+{
+  this._resourcesToLoad = {};
+  this._resourcesLoaded = 0;
+  this._resources = {};
+  this._queuedResources = [];
+})
+
+.initialize(function()
+{
+  //
+  // Add a resource to be loaded
+  //
+  this.add = function(name, path, dependencies, loader)
+  {
+    this._resourcesToLoad[name] =
+    {
+      name: name,
+      path: path,
+      dependencies: dependencies || [],
+      loader: loader
+    };
+  };
+
+  //
+  // Get a resource by name
+  //
+  this.get = function(name)
+  {
+    return this._resources[name];
+  };
+
+  //
+  // Get a map of all resources
+  //
+  this.getAll = function()
+  {
+    return this._resources;
+  };
+
+  //
+  // Load all queued resources
+  //
+  this.load = function()
+  {
+    for (var i in this._resourcesToLoad)
+      this._loadResource(this._resourcesToLoad[i], true);
+  };
+
+  this._resourceLoaded = function(res, loadedRes)
+  {
+    // Mark resource as loaded
+    this._resources[res.name] = loadedRes;
+    ++this._resourcesLoaded;
+    res.loaded = true;
+
+    // Dispatch done event when all resources loaded
+    var numResources = Object.keys(this._resourcesToLoad).length;
+    if (this._resourcesLoaded >= numResources)
+    {
+      this._entity.dispatch('resourcesloaded');
+      return;
+    }
+
+    // Check if we can load any of our queued resources now
+    for (var i = 0; i < this._queuedResources.length; ++i)
+      this._loadResource(this._queuedResources[i], false);
+  };
+
+  this._loadResource = function(res, addToQueue)
+  {
+    // Skip if done
+    if (res.loaded)
+    {
+      return;
+    }
+
+    // Check if all dependencies are loaded
+    var dependenciesMet = true;
+    for (var i = 0; i < res.dependencies.length; ++i)
+    {
+      var dep = this._resourcesToLoad[res.dependencies[i]];
+      if (!dep.loaded)
+        dependenciesMet = false;
+    }
+
+    // If not, add this resource to the queue for later
+    if (!dependenciesMet)
+    {
+      if (addToQueue)
+      {
+        this._queuedResources.push(res);
+      }
+      return;
+    }
+
+    // Otherwise, we can now load the resource
+    if (res.loader)
+    {
+      res.loader(res.name, res.path, this, function(loadedRes)
+      {
+        this._resourceLoaded(res, loadedRes);
+      }.bind(this));
+    }
+    else if (res.path)
+    {
+      if (res.path.search(/(.png|.jpg|.jpeg|.gif)/) >= 0)
+      {
+        var img = new Image();
+        img.src = res.path;
+        img.onload = function()
+        {
+          this._resourceLoaded(res, img);
+        }.bind(this);
+      }
+    }
+  };
+});
 TANK.registerComponent('Ship')
 
 .includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter'])
@@ -2782,13 +2948,13 @@ TANK.registerComponent('Ship')
   this._entity.Collider2D.collidesWith = ['bullets'];
 
   // Get some data from ship
-  this.image = this.shipData.__proto__.image;
-  this.imageNormals = this.shipData.__proto__.imageNormals;
-  this.lightBuffers = this.shipData.__proto__.lightBuffers;
+  this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
   this.fuel = this.shipData.maxFuel;
+  this.width = this.resource.diffuse.width;
+  this.height = this.resource.diffuse.height;
 
-  this._entity.LightingAndDamage.setImage(this.image, this.lightBuffers);
+  this._entity.LightingAndDamage.setResource(this.resource);
 
   // Create texture buffers
   this.mainBuffer = new PixelBuffer();
@@ -2798,18 +2964,18 @@ TANK.registerComponent('Ship')
 
   // Set sizes for things
   this._entity.Lights.lights = this.shipData.lights;
-  this._entity.Lights.width = this.image.width;
-  this._entity.Lights.height = this.image.height;
+  this._entity.Lights.width = this.width;
+  this._entity.Lights.height = this.height;
   this._entity.Lights.redrawLights();
-  this._entity.Collider2D.width = this.image.width * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.image.height * TANK.main.Game.scaleFactor;
-  this._entity.Weapons.width = this.image.width;
-  this._entity.Weapons.height = this.image.height;
+  this._entity.Collider2D.width = this.width * TANK.main.Game.scaleFactor;
+  this._entity.Collider2D.height = this.height * TANK.main.Game.scaleFactor;
+  this._entity.Weapons.width = this.width;
+  this._entity.Weapons.height = this.height;
   this._entity.Engines.size = this.shipData.engineSize;
 
   // Setup texture buffers
-  this.collisionBuffer.createBuffer(this.image.width, this.image.height);
-  this.collisionBuffer.context.drawImage(this.image, 0, 0);
+  this.collisionBuffer.createBuffer(this.width, this.height);
+  this.collisionBuffer.context.drawImage(this.resource.diffuse, 0, 0);
   this.collisionBuffer.readBuffer();
 
   // Add weapons
@@ -3041,7 +3207,7 @@ TANK.registerComponent('Ship')
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
-    ctx.translate(this.image.width / -2, this.image.height / -2);
+    ctx.translate(this.resource.diffuse.width / -2, this.resource.diffuse.height / -2);
 
     // Draw the main ship buffer
     this._entity.LightingAndDamage.redraw();
@@ -3150,7 +3316,7 @@ var Ships = {};
 Ships.fighter = function()
 {
   this.name = 'Fighter';
-  this.class = 1;
+  this.resource = 'fighter';
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
@@ -3159,7 +3325,6 @@ Ships.fighter = function()
   this.health = 0.2;
   this.warpChargeTime = 10;
   this.maxFuel = 5;
-  this.threat = 1;
   this.optimalAngle = 0;
   this.engineSize = [18, 8];
   this.guns =
@@ -3213,7 +3378,7 @@ Ships.fighter = function()
 Ships.bomber = function()
 {
   this.name = 'Bomber';
-  this.class = 2;
+  this.resource = 'bomber';
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.8;
   this.maxSpeed = 200;
@@ -3222,7 +3387,6 @@ Ships.bomber = function()
   this.health = 0.4;
   this.warpChargeTime = 15;
   this.maxFuel = 7;
-  this.threat = 3;
   this.optimalAngle = 0;
   this.engineSize = [24, 12];
   this.guns =
@@ -3276,7 +3440,7 @@ Ships.bomber = function()
 Ships.frigate = function()
 {
   this.name = 'Frigate';
-  this.class = 3;
+  this.resource = 'frigate';
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
@@ -3285,7 +3449,6 @@ Ships.frigate = function()
   this.health = 1;
   this.warpChargeTime = 30;
   this.maxFuel = 10;
-  this.threat = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [24, 16];
   this.guns =
@@ -3389,45 +3552,6 @@ Ships.frigate = function()
 //     }
 //   ];
 // };
-
-// Configure Lightr
-Lightr.minLightIntensity = 0.2;
-Lightr.lightDiffuse = [0.8, 0.8, 1];
-
-// Load ship images
-for (var i in Ships)
-{
-  var ship = Ships[i];
-  ship.prototype.type = i;
-  ship.prototype.image = new Image();
-  ship.prototype.imageEngine = new Image();
-  ship.prototype.imageNormals = new Image();
-  ship.prototype.image.src = 'res/img/' + i + '.png';
-  ship.prototype.imageNormals.src = 'res/img/' + i + '-normals.png';
-
-  ship.prototype.image.onload = function()
-  {
-    this.prototype.imageNormals.onload = function()
-    {
-      this.prototype.lightBuffers = Lightr.bake(8, this.prototype.image, this.prototype.imageNormals);
-    }.bind(this);
-  }.bind(ship);
-}
-
-var bakeShipLighting = function()
-{
-  for (var i in Ships)
-  {
-    var ship = Ships[i];
-    var buffers = Lightr.bake(8, ship.prototype.image, ship.prototype.imageNormals);
-    while (ship.prototype.lightBuffers.length)
-      ship.prototype.lightBuffers.pop();
-
-    for (var i = 0; i < buffers.length; ++i)
-      ship.prototype.lightBuffers.push(buffers[i]);
-  }
-};
-
 function LoadSounds()
 {
   var sounds =
@@ -3775,7 +3899,7 @@ function main()
 {
   LoadSounds();
 
-  TANK.createEngine(['Input', 'Renderer2D', 'Game', 'MapGeneration', 'StarField', 'DustField']);
+  TANK.createEngine(['Input', 'Renderer2D', 'Resources', 'Game', 'MapGeneration', 'StarField', 'DustField']);
 
   TANK.main.Renderer2D.context = document.querySelector('#canvas').getContext('2d');
   TANK.main.Input.context = document.querySelector('#stage');

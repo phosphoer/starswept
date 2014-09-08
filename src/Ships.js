@@ -3,7 +3,7 @@ var Ships = {};
 Ships.fighter = function()
 {
   this.name = 'Fighter';
-  this.class = 1;
+  this.resource = 'fighter';
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
@@ -12,7 +12,6 @@ Ships.fighter = function()
   this.health = 0.2;
   this.warpChargeTime = 10;
   this.maxFuel = 5;
-  this.threat = 1;
   this.optimalAngle = 0;
   this.engineSize = [18, 8];
   this.guns =
@@ -66,7 +65,7 @@ Ships.fighter = function()
 Ships.bomber = function()
 {
   this.name = 'Bomber';
-  this.class = 2;
+  this.resource = 'bomber';
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.8;
   this.maxSpeed = 200;
@@ -75,7 +74,6 @@ Ships.bomber = function()
   this.health = 0.4;
   this.warpChargeTime = 15;
   this.maxFuel = 7;
-  this.threat = 3;
   this.optimalAngle = 0;
   this.engineSize = [24, 12];
   this.guns =
@@ -129,7 +127,7 @@ Ships.bomber = function()
 Ships.frigate = function()
 {
   this.name = 'Frigate';
-  this.class = 3;
+  this.resource = 'frigate';
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
@@ -138,7 +136,6 @@ Ships.frigate = function()
   this.health = 1;
   this.warpChargeTime = 30;
   this.maxFuel = 10;
-  this.threat = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [24, 16];
   this.guns =
@@ -242,41 +239,3 @@ Ships.frigate = function()
 //     }
 //   ];
 // };
-
-// Configure Lightr
-Lightr.minLightIntensity = 0.2;
-Lightr.lightDiffuse = [0.8, 0.8, 1];
-
-// Load ship images
-for (var i in Ships)
-{
-  var ship = Ships[i];
-  ship.prototype.type = i;
-  ship.prototype.image = new Image();
-  ship.prototype.imageEngine = new Image();
-  ship.prototype.imageNormals = new Image();
-  ship.prototype.image.src = 'res/img/' + i + '.png';
-  ship.prototype.imageNormals.src = 'res/img/' + i + '-normals.png';
-
-  ship.prototype.image.onload = function()
-  {
-    this.prototype.imageNormals.onload = function()
-    {
-      this.prototype.lightBuffers = Lightr.bake(8, this.prototype.image, this.prototype.imageNormals);
-    }.bind(this);
-  }.bind(ship);
-}
-
-var bakeShipLighting = function()
-{
-  for (var i in Ships)
-  {
-    var ship = Ships[i];
-    var buffers = Lightr.bake(8, ship.prototype.image, ship.prototype.imageNormals);
-    while (ship.prototype.lightBuffers.length)
-      ship.prototype.lightBuffers.pop();
-
-    for (var i = 0; i < buffers.length; ++i)
-      ship.prototype.lightBuffers.push(buffers[i]);
-  }
-};

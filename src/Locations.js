@@ -10,6 +10,7 @@ Locations.start =
   spawns:
   [
     {components: {Pos2D: {x: 0, y: 0}, Planet: {}}},
+    {components: {Pos2D: {x: 500, y: 0}, Asteroid: {}}},
   ]
 };
 

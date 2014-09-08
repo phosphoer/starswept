@@ -48,7 +48,7 @@ TANK.registerComponent("Engines")
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
-    ctx.translate(ship.image.width / -2, ship.image.height / -2);
+    ctx.translate(ship.resource.diffuse.width / -2, ship.resource.diffuse.height / -2);
     ctx.globalAlpha = ship.thrustAlpha;
 
     for (var i = 0; i < lights.lights.length; ++i)
