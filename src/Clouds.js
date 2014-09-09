@@ -11,8 +11,8 @@ TANK.registerComponent('Clouds')
   this.cloudColor = [255, 255, 255];
   this.cloudSize = 512;
   this.cloudScale = 3;
-  this.noiseFreq = 0.003 + Math.random() * 0.01;
-  this.noiseAmplitude = 0.5 + Math.random() * 3;
+  this.noiseFreq = 0.008 + Math.random() * 0.004;
+  this.noiseAmplitude = 0.5 + Math.random() * 0.3;
   this.noisePersistence = 0.7 + Math.random() * 0.29;
   this.noiseOctaves = 2;
 })
@@ -82,10 +82,12 @@ TANK.registerComponent('Clouds')
   {
     this.heightMap[i][j] = Math.round(this.heightMap[i][j] * 100) / 100;
   });
+
+  // Fade out height map based on distance
   this.forEachPixel(function(i, j)
   {
     var dist = TANK.Math2D.pointDistancePoint([i, j], [this.cloudSize / 2, this.cloudSize / 2]);
-    this.heightMap[i][j] *= 1 - (dist / (this.cloudSize / 2));
+    this.heightMap[i][j] *= 1 - (dist / (this.cloudSize / 2 + 2));
   });
 
   // Set pixels based on height
@@ -117,7 +119,6 @@ TANK.registerComponent('Clouds')
   {
     for (var i = 0; i < this.clouds.length; ++i)
     {
-      ctx.save();
       var x = (this.clouds[i].x - camera.x * this.clouds[i].z) - window.innerWidth / 2;
       var y = (this.clouds[i].y - camera.y * this.clouds[i].z) - window.innerHeight / 2;
       while (x > this.fieldSize[0] / 2)
@@ -129,6 +130,7 @@ TANK.registerComponent('Clouds')
       while (y < -this.fieldSize[1] / 2)
         y += this.fieldSize[1];
 
+      ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(x, y);
       ctx.scale(this.cloudScale, this.cloudScale);

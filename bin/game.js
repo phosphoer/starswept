@@ -1,130 +1,11 @@
-this.Action = this.Action || {};
-
-Action.AIAttack = function(e, target)
+TANK.registerComponent('AIAttack')
+.includes(['Ship', 'RemoveOnLevelChange'])
+.construct(function()
 {
-  this.target = target;
+  this.target = null;
   this.attackDistanceMin = 450;
   this.attackDistanceMax = 600;
   this.giveUpTimer = 5;
-
-  this.update = function(dt)
-  {
-    var t = e.Pos2D;
-    var v = e.Velocity;
-    var ship = e.Ship;
-
-    // Check if target still exists
-    if (!this.target || !TANK.main.getChild(this.target._id))
-    {
-      this.giveUpTimer -= dt;
-      if (this.giveUpTimer < 0)
-        return true;
-    }
-
-    // Get direction to target
-    var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
-    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
-    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-    targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
-    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
-
-    // We should move to engage the target
-    // Depending on the layout of our ship, this either means attempting
-    // to line up a broadside, or aligning our fore-guns with the target
-    // If we are too close we should turn to get farther away
-    if (targetDist < this.attackDistanceMin)
-    {
-      ship.heading = targetDir + Math.PI;
-      ship.setSpeedPercent(0.5);
-    }
-    // We want to get to a minimum distance from the target before attempting to aim at it
-    else if (targetDist > this.attackDistanceMax)
-    {
-      ship.heading = targetDir;
-      ship.setSpeedPercent(1);
-    }
-    else
-    {
-      // Aim at a right angle to the direction to the target, to target with a broadside
-      ship.heading = targetDir + ship.shipData.optimalAngle;
-
-      // Slow down to half speed while circling
-      ship.setSpeedPercent(0.5);
-    }
-  };
-};
-this.Action = this.Action || {};
-
-Action.AIEscort = function(e, target)
-{
-  this.target = target;
-  this.giveUpTimer = 5;
-  this.desiredDist = 300;
-  this.aggroDistance = 500;
-  this.scanTimer = 1;
-
-  this.update = function(dt)
-  {
-    var t = e.Pos2D;
-    var v = e.Velocity;
-
-    // Give up if we can't find our target
-    if (!this.target || !TANK.main.getChild(this.target._id))
-    {
-      this.giveUpTimer -= dt;
-      if (this.giveUpTimer < 0)
-        return true;
-    }
-
-    // Move towards the target ship
-    var targetPos = [target.Pos2D.x, target.Pos2D.y];
-    var targetSpeedPercent = (target.Ship.desiredSpeed / target.Ship.shipData.maxSpeed);
-    var dist = TANK.Math2D.pointDistancePoint(targetPos, [t.x, t.y]);
-    if (dist > this.desiredDist * 3)
-      e.Ship.moveTowards(targetPos);
-    else if (dist > this.desiredDist)
-      e.Ship.moveTowards(targetPos, targetSpeedPercent + 0.2)
-    else
-    {
-      e.Ship.setSpeedPercent(targetSpeedPercent);
-      e.Ship.heading = target.Ship.heading;
-    }
-
-    // Once we are in our defend location, we should attack any enemy ships
-    // that come near the location
-    this.scanTimer -= dt;
-    if (dist <= this.desiredDist && this.scanTimer < 0)
-    {
-      this.scanTimer = 1;
-
-      var ships = TANK.main.getChildrenWithComponent("Ship");
-      for (var i in ships)
-      {
-        // Skip ships on our team
-        var obj = ships[i];
-        if (obj.Ship.faction.team === e.Ship.faction.team)
-          continue;
-
-        // If we see a ship, clear our order queue, attack the ship, and then go back to defending this point
-        if (TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], targetPos) <= this.aggroDistance)
-        {
-          e.AIShip.clearOrders();
-          e.AIShip.addOrder(new Action.AIAttack(e, obj));
-          e.AIShip.addOrder(new Action.AIEscort(e, target));
-        }
-      }
-    }
-  };
-};
-
-TANK.registerComponent('AIShip')
-
-.includes(['Ship', 'RemoveOnLevelChange'])
-
-.construct(function()
-{
-  this.actions = [];
-  this.removedActions = [];
 })
 
 .initialize(function()
@@ -133,51 +14,9 @@ TANK.registerComponent('AIShip')
   var v = this._entity.Velocity;
   var ship = this._entity.Ship;
 
-  // Damage response
-  this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
-  {
-
-  });
-
-  // Add an action to the queue
-  this.addOrder = function(order)
-  {
-    this.actions.push(order);
-  };
-
-  // Clear the current queue of orders
-  this.clearOrders = function()
-  {
-    this.actions = [];
-  };
-
-  this.update = function(dt)
-  {
-    // Run current orders
-    if (this.actions.length > 0)
-    {
-      var done = this.actions[0].update(dt);
-      if (done || this.actions[0]._done === true)
-        this.actions.splice(0, 1);
-    }
-
-    // Always scan for enemies in range and fire guns if they come within
-    // sights
-    var ships = TANK.main.getChildrenWithComponent('Ship');
-    for (var i in ships)
-    {
-      // Skip ships on our team
-      var e = ships[i];
-      if (e.Ship.iff === ship.iff)
-        continue;
-
-      // Try to shoot at this ship if it is in range
-      if (TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [t.x, t.y]) <= this._entity.Weapons.maxRange)
-        this.fireGunsAtTarget(e);
-    }
-  };
-
+  //
   // Attempt to fire guns at a given target, if it is in our sights
+  //
   this.fireGunsAtTarget = function(target)
   {
     var targetPos = [target.Pos2D.x, target.Pos2D.y];
@@ -206,57 +45,83 @@ TANK.registerComponent('AIShip')
       }
     }
   };
-});
-this.Action = this.Action || {};
 
-Action.AITravel = function(e)
-{
-  var t = e.Pos2D;
-  var ship = e.Ship;
-  var targetDir = Math.atan2(0 - t.y, 0 - t.x);
-  ship.heading = targetDir;
-  ship.setSpeedPercent(1);
-
+  //
+  // Update
+  //
   this.update = function(dt)
   {
+    // Check if target still exists
+    if (!this.target || !TANK.main.getChild(this.target._id))
+    {
+      this.giveUpTimer -= dt;
+      if (this.giveUpTimer < 0)
+        return true;
+    }
+
+    // Get direction to target
+    var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
+    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
+    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
+
+    // Shoot
+    this.fireGunsAtTarget(this.target);
+
+    // We should move to engage the target
+    // Depending on the layout of our ship, this either means attempting
+    // to line up a broadside, or aligning our fore-guns with the target
+    // If we are too close we should turn to get farther away
+    if (targetDist < this.attackDistanceMin)
+    {
+      ship.heading = targetDir + Math.PI;
+      ship.setSpeedPercent(0.5);
+    }
+    // We want to get to a minimum distance from the target before attempting to aim at it
+    else if (targetDist > this.attackDistanceMax)
+    {
+      ship.heading = targetDir;
+      ship.setSpeedPercent(1);
+    }
+    else
+    {
+      // Aim at a right angle to the direction to the target, to target with a broadside
+      ship.heading = targetDir + ship.shipData.optimalAngle;
+
+      // Slow down to half speed while circling
+      ship.setSpeedPercent(0.5);
+    }
   };
-};
-TANK.registerComponent("AIWatch")
+});
 
-.includes("AIShip")
-
-.construct(function()
+TANK.registerComponent('AIAttackPlayer')
+.includes(['Ship', 'RemoveOnLevelChange'])
+.initialize(function()
 {
-  this.watchRange = 1000;
-})
-
+  this.update = function(dt)
+  {
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = TANK.main.Game.player;
+    this._entity.removeComponent('AIAttackPlayer');
+  };
+});
+TANK.registerComponent('AICivilian')
+.includes(['Ship', 'RemoveOnLevelChange'])
 .initialize(function()
 {
   var t = this._entity.Pos2D;
   var ship = this._entity.Ship;
+  var targetDir = Math.atan2(0 - t.y, 0 - t.x);
+  ship.heading = targetDir;
+  ship.setSpeedPercent(0.5);
 
-  this.evaluateTarget = function(e)
+  this.listenTo(this._entity, 'damaged', function(amount, direction, position, owner)
   {
-    if (e.Ship.faction.team === ship.faction.team)
-      return;
-
-    var targetPos = [e.Pos2D.x, e.Pos2D.y];
-    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-    if (targetDist < this.watchRange && !(this._entity.AIShip.actions[0] instanceof Action.AIAttack))
-    {
-      this._entity.AIShip.prependAction(new Action.AIAttack(this._entity, e));
-    }
-  };
-
-  this.update = function(dt)
-  {
-    // Iterate over ships and see if any enemies are nearby
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    for (var i in ships)
-    {
-      this.evaluateTarget(ships[i]);
-    }
-  };
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = owner;
+    this._entity.removeComponent('AICivilian');
+  });
 });
 TANK.registerComponent('Asteroid')
 
@@ -284,9 +149,8 @@ TANK.registerComponent('Asteroid')
 
   this.draw = function(ctx, camera)
   {
-    ctx.save();
-
     // Set up transform
+    ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
@@ -454,8 +318,8 @@ TANK.registerComponent('Clouds')
   this.cloudColor = [255, 255, 255];
   this.cloudSize = 512;
   this.cloudScale = 3;
-  this.noiseFreq = 0.003 + Math.random() * 0.01;
-  this.noiseAmplitude = 0.5 + Math.random() * 3;
+  this.noiseFreq = 0.008 + Math.random() * 0.004;
+  this.noiseAmplitude = 0.5 + Math.random() * 0.3;
   this.noisePersistence = 0.7 + Math.random() * 0.29;
   this.noiseOctaves = 2;
 })
@@ -525,10 +389,12 @@ TANK.registerComponent('Clouds')
   {
     this.heightMap[i][j] = Math.round(this.heightMap[i][j] * 100) / 100;
   });
+
+  // Fade out height map based on distance
   this.forEachPixel(function(i, j)
   {
     var dist = TANK.Math2D.pointDistancePoint([i, j], [this.cloudSize / 2, this.cloudSize / 2]);
-    this.heightMap[i][j] *= 1 - (dist / (this.cloudSize / 2));
+    this.heightMap[i][j] *= 1 - (dist / (this.cloudSize / 2 + 2));
   });
 
   // Set pixels based on height
@@ -560,7 +426,6 @@ TANK.registerComponent('Clouds')
   {
     for (var i = 0; i < this.clouds.length; ++i)
     {
-      ctx.save();
       var x = (this.clouds[i].x - camera.x * this.clouds[i].z) - window.innerWidth / 2;
       var y = (this.clouds[i].y - camera.y * this.clouds[i].z) - window.innerHeight / 2;
       while (x > this.fieldSize[0] / 2)
@@ -572,6 +437,7 @@ TANK.registerComponent('Clouds')
       while (y < -this.fieldSize[1] / 2)
         y += this.fieldSize[1];
 
+      ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(x, y);
       ctx.scale(this.cloudScale, this.cloudScale);
@@ -3636,23 +3502,20 @@ var Spawns = {};
 
 Spawns.civilian = function()
 {
-  var e = TANK.createEntity('AIShip');
+  var e = TANK.createEntity('AICivilian');
   e.Ship.shipData = new Ships.fighter();
   e.Pos2D.x = -2000 + Math.random() * 4000;
   e.Pos2D.y = -2000 + Math.random() * 4000;
   TANK.main.addChild(e);
-  e.AIShip.addOrder(new Action.AITravel(e));
 };
 
 Spawns.pirate = function()
 {
-  var e = TANK.createEntity('AIShip');
+  var e = TANK.createEntity('AIAttackPlayer');
   e.Ship.shipData = new Ships.frigate();
   e.Pos2D.x = -2000 + Math.random() * 4000;
   e.Pos2D.y = -2000 + Math.random() * 4000;
   TANK.main.addChild(e);
-  e.AIShip.addOrder(new Action.AIAttack(e, TANK.main.Game.player));
-  e.Ship.iff = 1;
 };
 TANK.registerComponent("StarField")
 

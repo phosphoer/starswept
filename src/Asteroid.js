@@ -24,9 +24,8 @@ TANK.registerComponent('Asteroid')
 
   this.draw = function(ctx, camera)
   {
-    ctx.save();
-
     // Set up transform
+    ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);

@@ -4,6 +4,22 @@
 		"selected_items":
 		[
 			[
+				"_res",
+				"_resources"
+			],
+			[
+				"res",
+				"_resourcesToLoad"
+			],
+			[
+				"aster",
+				"asteroid-01"
+			],
+			[
+				"aster1",
+				"asteroid-01-diffuse"
+			],
+			[
 				"_images",
 				"_imagesToLoad"
 			],
@@ -172,51 +188,34 @@
 	"buffers":
 	[
 		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
+			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
 			"settings":
 			{
-				"buffer_size": 1770,
-				"line_ending": "Windows"
+				"buffer_size": 11431,
+				"line_ending": "Unix"
 			}
 		},
 		{
 			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Locations.js",
 			"settings":
 			{
-				"buffer_size": 1631,
+				"buffer_size": 1350,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Asteroid.js",
+			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Events.js",
 			"settings":
 			{
-				"buffer_size": 1367,
-				"line_ending": "Unix",
-				"name": "TANK.registerComponent('Asteroid')"
-			}
-		},
-		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
-			"settings":
-			{
-				"buffer_size": 8740,
+				"buffer_size": 264,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
+			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
 			"settings":
 			{
-				"buffer_size": 9963,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Resources.js",
-			"settings":
-			{
-				"buffer_size": 824,
+				"buffer_size": 601,
 				"line_ending": "Unix"
 			}
 		}
@@ -297,48 +296,52 @@
 	],
 	"file_history":
 	[
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/main.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/RemoveOnLevelChange.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Events.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/style.css",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Clouds.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/LightingAndDamage.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DustField.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ships.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Lights.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Resources.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIShip.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIAttack.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AITravel.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/prj/starswept.sublime-project",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/style.css",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/SoundEmitter.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/RemoveOnLevelChange.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Engines.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/snd/explode-01.wav",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ships.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Asteroid.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AsteroidField.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Lights.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Clouds.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/components.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/ParticleLibrary.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/LightingAndDamage.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/gulpfile.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Locations.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/main.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Events.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DustField.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/snd/explode-01.wav",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/MapGeneration.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Cloud.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/gulpfile.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.json",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/StarField.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Planet.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Locations.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/package.json",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/components.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/EndScreen.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/ShipSelection.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/SoundEmitter.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/wave.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/snd/blip-01.wav",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Bullet.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Player.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Lightr.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/prj/starswept.sublime-project",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/MainMenu.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/snd/hit-01.wav",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/ractive.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/tank.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/WarpEffect.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/PixelBuffer.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AITravel.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Guns.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/CampaignMap.js",
@@ -351,7 +354,6 @@
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/ControlPoint.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Template.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Faction.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIAttack.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Weapons.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/img/alien.pxi",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Sound.js",
@@ -421,10 +423,7 @@
 		"/Users/david/Documents/Game Projects/TankJS/docs/Math.html",
 		"/Users/david/Documents/Game Projects/TankJS/node_modules/gulp-uglify/node_modules/uglify-js/lib/mozilla-ast.js",
 		"/Users/david/Documents/Game Projects/TankJS/bin/tank.js",
-		"/Users/david/Documents/Game Projects/TankJS/docs/Component.html",
-		"/Users/david/Documents/Game Projects/TankJS/bin/components.js",
-		"/Users/david/Documents/Game Projects/TankJS/node_modules/gulp-uglify/node_modules/uglify-js/node_modules/optimist/example/line_count_options.js",
-		"/Users/david/Documents/Game Projects/TankJS/docs/Entity.html"
+		"/Users/david/Documents/Game Projects/TankJS/docs/Component.html"
 	],
 	"find":
 	{
@@ -443,6 +442,23 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"8000",
+			"5000",
+			"image",
+			"bakeShipLighting",
+			"this.image",
+			"image",
+			".image",
+			"width",
+			"this.image",
+			"_resourcesLoaded",
+			"class",
+			".type",
+			"fighter",
+			"asteroid-01",
+			"_resourcesLoaded",
+			"_loadresource",
+			".loaded",
 			"images",
 			"image",
 			"ship.prototype",
@@ -553,24 +569,7 @@
 			"scanforend",
 			"startAttack",
 			".owner",
-			"this.startaiturn",
-			"this.factions",
-			"level",
-			".level",
-			"0",
-			"ai",
-			"faction",
-			"loadlevel",
-			"scanfore",
-			"factions",
-			"gotosystem",
-			"owned",
-			"\n      ",
-			"owned",
-			"\n    ",
-			".owned",
-			"currentTurn",
-			"owned"
+			"this.startaiturn"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -590,35 +589,35 @@
 	"groups":
 	[
 		{
-			"selected": 4,
+			"selected": 1,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
+					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1770,
+						"buffer_size": 11431,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1585,
-								1585
+								1445,
+								1445
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/HTML/HTML.tmLanguage"
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 545.0,
+						"translation.y": 457.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 5,
+					"stack_index": 3,
 					"type": "text"
 				},
 				{
@@ -627,15 +626,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1631,
+						"buffer_size": 1350,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								589,
-								589
+								374,
+								374
 							]
 						],
 						"settings":
@@ -643,112 +642,27 @@
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Asteroid.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1367,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								877,
-								840
-							]
-						],
-						"settings":
-						{
-							"auto_name": "TANK.registerComponent('Asteroid')",
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 8740,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								849,
-								849
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 345.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 9963,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								473,
-								473
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 329.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 5,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Resources.js",
+					"buffer": 2,
+					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Events.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 824,
+						"buffer_size": 264,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								347,
-								347
+								261,
+								261
 							]
 						],
 						"settings":
@@ -760,6 +674,34 @@
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 601,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								601,
+								601
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 6.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
@@ -812,16 +754,64 @@
 		"selected_items":
 		[
 			[
+				"res",
+				"src/Resources.js"
+			],
+			[
+				"ais",
+				"src/AIShip.js"
+			],
+			[
+				"aiatt",
+				"src/AIAttack.js"
+			],
+			[
+				"spaw",
+				"src/Spawns.js"
+			],
+			[
+				"even",
+				"src/Events.js"
+			],
+			[
+				"aste",
+				"src/Asteroid.js"
+			],
+			[
+				"loca",
+				"src/Locations.js"
+			],
+			[
+				"part",
+				"src/ParticleLibrary.js"
+			],
+			[
+				"eng",
+				"src/Engines.js"
+			],
+			[
+				"lightinga",
+				"src/LightingAndDamage.js"
+			],
+			[
+				"ast",
+				"src/Asteroid.js"
+			],
+			[
+				"ships",
+				"src/Ships.js"
+			],
+			[
+				"gam",
+				"src/Game.js"
+			],
+			[
 				"mai",
 				"src/main.js"
 			],
 			[
 				"ship",
 				"src/Ship.js"
-			],
-			[
-				"ships",
-				"src/Ships.js"
 			],
 			[
 				"light",
@@ -832,24 +822,12 @@
 				"style.css"
 			],
 			[
-				"eng",
-				"src/Engines.js"
-			],
-			[
-				"part",
-				"src/ParticleLibrary.js"
-			],
-			[
 				"game",
 				"src/Game.js"
 			],
 			[
 				"dust",
 				"src/DustField.js"
-			],
-			[
-				"loca",
-				"src/Locations.js"
 			],
 			[
 				"clo",
@@ -936,10 +914,6 @@
 				"src/Ship.js"
 			],
 			[
-				"ais",
-				"src/AIShip.js"
-			],
-			[
 				"par",
 				"src/ParticleLibrary.js"
 			],
@@ -950,10 +924,6 @@
 			[
 				"gen",
 				"src/GenerateLevel.js"
-			],
-			[
-				"gam",
-				"src/Game.js"
 			],
 			[
 				"tem",

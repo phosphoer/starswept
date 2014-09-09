@@ -2,21 +2,18 @@ var Spawns = {};
 
 Spawns.civilian = function()
 {
-  var e = TANK.createEntity('AIShip');
+  var e = TANK.createEntity('AICivilian');
   e.Ship.shipData = new Ships.fighter();
   e.Pos2D.x = -2000 + Math.random() * 4000;
   e.Pos2D.y = -2000 + Math.random() * 4000;
   TANK.main.addChild(e);
-  e.AIShip.addOrder(new Action.AITravel(e));
 };
 
 Spawns.pirate = function()
 {
-  var e = TANK.createEntity('AIShip');
+  var e = TANK.createEntity('AIAttackPlayer');
   e.Ship.shipData = new Ships.frigate();
   e.Pos2D.x = -2000 + Math.random() * 4000;
   e.Pos2D.y = -2000 + Math.random() * 4000;
   TANK.main.addChild(e);
-  e.AIShip.addOrder(new Action.AIAttack(e, TANK.main.Game.player));
-  e.Ship.iff = 1;
 };
