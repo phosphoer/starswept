@@ -165,6 +165,8 @@ TANK.registerComponent('Asteroid')
 });
 TANK.registerComponent('AsteroidField')
 
+.includes(['RemoveOnLevelChange'])
+
 .construct(function()
 {
   this.numAsteroids = 10;
@@ -306,6 +308,8 @@ TANK.registerComponent("Bullet")
   TANK.main.removeChild(this.trailEmitter);
 });
 TANK.registerComponent('Clouds')
+
+.includes(['RemoveOnLevelChange'])
 
 .construct(function()
 {
@@ -644,6 +648,42 @@ Events.pirate =
   text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
   spawns: ['pirate']
 };
+
+Events.derelict =
+{
+  text: 'Your scanners pick up the signature of a mid sized ship, but the signal is much fainter than you would expect. The signal originates from a short distance ahead.',
+  spawns: ['derelict']
+};
+
+Events.derelict_1a =
+{
+  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.'
+};
+
+Events.derelict_1b =
+{
+  text: 'Upon approaching, you are contacted by the ship. The captain informs you that they have been stranded for days, and pleads with you to give them 3 fuels so they can return home.',
+  options:
+  [
+    {
+      text: 'Decline, you need all the fuel you\'ve got.',
+      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.'
+    },
+    {
+      text: 'Agree to give them some fuel.',
+      events:
+      [
+        {probability: 0.5, name: 'test'},
+        {probability: 0.5, name: 'test'}
+      ]
+    }
+  ]
+};
+
+Events.test =
+{
+  text: 'A test event'
+};
 TANK.registerComponent('Game')
 
 .construct(function()
@@ -977,6 +1017,7 @@ TANK.registerComponent('Game')
   {
     var event = Events[eventName];
     event.spawns = event.spawns || [];
+    event.options = event.options || [];
 
     // Show event text
     this.addEventLog(event.text);
@@ -998,6 +1039,15 @@ TANK.registerComponent('Game')
         e.load(spawn);
         TANK.main.addChild(e);
       }
+    }
+
+    // If the event has options, wait for a choice to be made
+    if (event.options.length > 0)
+    {
+      this.eventAwaitingInput = event;
+      this.waitingForJump = false;
+      for (var i = 0; i < event.options.length; ++i)
+        this.addEventLog((i + 1) + '. ' + event.options[i].text);
     }
   };
 
@@ -1067,9 +1117,10 @@ TANK.registerComponent('Game')
       // Choose to jump to a location
       if (this.waitingForJump)
       {
+        this.waitingForJump = false;
+
         if (!this.warpReady)
         {
-          this.waitingForJump = false;
           var timeRemaining = this.player.Ship.shipData.warpChargeTime - this.player.Ship.warpCharge;
           this.addEventLog('Warp drive charged in ' + Math.round(timeRemaining) + ' seconds.');
           return;
@@ -1088,8 +1139,26 @@ TANK.registerComponent('Game')
         }
       }
       // Choose an answer for an event
-      else
+      else if (this.eventAwaitingInput)
       {
+        if (choice < this.eventAwaitingInput.options.length)
+        {
+          // Show response text
+          var chosenOption = this.eventAwaitingInput.options[choice];
+          if (chosenOption.responseText)
+            this.addEventLog(chosenOption.responseText);
+
+          // Trigger an event, if any
+          if (chosenOption.events)
+          {
+            var weights = chosenOption.events.map(function(ev) {return ev.probability;});
+            var chosenIndex = this.randomWeighted(weights);
+            var chosenEvent = chosenOption.events[chosenIndex];
+            this.triggerEvent(chosenEvent.name);
+          }
+
+          this.eventAwaitingInput = null;
+        }
       }
     }
   });
@@ -1569,7 +1638,7 @@ var Locations = {};
 Locations.start =
 {
   text: 'Here you are, at the edge of civilized space. Your destination lies deep in the heart of the galaxy, where anarchy reigns.',
-  events: [{probability: 1, name: 'civilian'}],
+  events: [{probability: 1, name: 'derelict'}],
   bgColor: [0, 0, 20, 1],
   lightColor: [0.7, 0.7, 1],
   lightDir: Math.PI * 2 * 0.8,
@@ -1583,7 +1652,7 @@ Locations.abandonedOutpost =
 {
   text: 'A dingy trading outpost sits ahead, listing heavily to the side.',
   name: 'An old abandoned trading outpost',
-  events: [{probability: 1, name: 'pirate'}],
+  events: [{probability: 0.5, name: 'pirate'}, {probability: 0.5, name: 'derelict'}],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
   lightDir: Math.PI * 2 * 0.5,
@@ -1604,7 +1673,7 @@ Locations.asteroidField =
 {
   text: 'Here in the depths of an asteroid field, anything can happen. Watch your back.',
   name: 'Asteroid field',
-  events: [{probability: 1, name: 'pirate'}],
+  events: [{probability: 0.4, name: 'pirate'}, {probability: 0.6, name: 'derelict'}],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
   lightDir: Math.PI * 2 * 0.2,
@@ -3517,6 +3586,22 @@ Spawns.pirate = function()
   e.Pos2D.y = -2000 + Math.random() * 4000;
   TANK.main.addChild(e);
 };
+
+Spawns.derelict = function()
+{
+  var e = TANK.createEntity('Ship');
+  e.Ship.shipData = new Ships.frigate();
+  e.Pos2D.x = 4000;
+  e.Pos2D.y = 0;
+  TANK.main.addChild(e);
+
+  e = TANK.createEntity('TriggerRadius');
+  e.TriggerRadius.radius = 1000;
+  e.TriggerRadius.events = [{probability: 1, name: 'derelict_1b'}];
+  e.Pos2D.x = 4000;
+  e.Pos2D.y = 0;
+  TANK.main.addChild(e);
+};
 TANK.registerComponent("StarField")
 
 .construct(function()
@@ -3573,6 +3658,44 @@ TANK.registerComponent("StarField")
   this.redraw();
 });
 
+TANK.registerComponent('TriggerRadius')
+
+.includes(['Pos2D'])
+
+.construct(function()
+{
+  this.radius = 1000;
+  this.events = [];
+  this.removeOnTrigger = true;
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'radius', 1000);
+  serializer.property(this, 'events', []);
+  serializer.property(this, 'removeOnTrigger', true);
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  this.update = function(dt)
+  {
+    // Check if player comes within a certain range
+    var player = TANK.main.Game.player;
+    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius)
+    {
+      var weights = this.events.map(function(ev) {return ev.probability;});
+      var chosenIndex = TANK.main.Game.randomWeighted(weights);
+      var chosenEvent = this.events[chosenIndex];
+      TANK.main.Game.triggerEvent(chosenEvent.name);
+
+      if (this.removeOnTrigger)
+        this._entity._parent.removeChild(this._entity);
+    }
+  };
+});
 TANK.registerComponent('WarpEffect')
 .includes(['RemoveOnLevelChange'])
 .construct(function()

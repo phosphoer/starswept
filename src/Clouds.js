@@ -1,5 +1,7 @@
 TANK.registerComponent('Clouds')
 
+.includes(['RemoveOnLevelChange'])
+
 .construct(function()
 {
   this.clouds = [];

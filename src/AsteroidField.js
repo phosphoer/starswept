@@ -1,5 +1,7 @@
 TANK.registerComponent('AsteroidField')
 
+.includes(['RemoveOnLevelChange'])
+
 .construct(function()
 {
   this.numAsteroids = 10;
