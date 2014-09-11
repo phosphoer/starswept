@@ -208,16 +208,16 @@ TANK.registerComponent('AsteroidField')
     }
   };
 });
-TANK.registerComponent("Bullet")
+TANK.registerComponent('Bullet')
 
-.includes(["Pos2D", "Velocity", "Collider2D", "Life"])
+.includes(['Pos2D', 'Velocity', 'Collider2D', 'Life'])
 
 .construct(function()
 {
   this.zdepth = 2;
   this.owner = null;
   this.damage = 0.2;
-  this.trailEffect = "mediumRailTrail";
+  this.trailEffect = 'mediumRailTrail';
   this.size = 3;
 })
 
@@ -225,58 +225,11 @@ TANK.registerComponent("Bullet")
 {
   var t = this._entity.Pos2D;
 
-  this._entity.Collider2D.collisionLayer = "bullets";
-  this._entity.Collider2D.collidesWith = ["ships"];
+  this._entity.Collider2D.collisionLayer = 'bullets';
 
   this.trailEmitter = ParticleLibrary[this.trailEffect]();
 
   TANK.main.Renderer2D.add(this);
-
-  this.listenTo(this._entity, "collide", function(obj)
-  {
-    if (this.owner === obj)
-      return;
-
-    // Special ship collision logic
-    var hit = true;
-    if (obj.Ship)
-    {
-      hit = false;
-      // if (this.owner.Ship && this.owner.Ship.iff === obj.Ship.iff)
-      //   return;
-
-      var testPos = [t.x, t.y];
-      var shipPos = [obj.Pos2D.x, obj.Pos2D.y];
-      var shipHalfSize = TANK.Math2D.scale([obj.Ship.collisionBuffer.width / 2, obj.Ship.collisionBuffer.height / 2], TANK.main.Game.scaleFactor);
-      testPos = TANK.Math2D.subtract(testPos, shipPos);
-      testPos = TANK.Math2D.rotate(testPos, -obj.Pos2D.rotation);
-      testPos = TANK.Math2D.add(testPos, shipHalfSize);
-      testPos = TANK.Math2D.scale(testPos, 1 / TANK.main.Game.scaleFactor);
-      var p = obj.Ship.collisionBuffer.getPixel(testPos[0], testPos[1]);
-      if (p[3] > 0)
-      {
-        // Do damage
-        obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], [t.x, t.y], this.owner);
-        this._entity.Life.life = 0;
-        this.stopListeningTo(this._entity, "collide");
-        obj.Ship.addDamage(testPos[0], testPos[1], this.damage * (30 + Math.random() * 30));
-
-        // Spawn effect
-        ParticleLibrary.damageMedium(t.x, t.y, t.rotation + Math.PI);
-        hit = true;
-      }
-    }
-
-    if (!hit)
-      return;
-
-    // Shake screen if on camera
-    var camera = TANK.main.Renderer2D.camera;
-    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
-    if (dist < 1) dist = 1;
-    if (dist < window.innerWidth / 2)
-      TANK.main.dispatch("camerashake", 0.1 / dist);
-  });
 
   this.update = function(dt)
   {
@@ -290,11 +243,10 @@ TANK.registerComponent("Bullet")
   this.draw = function(ctx, camera)
   {
     ctx.save();
-    ctx.globalCompositeOperation = "lighten";
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(1, 2);
     ctx.rotate(t.rotation);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(0, 0, this.size, Math.PI * 2, false);
     ctx.fill();
@@ -2284,6 +2236,58 @@ function PixelBuffer()
     }
   };
 }
+TANK.registerComponent('PixelCollider')
+
+.construct(function()
+{
+  this.width = 0;
+  this.height = 0;
+  this.collisionLayer = '';
+  this.collidesWith = [];
+
+  this.image = null;
+  this.collisionBuffer = new PixelBuffer();
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  this.setImage = function(image)
+  {
+    var space = this._entity.getFirstParentWithComponent('CollisionManager');
+    if (this.image)
+      space.CollisionManager.remove(this);
+
+    this.image = image;
+    this.collisionBuffer.createBuffer(image.width, image.height);
+    this.collisionBuffer.context.drawImage(this.image, 0, 0);
+    this.collisionBuffer.readBuffer();
+    this.width = image.width * TANK.main.Game.scaleFactor;
+    this.height = image.height * TANK.main.Game.scaleFactor;
+
+    space.CollisionManager.add(this);
+  };
+
+  this.testCollision = function(other)
+  {
+    var selfPos = [t.x, t.y];
+    var selfSize = [this.width, this.height];
+    var otherPos = [other._entity.Pos2D.x, other._entity.Pos2D.y];
+    var inRect = TANK.Math2D.pointInOBB(otherPos, selfPos, selfSize, t.rotation);
+    if (!inRect)
+      return null;
+
+    var selfHalfSize = TANK.Math2D.scale(selfSize, 0.5);
+    otherPos = TANK.Math2D.subtract(otherPos, selfPos);
+    otherPos = TANK.Math2D.rotate(otherPos, -t.rotation);
+    otherPos = TANK.Math2D.add(otherPos, selfHalfSize);
+    otherPos = TANK.Math2D.scale(otherPos, 1 / TANK.main.Game.scaleFactor);
+    var p = this.collisionBuffer.getPixel(otherPos[0], otherPos[1]);
+
+    return (p[3] > 0) ? otherPos : null;
+  };
+});
 (function()
 {
 
@@ -2892,7 +2896,7 @@ TANK.registerComponent('Resources')
 });
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter'])
+.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
 
 .construct(function()
 {
@@ -2919,10 +2923,6 @@ TANK.registerComponent('Ship')
 
   TANK.main.Renderer2D.add(this);
 
-  // Set up collision
-  this._entity.Collider2D.collisionLayer = 'ships';
-  this._entity.Collider2D.collidesWith = ['bullets'];
-
   // Get some data from ship
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
@@ -2930,29 +2930,27 @@ TANK.registerComponent('Ship')
   this.width = this.resource.diffuse.width;
   this.height = this.resource.diffuse.height;
 
+  // Set up collision
+  this._entity.PixelCollider.collisionLayer = 'ships';
+  this._entity.PixelCollider.collidesWith = ['bullets'];
+  this._entity.PixelCollider.setImage(this.resource.diffuse);
+
+  // Set up lighting
   this._entity.LightingAndDamage.setResource(this.resource);
 
   // Create texture buffers
   this.mainBuffer = new PixelBuffer();
   this.damageBuffer = new PixelBuffer();
   this.decalBuffer = new PixelBuffer();
-  this.collisionBuffer = new PixelBuffer();
 
   // Set sizes for things
   this._entity.Lights.lights = this.shipData.lights;
   this._entity.Lights.width = this.width;
   this._entity.Lights.height = this.height;
   this._entity.Lights.redrawLights();
-  this._entity.Collider2D.width = this.width * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.height * TANK.main.Game.scaleFactor;
   this._entity.Weapons.width = this.width;
   this._entity.Weapons.height = this.height;
   this._entity.Engines.size = this.shipData.engineSize;
-
-  // Setup texture buffers
-  this.collisionBuffer.createBuffer(this.width, this.height);
-  this.collisionBuffer.context.drawImage(this.resource.diffuse, 0, 0);
-  this.collisionBuffer.readBuffer();
 
   // Add weapons
   for (var gunSide in this.shipData.guns)
@@ -3040,6 +3038,33 @@ TANK.registerComponent('Ship')
     if (dist < window.innerWidth / 2)
       TANK.main.dispatch('camerashake', 0.5);
   };
+
+  //
+  // Collision response
+  //
+  this.listenTo(this._entity, 'collide', function(obj, pixelPos)
+  {
+    var objPos = [obj.Pos2D.x, obj.Pos2D.y];
+    var bullet = obj.Bullet;
+
+    if (bullet && bullet.owner !== this._entity)
+    {
+      // Do damage
+      this._entity.dispatch('damaged', bullet.damage, [obj.Velocity.x, obj.Velocity.y], objPos, bullet.owner);
+      obj.Life.life = 0;
+      this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
+
+      // Spawn effect
+      ParticleLibrary.damageMedium(objPos[0], objPos[1], obj.Pos2D.rotation + Math.PI);
+
+      // Shake screen if on camera
+      var camera = TANK.main.Renderer2D.camera;
+      var dist = TANK.Math2D.pointDistancePoint(objPos, [camera.x, camera.y]);
+      if (dist < 1) dist = 1;
+      if (dist < window.innerWidth / 2)
+        TANK.main.dispatch('camerashake', 0.1 / dist);
+    }
+  });
 
   //
   // Damage response

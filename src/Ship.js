@@ -1,6 +1,6 @@
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'Collider2D', 'Weapons', 'SoundEmitter'])
+.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
 
 .construct(function()
 {
@@ -27,10 +27,6 @@ TANK.registerComponent('Ship')
 
   TANK.main.Renderer2D.add(this);
 
-  // Set up collision
-  this._entity.Collider2D.collisionLayer = 'ships';
-  this._entity.Collider2D.collidesWith = ['bullets'];
-
   // Get some data from ship
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
@@ -38,29 +34,27 @@ TANK.registerComponent('Ship')
   this.width = this.resource.diffuse.width;
   this.height = this.resource.diffuse.height;
 
+  // Set up collision
+  this._entity.PixelCollider.collisionLayer = 'ships';
+  this._entity.PixelCollider.collidesWith = ['bullets'];
+  this._entity.PixelCollider.setImage(this.resource.diffuse);
+
+  // Set up lighting
   this._entity.LightingAndDamage.setResource(this.resource);
 
   // Create texture buffers
   this.mainBuffer = new PixelBuffer();
   this.damageBuffer = new PixelBuffer();
   this.decalBuffer = new PixelBuffer();
-  this.collisionBuffer = new PixelBuffer();
 
   // Set sizes for things
   this._entity.Lights.lights = this.shipData.lights;
   this._entity.Lights.width = this.width;
   this._entity.Lights.height = this.height;
   this._entity.Lights.redrawLights();
-  this._entity.Collider2D.width = this.width * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.height * TANK.main.Game.scaleFactor;
   this._entity.Weapons.width = this.width;
   this._entity.Weapons.height = this.height;
   this._entity.Engines.size = this.shipData.engineSize;
-
-  // Setup texture buffers
-  this.collisionBuffer.createBuffer(this.width, this.height);
-  this.collisionBuffer.context.drawImage(this.resource.diffuse, 0, 0);
-  this.collisionBuffer.readBuffer();
 
   // Add weapons
   for (var gunSide in this.shipData.guns)
@@ -148,6 +142,33 @@ TANK.registerComponent('Ship')
     if (dist < window.innerWidth / 2)
       TANK.main.dispatch('camerashake', 0.5);
   };
+
+  //
+  // Collision response
+  //
+  this.listenTo(this._entity, 'collide', function(obj, pixelPos)
+  {
+    var objPos = [obj.Pos2D.x, obj.Pos2D.y];
+    var bullet = obj.Bullet;
+
+    if (bullet && bullet.owner !== this._entity)
+    {
+      // Do damage
+      this._entity.dispatch('damaged', bullet.damage, [obj.Velocity.x, obj.Velocity.y], objPos, bullet.owner);
+      obj.Life.life = 0;
+      this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
+
+      // Spawn effect
+      ParticleLibrary.damageMedium(objPos[0], objPos[1], obj.Pos2D.rotation + Math.PI);
+
+      // Shake screen if on camera
+      var camera = TANK.main.Renderer2D.camera;
+      var dist = TANK.Math2D.pointDistancePoint(objPos, [camera.x, camera.y]);
+      if (dist < 1) dist = 1;
+      if (dist < window.innerWidth / 2)
+        TANK.main.dispatch('camerashake', 0.1 / dist);
+    }
+  });
 
   //
   // Damage response

@@ -195,7 +195,7 @@
 			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
 			"settings":
 			{
-				"buffer_size": 8703,
+				"buffer_size": 9292,
 				"line_ending": "Unix"
 			}
 		},
@@ -203,17 +203,16 @@
 			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Bullet.js",
 			"settings":
 			{
-				"buffer_size": 2835,
+				"buffer_size": 1092,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"contents": "TANK.registerComponent('PixelCollider')\n\n.construct(function()\n{\n})\n\n.initialize(function()\n{\n});",
+			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/PixelCollider.js",
 			"settings":
 			{
-				"buffer_size": 97,
-				"line_ending": "Unix",
-				"name": "TANK.registerComponent('PixelCollider')"
+				"buffer_size": 1572,
+				"line_ending": "Unix"
 			}
 		}
 	],
@@ -298,10 +297,16 @@
 	],
 	"file_history":
 	[
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/PixelBuffer.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/ParticleLibrary.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/PixelCollider.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/components.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Clouds.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/LightingAndDamage.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Lights.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/main.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DustField.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Clouds.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/components.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/style.css",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.json",
@@ -314,10 +319,8 @@
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AICivilian.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIAttack.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIAttackPlayer.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/ParticleLibrary.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Planet.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/gulpfile.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/PixelBuffer.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Bullet.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AITravel.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIShip.js",
@@ -329,9 +332,6 @@
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Engines.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ships.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Lights.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/LightingAndDamage.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/snd/explode-01.wav",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/MapGeneration.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Cloud.js",
@@ -424,8 +424,7 @@
 		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/gulp-util/lib/isNull.js",
 		"/Users/david/Documents/Game Projects/ANewSky/res/frigate.pxm",
 		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/chalk/node_modules/strip-ansi/index.js",
-		"/Users/david/Documents/Game Projects/TankJS/src/OrderTarget.js",
-		"/Users/david/Documents/Game Projects/TankJS/src/Clickable.js"
+		"/Users/david/Documents/Game Projects/TankJS/src/OrderTarget.js"
 	],
 	"find":
 	{
@@ -444,6 +443,25 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"testPos",
+			"\"",
+			"testPos",
+			"\"",
+			"t",
+			"this._entity",
+			"obj.Bullet",
+			"\"",
+			"collide",
+			"Collider2D",
+			"selfPos",
+			"other",
+			"otherHalfSize",
+			"otherPos",
+			"other.",
+			"shipPos",
+			"testPos",
+			"width",
+			"res",
 			"ignored",
 			"eventawaiting",
 			"gotoEvent",
@@ -552,26 +570,7 @@
 			"explode-01",
 			"adddamage",
 			"\"",
-			"res/",
-			"\"",
-			"planet",
-			"level",
-			"\"",
-			"0",
-			"min",
-			"0",
-			"];\n",
-			"50",
-			"0",
-			"\"",
-			"this",
-			"this.",
-			"flagsh",
-			"flags",
-			"loadleveln",
-			"this.ingame",
-			"mapgenerat",
-			".mapgener"
+			"res/"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -600,15 +599,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 8703,
+						"buffer_size": 9292,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								4665,
+								4665
 							]
 						],
 						"settings":
@@ -616,7 +615,7 @@
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 272.0,
+						"translation.y": 966.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 2,
@@ -628,15 +627,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2835,
+						"buffer_size": 1092,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								548,
-								548
+								754,
+								754
 							]
 						],
 						"settings":
@@ -644,7 +643,7 @@
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 1.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
@@ -652,23 +651,23 @@
 				},
 				{
 					"buffer": 2,
+					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/PixelCollider.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 97,
+						"buffer_size": 1572,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								97,
-								97
+								1075,
+								1083
 							]
 						],
 						"settings":
 						{
-							"auto_name": "TANK.registerComponent('PixelCollider')",
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
@@ -727,6 +726,22 @@
 		"height": 0.0,
 		"selected_items":
 		[
+			[
+				"pixelc",
+				"src/PixelCollider.js"
+			],
+			[
+				"pix",
+				"src/PixelBuffer.js"
+			],
+			[
+				"coll",
+				"src/PixelCollider.js"
+			],
+			[
+				"light",
+				"src/LightingAndDamage.js"
+			],
 			[
 				"mai",
 				"src/main.js"
@@ -838,10 +853,6 @@
 			[
 				"gam",
 				"src/Game.js"
-			],
-			[
-				"light",
-				"src/LightingAndDamage.js"
 			],
 			[
 				"sty",
@@ -1074,10 +1085,6 @@
 			[
 				"ais2",
 				"src/AIFaction2.js"
-			],
-			[
-				"pix",
-				"src/PixelBuffer.js"
 			],
 			[
 				"ga",
