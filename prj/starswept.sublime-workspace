@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"wai",
+				"waitingForJump"
+			],
+			[
 				"_res",
 				"_resources"
 			],
@@ -188,71 +192,44 @@
 	"buffers":
 	[
 		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
+			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
 			"settings":
 			{
-				"buffer_size": 11431,
+				"buffer_size": 8703,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Locations.js",
+			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Bullet.js",
 			"settings":
 			{
-				"buffer_size": 1350,
+				"buffer_size": 2835,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Events.js",
+			"contents": "TANK.registerComponent('PixelCollider')\n\n.construct(function()\n{\n})\n\n.initialize(function()\n{\n});",
 			"settings":
 			{
-				"buffer_size": 266,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"contents": "TANK.registerComponent('AIDerelict')\n.includes(['Ship', 'RemoveOnLevelChange'])\n.construct(function()\n{\n  this.triggerRange = 1000;\n})\n.initialize(function()\n{\n  var t = this._entity.Pos2D;\n  var ship = this._entity.Ship;\n  ship.setSpeedPercent(0);\n\n  this.listenTo(this._entity, 'damaged', function(amount, direction, position, owner)\n  {\n  });\n\n  this.update = function(dt)\n  {\n    var player = TANK.main.Game.player;\n    if (!player)\n      return;\n  };\n});",
-			"settings":
-			{
-				"buffer_size": 459,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"contents": "TANK.registerComponent('TriggerRadius')\n\n.construct(function()\n{\n  this.radius = 1000;\n  this.triggerEvents = [];\n  this.removeOnTrigger = true;\n})\n\n.serialize(function(serializer)\n{\n  serializer.property(this, 'radius', 1000);\n  serializer.property(this, 'triggerEvents', []);\n  serializer.property(this, 'removeOnTrigger', true);\n})\n\n.initialize(function()\n{\n  this.update = function(dt)\n  {\n    // Check if player comes within a certain range\n    var player = TANK.main.Game.player;\n    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius)\n    {\n      var weights = this.triggerEvents.map(function(ev) {return ev.probability;});\n      var chosenIndex = TANK.main.Game.randomWeighted(weights);\n      var chosenEvent = this.triggerEvents[chosenIndex];\n      TANK.main.Game.triggerEvent(chosenEvent.name);\n\n      if (this.removeOnTrigger)\n        this._entity._parent.removeChild(this._entity);\n    }\n  };\n});",
-			"settings":
-			{
-				"buffer_size": 952,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.json",
-			"settings":
-			{
-				"buffer_size": 1752,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
-			"settings":
-			{
-				"buffer_size": 482,
-				"line_ending": "Unix"
+				"buffer_size": 97,
+				"line_ending": "Unix",
+				"name": "TANK.registerComponent('PixelCollider')"
 			}
 		}
 	],
 	"build_system": "",
 	"command_palette":
 	{
-		"height": 125.0,
+		"height": 368.0,
 		"selected_items":
 		[
 			[
 				"javasc",
 				"Set Syntax: JavaScript"
+			],
+			[
+				"wrap",
+				"Word Wrap: Toggle"
 			],
 			[
 				"list",
@@ -295,7 +272,7 @@
 				"Preferences: Settings - Default"
 			]
 		],
-		"width": 417.0
+		"width": 435.0
 	},
 	"console":
 	{
@@ -321,19 +298,26 @@
 	],
 	"file_history":
 	[
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/main.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DustField.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Clouds.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/components.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/style.css",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.json",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Events.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Locations.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AsteroidField.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Asteroid.js",
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/TriggerRadius.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AICivilian.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIAttack.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIAttackPlayer.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Asteroid.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Clouds.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/lib/components.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/main.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/ParticleLibrary.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Planet.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/gulpfile.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/style.css",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/PixelBuffer.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Bullet.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AITravel.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIShip.js",
@@ -345,18 +329,12 @@
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Engines.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ships.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AsteroidField.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Lights.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/LightingAndDamage.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/index.html",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Locations.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Events.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DustField.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/res/snd/explode-01.wav",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/MapGeneration.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Cloud.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.json",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/StarField.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/package.json",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/EndScreen.js",
@@ -447,8 +425,7 @@
 		"/Users/david/Documents/Game Projects/ANewSky/res/frigate.pxm",
 		"/Users/david/Documents/Game Projects/ANewSky/node_modules/gulp/node_modules/chalk/node_modules/strip-ansi/index.js",
 		"/Users/david/Documents/Game Projects/TankJS/src/OrderTarget.js",
-		"/Users/david/Documents/Game Projects/TankJS/src/Clickable.js",
-		"/Users/david/Documents/Game Projects/TankJS/docs/Math.html"
+		"/Users/david/Documents/Game Projects/TankJS/src/Clickable.js"
 	],
 	"find":
 	{
@@ -467,6 +444,10 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"ignored",
+			"eventawaiting",
+			"gotoEvent",
+			"triggerEvents",
 			"_parent",
 			"randomweighted",
 			"e.",
@@ -590,11 +571,7 @@
 			"loadleveln",
 			"this.ingame",
 			"mapgenerat",
-			".mapgener",
-			"this.systems",
-			"save.systems",
-			"this.",
-			"scanforend"
+			".mapgener"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -614,24 +591,24 @@
 	"groups":
 	[
 		{
-			"selected": 4,
+			"selected": 2,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Game.js",
+					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Ship.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 11431,
+						"buffer_size": 8703,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								7755,
-								7525
+								0,
+								0
 							]
 						],
 						"settings":
@@ -639,27 +616,27 @@
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 5124.0,
+						"translation.y": 272.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Locations.js",
+					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Bullet.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1350,
+						"buffer_size": 2835,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								605,
-								605
+								548,
+								548
 							]
 						],
 						"settings":
@@ -675,77 +652,23 @@
 				},
 				{
 					"buffer": 2,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Events.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 266,
+						"buffer_size": 97,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								266,
-								266
+								97,
+								97
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 459,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								450,
-								450
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 952,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								221,
-								225
-							]
-						],
-						"settings":
-						{
+							"auto_name": "TANK.registerComponent('PixelCollider')",
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
@@ -753,62 +676,6 @@
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1752,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 6,
-					"file": "/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Spawns.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 482,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 6,
 					"type": "text"
 				}
 			]
@@ -861,6 +728,38 @@
 		"selected_items":
 		[
 			[
+				"mai",
+				"src/main.js"
+			],
+			[
+				"bu",
+				"src/Bullet.js"
+			],
+			[
+				"ship",
+				"src/Ship.js"
+			],
+			[
+				"asterf",
+				"src/AsteroidField.js"
+			],
+			[
+				"ast",
+				"src/Asteroid.js"
+			],
+			[
+				"cloud",
+				"src/Clouds.js"
+			],
+			[
+				"st",
+				"style.css"
+			],
+			[
+				"dmeo",
+				"src/DemoEvent.json"
+			],
+			[
 				"demo",
 				"src/DemoEvent.json"
 			],
@@ -887,10 +786,6 @@
 			[
 				"ait",
 				"src/AITravel.js"
-			],
-			[
-				"bu",
-				"src/Bullet.js"
 			],
 			[
 				"aitra",
@@ -937,24 +832,12 @@
 				"src/LightingAndDamage.js"
 			],
 			[
-				"ast",
-				"src/Asteroid.js"
-			],
-			[
 				"ships",
 				"src/Ships.js"
 			],
 			[
 				"gam",
 				"src/Game.js"
-			],
-			[
-				"mai",
-				"src/main.js"
-			],
-			[
-				"ship",
-				"src/Ship.js"
 			],
 			[
 				"light",
@@ -1063,10 +946,6 @@
 			[
 				"tem",
 				"src/Template.js"
-			],
-			[
-				"st",
-				"style.css"
 			],
 			[
 				"mapg",
