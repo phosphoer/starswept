@@ -33,7 +33,7 @@ Events.derelict_1b =
       responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.'
     },
     {
-      text: 'Agree to give them some fuel.',
+      text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
       events:
       [
         {probability: 0.5, name: 'derelict_2b'},
@@ -51,7 +51,7 @@ Events.derelict_2a =
 
 Events.derelict_2b =
 {
-  text: 'As soon as you disable your shields to make the transfer, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
   spawns:
   [
     'pirate',

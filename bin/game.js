@@ -659,7 +659,7 @@ Events.derelict_1b =
       responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.'
     },
     {
-      text: 'Agree to give them some fuel.',
+      text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
       events:
       [
         {probability: 0.5, name: 'derelict_2b'},
@@ -677,7 +677,7 @@ Events.derelict_2a =
 
 Events.derelict_2b =
 {
-  text: 'As soon as you disable your shields to make the transfer, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
   spawns:
   [
     'pirate',
@@ -2965,6 +2965,8 @@ TANK.registerComponent('Ship')
   this.desiredSpeed = 0;
   this.warpCharge = 0;
   this.fuel = 0;
+  this.shieldTimer = 5;
+  this.shieldRecharging = false;
 
   this.dead = false;
 
@@ -2983,6 +2985,7 @@ TANK.registerComponent('Ship')
   // Get some data from ship
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
+  this.shield = this.shipData.shield;
   this.fuel = this.shipData.maxFuel;
   this.width = this.resource.diffuse.width;
   this.height = this.resource.diffuse.height;
@@ -3107,9 +3110,10 @@ TANK.registerComponent('Ship')
     if (bullet && bullet.owner !== this._entity)
     {
       // Do damage
+      if (this.shield <= 0)
+        this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
       this._entity.dispatch('damaged', bullet.damage, [obj.Velocity.x, obj.Velocity.y], objPos, bullet.owner);
       obj.Life.life = 0;
-      this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
 
       // Spawn effect
       ParticleLibrary.damageMedium(objPos[0], objPos[1], obj.Pos2D.rotation + Math.PI);
@@ -3135,7 +3139,17 @@ TANK.registerComponent('Ship')
     v.r += dir * 0.5;
 
     // Do damage
-    this.health -= damage;
+    if (this.shield > 0)
+    {
+      this.shield -= damage;
+      if (this.shield <= 0)
+      {
+        this.shieldTimer = 5;
+        this.shieldRecharging = false;
+      }
+    }
+    else
+      this.health -= damage;
   });
 
   //
@@ -3162,6 +3176,18 @@ TANK.registerComponent('Ship')
   //
   this.update = function(dt)
   {
+    // Recharge shield
+    if (this.shield <= 0 && this.shieldTimer > 0)
+    {
+      this.shieldTimer -= dt;
+      this.shield = 0;
+      if (this.shieldTimer <= 0)
+        this.shieldRecharging = true;
+    }
+    if (this.shieldRecharging)
+      this.shield += dt * this.shipData.shieldGen;
+    this.shield = Math.min(this.shipData.shield, this.shield);
+
     // Check if dead
     if (this.health < 0 && !this.dead)
     {
@@ -3381,6 +3407,8 @@ Ships.fighter = function()
   this.accel = 35;
   this.turnAccel = 2.0;
   this.health = 0.2;
+  this.shield = 0.2;
+  this.shieldGen = 0.01;
   this.warpChargeTime = 10;
   this.maxFuel = 5;
   this.optimalAngle = 0;
@@ -3443,6 +3471,8 @@ Ships.bomber = function()
   this.accel = 35;
   this.turnAccel = 1.6;
   this.health = 0.4;
+  this.shield = 0.4;
+  this.shieldGen = 0.01;
   this.warpChargeTime = 15;
   this.maxFuel = 7;
   this.optimalAngle = 0;
@@ -3505,6 +3535,8 @@ Ships.frigate = function()
   this.accel = 15;
   this.turnAccel = 1.2;
   this.health = 1;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
   this.warpChargeTime = 30;
   this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;

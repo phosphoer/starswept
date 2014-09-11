@@ -12,6 +12,8 @@ TANK.registerComponent('Ship')
   this.desiredSpeed = 0;
   this.warpCharge = 0;
   this.fuel = 0;
+  this.shieldTimer = 5;
+  this.shieldRecharging = false;
 
   this.dead = false;
 
@@ -30,6 +32,7 @@ TANK.registerComponent('Ship')
   // Get some data from ship
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
+  this.shield = this.shipData.shield;
   this.fuel = this.shipData.maxFuel;
   this.width = this.resource.diffuse.width;
   this.height = this.resource.diffuse.height;
@@ -154,9 +157,10 @@ TANK.registerComponent('Ship')
     if (bullet && bullet.owner !== this._entity)
     {
       // Do damage
+      if (this.shield <= 0)
+        this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
       this._entity.dispatch('damaged', bullet.damage, [obj.Velocity.x, obj.Velocity.y], objPos, bullet.owner);
       obj.Life.life = 0;
-      this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
 
       // Spawn effect
       ParticleLibrary.damageMedium(objPos[0], objPos[1], obj.Pos2D.rotation + Math.PI);
@@ -182,7 +186,17 @@ TANK.registerComponent('Ship')
     v.r += dir * 0.5;
 
     // Do damage
-    this.health -= damage;
+    if (this.shield > 0)
+    {
+      this.shield -= damage;
+      if (this.shield <= 0)
+      {
+        this.shieldTimer = 5;
+        this.shieldRecharging = false;
+      }
+    }
+    else
+      this.health -= damage;
   });
 
   //
@@ -209,6 +223,18 @@ TANK.registerComponent('Ship')
   //
   this.update = function(dt)
   {
+    // Recharge shield
+    if (this.shield <= 0 && this.shieldTimer > 0)
+    {
+      this.shieldTimer -= dt;
+      this.shield = 0;
+      if (this.shieldTimer <= 0)
+        this.shieldRecharging = true;
+    }
+    if (this.shieldRecharging)
+      this.shield += dt * this.shipData.shieldGen;
+    this.shield = Math.min(this.shipData.shield, this.shield);
+
     // Check if dead
     if (this.health < 0 && !this.dead)
     {
