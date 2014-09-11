@@ -26,8 +26,8 @@ TANK.registerComponent('Planet')
     [255, 255, 255, 255]
   ];
 
-  this.noiseFreq = 0.002 + Math.random() * 0.01;
-  this.noiseAmplitude = 0.5 + Math.random() * 3;
+  this.noiseFreq = 0.004 + Math.random() * 0.004;
+  this.noiseAmplitude = 0.5 + Math.random() * 0.3;
   this.noisePersistence = 0.7 + Math.random() * 0.29;
   this.noiseOctaves = 8;
 })

@@ -20,7 +20,7 @@ Spawns.pirate = function()
 
 Spawns.derelict = function()
 {
-  var e = TANK.createEntity('Ship');
+  var e = TANK.createEntity(['Ship', 'Derelict']);
   e.Ship.shipData = new Ships.frigate();
   e.Pos2D.x = 4000;
   e.Pos2D.y = 0;

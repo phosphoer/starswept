@@ -355,6 +355,10 @@ TANK.registerComponent('Game')
       }
     }
 
+    // Dispatch any messages the event has
+    if (event.dispatchEvent)
+      TANK.main.dispatch(event.dispatchEvent);
+
     // If the event has options, wait for a choice to be made
     if (event.options.length > 0)
     {

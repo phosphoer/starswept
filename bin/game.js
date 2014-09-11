@@ -438,6 +438,14 @@ TANK.registerComponent('Clouds')
 .uninitialize(function()
 {
 });
+TANK.registerComponent('Derelict')
+.initialize(function()
+{
+  this.listenTo(TANK.main, 'derelictleave', function()
+  {
+    this._entity.addComponent('AICivilian');
+  });
+});
 TANK.registerComponent("DustField")
 
 .construct(function()
@@ -643,7 +651,7 @@ Events.derelict_1a =
 
 Events.derelict_1b =
 {
-  text: 'Upon approaching, you are contacted by the ship. The captain informs you that they have been stranded for days, and pleads with you to give them 3 fuels so they can return home.',
+  text: 'Upon approaching, you are contacted by the ship. The captain informs you that they have been stranded for days, and pleads with you to give them 3 fuel cells so they can return home.',
   options:
   [
     {
@@ -654,10 +662,26 @@ Events.derelict_1b =
       text: 'Agree to give them some fuel.',
       events:
       [
-        {probability: 0.5, name: 'test'},
-        {probability: 0.5, name: 'test'}
+        {probability: 0.5, name: 'derelict_2b'},
+        {probability: 0.5, name: 'derelict_2b'}
       ]
     }
+  ]
+};
+
+Events.derelict_2a =
+{
+  text: 'The captain thanks you profusely and speeds off.',
+  dispatchEvent: 'derelictleave'
+};
+
+Events.derelict_2b =
+{
+  text: 'As soon as you disable your shields to make the transfer, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  spawns:
+  [
+    'pirate',
+    'pirate'
   ]
 };
 
@@ -1021,6 +1045,10 @@ TANK.registerComponent('Game')
         TANK.main.addChild(e);
       }
     }
+
+    // Dispatch any messages the event has
+    if (event.dispatchEvent)
+      TANK.main.dispatch(event.dispatchEvent);
 
     // If the event has options, wait for a choice to be made
     if (event.options.length > 0)
@@ -1670,7 +1698,7 @@ TANK.registerComponent('MainMenu')
   this.htmlText =
   [
     '<div class="main-menu">',
-    '  <div class="menu-title">Starswept Admiral</div>',
+    '  <div class="menu-title">Starswept Voyage</div>',
     '  <div class="menu-options">',
     '    <div class="menu-option menu-option-new">New Game</div>',
     '    <div class="menu-option menu-option-options">Options</div>',
@@ -2345,8 +2373,8 @@ TANK.registerComponent('Planet')
     [255, 255, 255, 255]
   ];
 
-  this.noiseFreq = 0.002 + Math.random() * 0.01;
-  this.noiseAmplitude = 0.5 + Math.random() * 3;
+  this.noiseFreq = 0.004 + Math.random() * 0.004;
+  this.noiseAmplitude = 0.5 + Math.random() * 0.3;
   this.noisePersistence = 0.7 + Math.random() * 0.29;
   this.noiseOctaves = 8;
 })
@@ -3643,7 +3671,7 @@ Spawns.pirate = function()
 
 Spawns.derelict = function()
 {
-  var e = TANK.createEntity('Ship');
+  var e = TANK.createEntity(['Ship', 'Derelict']);
   e.Ship.shipData = new Ships.frigate();
   e.Pos2D.x = 4000;
   e.Pos2D.y = 0;

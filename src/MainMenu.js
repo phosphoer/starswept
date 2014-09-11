@@ -5,7 +5,7 @@ TANK.registerComponent('MainMenu')
   this.htmlText =
   [
     '<div class="main-menu">',
-    '  <div class="menu-title">Starswept Admiral</div>',
+    '  <div class="menu-title">Starswept Voyage</div>',
     '  <div class="menu-options">',
     '    <div class="menu-option menu-option-new">New Game</div>',
     '    <div class="menu-option menu-option-options">Options</div>',

@@ -25,7 +25,7 @@ Events.derelict_1a =
 
 Events.derelict_1b =
 {
-  text: 'Upon approaching, you are contacted by the ship. The captain informs you that they have been stranded for days, and pleads with you to give them 3 fuels so they can return home.',
+  text: 'Upon approaching, you are contacted by the ship. The captain informs you that they have been stranded for days, and pleads with you to give them 3 fuel cells so they can return home.',
   options:
   [
     {
@@ -36,10 +36,26 @@ Events.derelict_1b =
       text: 'Agree to give them some fuel.',
       events:
       [
-        {probability: 0.5, name: 'test'},
-        {probability: 0.5, name: 'test'}
+        {probability: 0.5, name: 'derelict_2b'},
+        {probability: 0.5, name: 'derelict_2b'}
       ]
     }
+  ]
+};
+
+Events.derelict_2a =
+{
+  text: 'The captain thanks you profusely and speeds off.',
+  dispatchEvent: 'derelictleave'
+};
+
+Events.derelict_2b =
+{
+  text: 'As soon as you disable your shields to make the transfer, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  spawns:
+  [
+    'pirate',
+    'pirate'
   ]
 };
 
