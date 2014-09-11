@@ -288,6 +288,43 @@ TANK.registerComponent('Bullet')
 {
   TANK.main.removeChild(this.trailEmitter);
 });
+TANK.registerComponent('CircleCollider')
+
+.construct(function()
+{
+  this.width = 10;
+  this.height = 10;
+  this.collisionLayer = '';
+  this.collidesWith = [];
+
+  this.radius = 5;
+
+  this.setRadius = function(radius)
+  {
+    var space = this._entity.getFirstParentWithComponent('CollisionManager');
+    if (this.image)
+      space.CollisionManager.remove(this);
+
+    this.radius = radius;
+    this.width = radius * 2;
+    this.height = this.width;
+
+    space.CollisionManager.add(this);
+  };
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  this.testCollision = function(other)
+  {
+    var selfPos = [t.x, t.y];
+    var otherPos = [other._entity.Pos2D.x, other._entity.Pos2D.y];
+
+    return TANK.Math2D.pointDistancePoint(selfPos, otherPos) <= this.radius;
+  };
+});
 TANK.registerComponent('Clouds')
 
 .includes(['RemoveOnLevelChange'])
@@ -2951,6 +2988,96 @@ TANK.registerComponent('Resources')
     }
   };
 });
+TANK.registerComponent('Shield')
+.includes(['Pos2D', 'CircleCollider'])
+.construct(function()
+{
+  this.zdepth = 5;
+
+  this.health = 1;
+  this.maxHealth = 1;
+  this.regenRate = 0.1;
+  this.burstTimer = 0;
+  this.burstTime = 5;
+  this.disabledTimer = 0;
+  this.bubbleOpacity = 0;
+  this.disabled = false;
+  this.recovering = false;
+})
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  TANK.main.Renderer2D.add(this);
+
+  this.disable = function(time)
+  {
+    this.disabled = true;
+    this.disabledTimer = time;
+  };
+
+  this.listenTo(this._entity, 'collide', function(obj)
+  {
+    if (this.disabled || this.health <= 0)
+      return;
+
+    if (obj.Bullet)
+    {
+      this.health -= obj.Bullet.damage;
+      this.bubbleOpacity = 1;
+      if (this.health <= 0)
+      {
+        this.burstTimer = this.burstTime;
+        this.recovering = true;
+      }
+    }
+  });
+
+  this.update = function(dt)
+  {
+    if (this.disabled)
+    {
+      this.disabledTimer -= dt;
+      if (this.disabledTimer <= 0)
+        this.disabled = false;
+      return;
+    }
+
+    if (this.bubbleOpacity > 0.01)
+      this.bubbleOpacity *= 0.9;
+    else
+      this.bubbleOpacity = 0;
+
+    if (this.recovering)
+    {
+      this.burstTimer -= dt;
+      if (this.burstTimer <= 0)
+        this.recovering = false;
+    }
+    else
+    {
+      this.health += dt * this.regenRate;
+      this.health = Math.min(this.health, this.maxHealth);
+    }
+  };
+
+  this.draw = function(ctx, camera)
+  {
+    ctx.save();
+
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+
+    ctx.fillStyle = 'rgba(150, 200, 255, 0.5)';
+    ctx.globalAlpha = this.bubbleOpacity;
+    ctx.beginPath();
+    ctx.arc(0, 0, this._entity.CircleCollider.radius, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  };
+});
 TANK.registerComponent('Ship')
 
 .includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
@@ -2985,10 +3112,19 @@ TANK.registerComponent('Ship')
   // Get some data from ship
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
-  this.shield = this.shipData.shield;
   this.fuel = this.shipData.maxFuel;
   this.width = this.resource.diffuse.width;
   this.height = this.resource.diffuse.height;
+
+  // Set up shield
+  this.shieldObj = TANK.createEntity('Shield');
+  TANK.main.addChild(this.shieldObj);
+  this.shieldObj.Shield.health = this.shipData.shield;
+  this.shieldObj.Shield.maxHealth = this.shipData.shield;
+  this.shieldObj.Shield.regenRate = this.shipData.shieldGen;
+  this.shieldObj.CircleCollider.setRadius(this.shipData.shieldRadius);
+  this.shieldObj.Pos2D.x = t.x;
+  this.shieldObj.Pos2D.y = t.y;
 
   // Set up collision
   this._entity.PixelCollider.collisionLayer = 'ships';
@@ -3110,8 +3246,7 @@ TANK.registerComponent('Ship')
     if (bullet && bullet.owner !== this._entity)
     {
       // Do damage
-      if (this.shield <= 0)
-        this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
+      this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
       this._entity.dispatch('damaged', bullet.damage, [obj.Velocity.x, obj.Velocity.y], objPos, bullet.owner);
       obj.Life.life = 0;
 
@@ -3138,18 +3273,7 @@ TANK.registerComponent('Ship')
     var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
     v.r += dir * 0.5;
 
-    // Do damage
-    if (this.shield > 0)
-    {
-      this.shield -= damage;
-      if (this.shield <= 0)
-      {
-        this.shieldTimer = 5;
-        this.shieldRecharging = false;
-      }
-    }
-    else
-      this.health -= damage;
+    this.health -= damage;
   });
 
   //
@@ -3176,17 +3300,9 @@ TANK.registerComponent('Ship')
   //
   this.update = function(dt)
   {
-    // Recharge shield
-    if (this.shield <= 0 && this.shieldTimer > 0)
-    {
-      this.shieldTimer -= dt;
-      this.shield = 0;
-      if (this.shieldTimer <= 0)
-        this.shieldRecharging = true;
-    }
-    if (this.shieldRecharging)
-      this.shield += dt * this.shipData.shieldGen;
-    this.shield = Math.min(this.shipData.shield, this.shield);
+    // Update shield
+    this.shieldObj.Pos2D.x = t.x;
+    this.shieldObj.Pos2D.y = t.y;
 
     // Check if dead
     if (this.health < 0 && !this.dead)
@@ -3409,6 +3525,7 @@ Ships.fighter = function()
   this.health = 0.2;
   this.shield = 0.2;
   this.shieldGen = 0.01;
+  this.shieldRadius = 30;
   this.warpChargeTime = 10;
   this.maxFuel = 5;
   this.optimalAngle = 0;
@@ -3473,6 +3590,7 @@ Ships.bomber = function()
   this.health = 0.4;
   this.shield = 0.4;
   this.shieldGen = 0.01;
+  this.shieldRadius = 50;
   this.warpChargeTime = 15;
   this.maxFuel = 7;
   this.optimalAngle = 0;
@@ -3537,6 +3655,7 @@ Ships.frigate = function()
   this.health = 1;
   this.shield = 0.5;
   this.shieldGen = 0.01;
+  this.shieldRadius = 80;
   this.warpChargeTime = 30;
   this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;

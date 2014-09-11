@@ -32,10 +32,19 @@ TANK.registerComponent('Ship')
   // Get some data from ship
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
-  this.shield = this.shipData.shield;
   this.fuel = this.shipData.maxFuel;
   this.width = this.resource.diffuse.width;
   this.height = this.resource.diffuse.height;
+
+  // Set up shield
+  this.shieldObj = TANK.createEntity('Shield');
+  TANK.main.addChild(this.shieldObj);
+  this.shieldObj.Shield.health = this.shipData.shield;
+  this.shieldObj.Shield.maxHealth = this.shipData.shield;
+  this.shieldObj.Shield.regenRate = this.shipData.shieldGen;
+  this.shieldObj.CircleCollider.setRadius(this.shipData.shieldRadius);
+  this.shieldObj.Pos2D.x = t.x;
+  this.shieldObj.Pos2D.y = t.y;
 
   // Set up collision
   this._entity.PixelCollider.collisionLayer = 'ships';
@@ -157,8 +166,7 @@ TANK.registerComponent('Ship')
     if (bullet && bullet.owner !== this._entity)
     {
       // Do damage
-      if (this.shield <= 0)
-        this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
+      this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
       this._entity.dispatch('damaged', bullet.damage, [obj.Velocity.x, obj.Velocity.y], objPos, bullet.owner);
       obj.Life.life = 0;
 
@@ -185,18 +193,7 @@ TANK.registerComponent('Ship')
     var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
     v.r += dir * 0.5;
 
-    // Do damage
-    if (this.shield > 0)
-    {
-      this.shield -= damage;
-      if (this.shield <= 0)
-      {
-        this.shieldTimer = 5;
-        this.shieldRecharging = false;
-      }
-    }
-    else
-      this.health -= damage;
+    this.health -= damage;
   });
 
   //
@@ -223,17 +220,9 @@ TANK.registerComponent('Ship')
   //
   this.update = function(dt)
   {
-    // Recharge shield
-    if (this.shield <= 0 && this.shieldTimer > 0)
-    {
-      this.shieldTimer -= dt;
-      this.shield = 0;
-      if (this.shieldTimer <= 0)
-        this.shieldRecharging = true;
-    }
-    if (this.shieldRecharging)
-      this.shield += dt * this.shipData.shieldGen;
-    this.shield = Math.min(this.shipData.shield, this.shield);
+    // Update shield
+    this.shieldObj.Pos2D.x = t.x;
+    this.shieldObj.Pos2D.y = t.y;
 
     // Check if dead
     if (this.health < 0 && !this.dead)
