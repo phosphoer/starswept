@@ -700,7 +700,7 @@ Events.derelict_1b =
       text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
       events:
       [
-        {probability: 0.5, name: 'derelict_2b'},
+        {probability: 0.5, name: 'derelict_2a'},
         {probability: 0.5, name: 'derelict_2b'}
       ]
     }
@@ -716,6 +716,7 @@ Events.derelict_2a =
 Events.derelict_2b =
 {
   text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  dispatchEvent: 'killplayershields',
   spawns:
   [
     'pirate',
@@ -2717,6 +2718,11 @@ TANK.registerComponent("Player")
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
       this.shakeCamera(0.1);
+  });
+
+  this.listenTo(TANK.main, 'killplayershields', function()
+  {
+    this._entity.Shield.disable(15);
   });
 
   this.listenTo(TANK.main, "camerashake", function(duration)
