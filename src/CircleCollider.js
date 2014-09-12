@@ -21,17 +21,18 @@ TANK.registerComponent('CircleCollider')
 
     space.CollisionManager.add(this);
   };
+
+  this.testCollision = function(other)
+  {
+    var t = this._entity.Pos2D;
+    var selfPos = [t.x, t.y];
+    var otherPos = [other._entity.Pos2D.x, other._entity.Pos2D.y];
+
+    return TANK.Math2D.pointDistancePoint(selfPos, otherPos) <= this.radius * TANK.main.Game.scaleFactor;
+  };
 })
 
 .initialize(function()
 {
-  var t = this._entity.Pos2D;
 
-  this.testCollision = function(other)
-  {
-    var selfPos = [t.x, t.y];
-    var otherPos = [other._entity.Pos2D.x, other._entity.Pos2D.y];
-
-    return TANK.Math2D.pointDistancePoint(selfPos, otherPos) <= this.radius;
-  };
 });

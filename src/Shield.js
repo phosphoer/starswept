@@ -18,6 +18,9 @@ TANK.registerComponent('Shield')
 {
   var t = this._entity.Pos2D;
 
+  this._entity.CircleCollider.collisionLayer = 'shields';
+  this._entity.CircleCollider.collidesWith = ['bullets'];
+
   TANK.main.Renderer2D.add(this);
 
   this.disable = function(time)
@@ -33,8 +36,9 @@ TANK.registerComponent('Shield')
 
     if (obj.Bullet)
     {
+      obj.Life.life = 0;
       this.health -= obj.Bullet.damage;
-      this.bubbleOpacity = 1;
+      this.bubbleOpacity = this.health / this.maxHealth;
       if (this.health <= 0)
       {
         this.burstTimer = this.burstTime;
@@ -49,7 +53,9 @@ TANK.registerComponent('Shield')
     {
       this.disabledTimer -= dt;
       if (this.disabledTimer <= 0)
+      {
         this.disabled = false;
+      }
       return;
     }
 
@@ -73,6 +79,9 @@ TANK.registerComponent('Shield')
 
   this.draw = function(ctx, camera)
   {
+    if (this.disabled)
+      return;
+
     ctx.save();
 
     ctx.translate(t.x - camera.x, t.y - camera.y);

@@ -67,6 +67,7 @@ TANK.registerComponent("Weapons")
     if (gun.reloadTimer > 0)
       return;
     gun.reloadTimer = gun.reloadTime;
+    this._entity.dispatch('gunfired');
 
     var pos = gun.worldPos;
 

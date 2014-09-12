@@ -311,19 +311,20 @@ TANK.registerComponent('CircleCollider')
 
     space.CollisionManager.add(this);
   };
+
+  this.testCollision = function(other)
+  {
+    var t = this._entity.Pos2D;
+    var selfPos = [t.x, t.y];
+    var otherPos = [other._entity.Pos2D.x, other._entity.Pos2D.y];
+
+    return TANK.Math2D.pointDistancePoint(selfPos, otherPos) <= this.radius * TANK.main.Game.scaleFactor;
+  };
 })
 
 .initialize(function()
 {
-  var t = this._entity.Pos2D;
 
-  this.testCollision = function(other)
-  {
-    var selfPos = [t.x, t.y];
-    var otherPos = [other._entity.Pos2D.x, other._entity.Pos2D.y];
-
-    return TANK.Math2D.pointDistancePoint(selfPos, otherPos) <= this.radius;
-  };
 });
 TANK.registerComponent('Clouds')
 
@@ -3008,6 +3009,9 @@ TANK.registerComponent('Shield')
 {
   var t = this._entity.Pos2D;
 
+  this._entity.CircleCollider.collisionLayer = 'shields';
+  this._entity.CircleCollider.collidesWith = ['bullets'];
+
   TANK.main.Renderer2D.add(this);
 
   this.disable = function(time)
@@ -3023,8 +3027,9 @@ TANK.registerComponent('Shield')
 
     if (obj.Bullet)
     {
+      obj.Life.life = 0;
       this.health -= obj.Bullet.damage;
-      this.bubbleOpacity = 1;
+      this.bubbleOpacity = this.health / this.maxHealth;
       if (this.health <= 0)
       {
         this.burstTimer = this.burstTime;
@@ -3039,7 +3044,9 @@ TANK.registerComponent('Shield')
     {
       this.disabledTimer -= dt;
       if (this.disabledTimer <= 0)
+      {
         this.disabled = false;
+      }
       return;
     }
 
@@ -3063,6 +3070,9 @@ TANK.registerComponent('Shield')
 
   this.draw = function(ctx, camera)
   {
+    if (this.disabled)
+      return;
+
     ctx.save();
 
     ctx.translate(t.x - camera.x, t.y - camera.y);
@@ -3118,7 +3128,7 @@ TANK.registerComponent('Ship')
 
   // Set up shield
   this.shieldObj = TANK.createEntity('Shield');
-  TANK.main.addChild(this.shieldObj);
+  this._entity.addChild(this.shieldObj);
   this.shieldObj.Shield.health = this.shipData.shield;
   this.shieldObj.Shield.maxHealth = this.shipData.shield;
   this.shieldObj.Shield.regenRate = this.shipData.shieldGen;
@@ -3234,6 +3244,14 @@ TANK.registerComponent('Ship')
     if (dist < window.innerWidth / 2)
       TANK.main.dispatch('camerashake', 0.5);
   };
+
+  //
+  // Gun firing response
+  //
+  this.listenTo(this._entity, 'gunfired', function()
+  {
+    this.shieldObj.Shield.disable(0.5);
+  });
 
   //
   // Collision response
@@ -4055,6 +4073,7 @@ TANK.registerComponent("Weapons")
     if (gun.reloadTimer > 0)
       return;
     gun.reloadTimer = gun.reloadTime;
+    this._entity.dispatch('gunfired');
 
     var pos = gun.worldPos;
 

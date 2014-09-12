@@ -38,7 +38,7 @@ TANK.registerComponent('Ship')
 
   // Set up shield
   this.shieldObj = TANK.createEntity('Shield');
-  TANK.main.addChild(this.shieldObj);
+  this._entity.addChild(this.shieldObj);
   this.shieldObj.Shield.health = this.shipData.shield;
   this.shieldObj.Shield.maxHealth = this.shipData.shield;
   this.shieldObj.Shield.regenRate = this.shipData.shieldGen;
@@ -154,6 +154,14 @@ TANK.registerComponent('Ship')
     if (dist < window.innerWidth / 2)
       TANK.main.dispatch('camerashake', 0.5);
   };
+
+  //
+  // Gun firing response
+  //
+  this.listenTo(this._entity, 'gunfired', function()
+  {
+    this.shieldObj.Shield.disable(0.5);
+  });
 
   //
   // Collision response
