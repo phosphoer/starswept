@@ -2998,6 +2998,7 @@ TANK.registerComponent('Shield')
   this.health = 1;
   this.maxHealth = 1;
   this.regenRate = 0.1;
+  this.radius = 5;
   this.burstTimer = 0;
   this.burstTime = 5;
   this.disabledTimer = 0;
@@ -3011,6 +3012,7 @@ TANK.registerComponent('Shield')
 
   this._entity.CircleCollider.collisionLayer = 'shields';
   this._entity.CircleCollider.collidesWith = ['bullets'];
+  this._entity.CircleCollider.setRadius(this.radius);
 
   TANK.main.Renderer2D.add(this);
 
@@ -3081,7 +3083,7 @@ TANK.registerComponent('Shield')
     ctx.fillStyle = 'rgba(150, 200, 255, 0.5)';
     ctx.globalAlpha = this.bubbleOpacity;
     ctx.beginPath();
-    ctx.arc(0, 0, this._entity.CircleCollider.radius, Math.PI * 2, false);
+    ctx.arc(0, 0, this.radius, Math.PI * 2, false);
     ctx.closePath();
     ctx.fill();
 
@@ -3132,7 +3134,7 @@ TANK.registerComponent('Ship')
   this.shieldObj.Shield.health = this.shipData.shield;
   this.shieldObj.Shield.maxHealth = this.shipData.shield;
   this.shieldObj.Shield.regenRate = this.shipData.shieldGen;
-  this.shieldObj.CircleCollider.setRadius(this.shipData.shieldRadius);
+  this.shieldObj.Shield.radius = this.shipData.shieldRadius;
   this.shieldObj.Pos2D.x = t.x;
   this.shieldObj.Pos2D.y = t.y;
 

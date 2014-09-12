@@ -42,7 +42,7 @@ TANK.registerComponent('Ship')
   this.shieldObj.Shield.health = this.shipData.shield;
   this.shieldObj.Shield.maxHealth = this.shipData.shield;
   this.shieldObj.Shield.regenRate = this.shipData.shieldGen;
-  this.shieldObj.CircleCollider.setRadius(this.shipData.shieldRadius);
+  this.shieldObj.Shield.radius = this.shipData.shieldRadius;
   this.shieldObj.Pos2D.x = t.x;
   this.shieldObj.Pos2D.y = t.y;
 
