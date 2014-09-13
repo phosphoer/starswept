@@ -306,7 +306,7 @@ TANK.registerComponent('Game')
     this.addEventLog(location.text);
 
     // Trigger location event
-    if (location.events)
+    if (location.events && location.events.length > 0)
     {
       var weights = location.events.map(function(ev) {return ev.probability;});
       var chosenIndex = this.randomWeighted(weights);

@@ -46,6 +46,8 @@ TANK.registerComponent('Shield')
         this.burstTimer = this.burstTime;
         this.recovering = true;
       }
+
+      t.rotation = Math.atan2(obj.Pos2D.y - t.y, obj.Pos2D.x - t.x);
     }
   });
 
@@ -79,17 +81,23 @@ TANK.registerComponent('Shield')
     }
   };
 
-  this.draw = function(ctx, camera)
+  this.draw = function(ctx, camera, dt)
   {
     if (this.disabled)
       return;
 
     ctx.save();
 
+    var grad = ctx.createRadialGradient(this.radius * 0.75, 0, this.radius * 0.2, this.radius * 0.25, 0, this.radius * 0.75);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    grad.addColorStop(1, 'rgba(150, 200, 255, 0.0)');
+
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+    ctx.rotate(t.rotation);
 
-    ctx.fillStyle = 'rgba(150, 200, 255, 0.5)';
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = grad;
     ctx.globalAlpha = this.bubbleOpacity;
     ctx.beginPath();
     ctx.arc(0, 0, this.radius, Math.PI * 2, false);
