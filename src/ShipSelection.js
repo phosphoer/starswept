@@ -51,10 +51,14 @@ TANK.registerComponent('ShipSelection')
   var x = 0;
   for (var i in Ships)
   {
+    var ship = new Ships[i]();
+    if (!ship.playable)
+      continue;
+
     var e = TANK.createEntity('Ship');
     e.Pos2D.x = x;
     e.Pos2D.y = 0;
-    e.Ship.shipData = new Ships[i]();
+    e.Ship.shipData = ship;
     e.shipType = i;
     TANK.main.addChild(e);
     this.ships.push(e);

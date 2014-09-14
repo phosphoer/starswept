@@ -156,9 +156,9 @@ TANK.registerComponent('Ship')
   //
   // Gun firing response
   //
-  this.listenTo(this._entity, 'gunfired', function()
+  this.listenTo(this._entity, 'gunfired', function(gun)
   {
-    this.shieldObj.Shield.disable(0.5);
+    this.shieldObj.Shield.disable(gun.shieldDisableTime);
   });
 
   //

@@ -651,7 +651,7 @@ TANK.registerComponent('Engines')
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(this.engineBuffer.width / -1, this.engineBuffer.height / -2);
-      ctx.drawImage(this.engineBuffer.canvas, engine.x + 4, engine.y);
+      ctx.drawImage(this.engineBuffer.canvas, engine.x, engine.y);
       ctx.restore();
     }
 
@@ -814,6 +814,10 @@ TANK.registerComponent('Game')
   resources.add('ship-albatross-diffuse', 'res/img/ship-albatross-diffuse.png');
   resources.add('ship-albatross-normals', 'res/img/ship-albatross-normals.png');
   resources.add('ship-albatross', null, ['ship-albatross-diffuse', 'ship-albatross-normals'], loadLighting);
+
+  resources.add('ship-rhino-diffuse', 'res/img/ship-rhino-diffuse.png');
+  resources.add('ship-rhino-normals', 'res/img/ship-rhino-normals.png');
+  resources.add('ship-rhino', null, ['ship-rhino-diffuse', 'ship-rhino-normals'], loadLighting);
 
   resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
@@ -1364,6 +1368,7 @@ Guns.smallRail = function()
   this.projectileSpeed = 900;
   this.projectileAccel = 0;
   this.projectileSize = 1;
+  this.shieldDisableTime = 0.25;
   this.recoil = 1;
   this.x = 0;
   this.y = 0;
@@ -1385,6 +1390,7 @@ Guns.mediumRail = function()
   this.projectileSpeed = 800;
   this.projectileAccel = 0;
   this.projectileSize = 3;
+  this.shieldDisableTime = 0.25;
   this.recoil = 7;
   this.x = 0;
   this.y = 0;
@@ -1407,6 +1413,7 @@ Guns.mediumRocket = function()
   this.projectileSpeed = 200;
   this.projectileAccel = 50;
   this.projectileSize = 3;
+  this.shieldDisableTime = 0.75;
   this.recoil = 7;
   this.x = 0;
   this.y = 0;
@@ -1843,7 +1850,7 @@ TANK.registerComponent('MapGeneration')
 
 .construct(function()
 {
-  this.numLevels = 5;
+  this.numLevels = 10;
   this.minPaths = 1;
   this.maxPaths = 3;
   this.map = {};
@@ -3340,9 +3347,9 @@ TANK.registerComponent('Ship')
   //
   // Gun firing response
   //
-  this.listenTo(this._entity, 'gunfired', function()
+  this.listenTo(this._entity, 'gunfired', function(gun)
   {
-    this.shieldObj.Shield.disable(0.5);
+    this.shieldObj.Shield.disable(gun.shieldDisableTime);
   });
 
   //
@@ -3560,10 +3567,14 @@ TANK.registerComponent('ShipSelection')
   var x = 0;
   for (var i in Ships)
   {
+    var ship = new Ships[i]();
+    if (!ship.playable)
+      continue;
+
     var e = TANK.createEntity('Ship');
     e.Pos2D.x = x;
     e.Pos2D.y = 0;
-    e.Ship.shipData = new Ships[i]();
+    e.Ship.shipData = ship;
     e.shipType = i;
     TANK.main.addChild(e);
     this.ships.push(e);
@@ -3626,11 +3637,7 @@ Ships.fighter = function()
   {
     front:
     [
-      {
-        type: 'smallRail',
-        x: 28,
-        y: 21
-      }
+      {type: 'smallRail', x: 28, y: 21}
     ]
   };
   this.engines =
@@ -3663,11 +3670,7 @@ Ships.bomber = function()
   {
     front:
     [
-      {
-        type: 'mediumRocket',
-        x: 60,
-        y: 60
-      }
+      {type: 'mediumRocket', x: 60, y: 60}
     ]
   };
   this.engines =
@@ -3682,6 +3685,7 @@ Ships.frigate = function()
 {
   this.name = 'Frigate';
   this.resource = 'frigate';
+  this.playable = true;
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
@@ -3700,51 +3704,27 @@ Ships.frigate = function()
   {
     left:
     [
-      {
-        type: 'mediumRail',
-        x: 85,
-        y: 39
-      },
-      {
-        type: 'mediumRail',
-        x: 35,
-        y: 39
-      }
+      {type: 'mediumRail', x: 85, y: 39},
+      {type: 'mediumRail', x: 35, y: 39}
     ],
     front:
     [
-      {
-        type: 'mediumRail',
-        x: 106,
-        y: 69
-      }
+      {type: 'mediumRail', x: 106, y: 69}
     ],
     right:
     [
-      {
-        type: 'mediumRail',
-        x: 16,
-        y: 85
-      },
-      {
-        type: 'mediumRail',
-        x: 44,
-        y: 85
-      }
+      {type: 'mediumRail', x: 16, y: 85},
+      {type: 'mediumRail', x: 44, y: 85}
     ],
     back:
     [
-      {
-        type: 'mediumRail',
-        x: 36,
-        y: 69
-      }
+      {type: 'mediumRail', x: 36, y: 69}
     ]
   };
   this.engines =
   [
-    {x: 14, y: 39},
-    {x: 2, y: 84},
+    {x: 18, y: 39},
+    {x: 6, y: 84},
   ];
 };
 
@@ -3752,6 +3732,7 @@ Ships.blade = function()
 {
   this.name = 'Blade';
   this.resource = 'ship-blade';
+  this.playable = true;
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.40;
   this.maxSpeed = 150;
@@ -3786,8 +3767,8 @@ Ships.blade = function()
   };
   this.engines =
   [
-    {x: 17, y: 75},
-    {x: 24, y: 40}
+    {x: 21, y: 75},
+    {x: 28, y: 40}
   ];
 };
 
@@ -3795,6 +3776,7 @@ Ships.albatross = function()
 {
   this.name = 'Albatross';
   this.resource = 'ship-albatross';
+  this.playable = true;
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
@@ -3833,9 +3815,53 @@ Ships.albatross = function()
   };
   this.engines =
   [
-    {x: 15, y: 45},
+    {x: 16, y: 45},
     {x: 37, y: 63},
-    {x: 81, y: 90}
+    {x: 85, y: 90}
+  ];
+};
+
+Ships.rhino = function()
+{
+  this.name = 'Rhino';
+  this.resource = 'ship-rhino';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.35;
+  this.maxSpeed = 150;
+  this.accel = 15;
+  this.turnAccel = 1.2;
+  this.health = 1;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 30;
+  this.maxFuel = 10;
+  this.optimalAngle = 0;
+  this.engineSize = [36, 16];
+  this.engineColor = [100, 255, 100];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'smallRail', x: 100, y: 60},
+      {type: 'smallRail', x: 67, y: 68},
+    ],
+    right:
+    [
+      {type: 'smallRail', x: 100, y: 88},
+      {type: 'smallRail', x: 67, y: 81},
+    ],
+    front:
+    [
+      {type: 'mediumRail', x: 139, y: 67},
+      {type: 'mediumRail', x: 139, y: 81},
+    ],
+  };
+  this.engines =
+  [
+    {x: 26, y: 76},
+    {x: 121, y: 48},
   ];
 };
 
@@ -3929,13 +3955,13 @@ Spawns.derelict = function()
 {
   var e = TANK.createEntity(['Ship', 'Derelict']);
   e.Ship.shipData = new Ships.frigate();
-  e.Pos2D.x = 4000;
+  e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
   TANK.main.addChild(e);
 
   e = TANK.createEntity('TriggerRadius');
   e.TriggerRadius.radius = 1000;
-  e.TriggerRadius.events = [{probability: 1, name: 'derelict_1b'}];
+  e.TriggerRadius.events = [{probability: 0.25, name: 'derelict_1a'}, {probability: 0.75, name: 'derelict_1b'}];
   e.Pos2D.x = 4000;
   e.Pos2D.y = 0;
   TANK.main.addChild(e);
@@ -4091,9 +4117,9 @@ TANK.registerComponent('WarpEffect')
 {
   // TANK.main.Renderer2D.clearColor = this.oldClearColor;
 });
-TANK.registerComponent("Weapons")
+TANK.registerComponent('Weapons')
 
-.includes("Pos2D")
+.includes('Pos2D')
 
 .construct(function()
 {
@@ -4113,19 +4139,20 @@ TANK.registerComponent("Weapons")
 .initialize(function()
 {
   var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
 
   TANK.main.Renderer2D.add(this);
 
   this.addGun = function(gunObj, gunSide)
   {
     var angle;
-    if (gunSide === "front")
+    if (gunSide === 'front')
       angle = 0;
-    else if (gunSide === "back")
+    else if (gunSide === 'back')
       angle = Math.PI;
-    else if (gunSide === "left")
+    else if (gunSide === 'left')
       angle = Math.PI / -2;
-    else if (gunSide === "right")
+    else if (gunSide === 'right')
       angle = Math.PI / 2;
 
     gunObj.angle = angle;
@@ -4160,17 +4187,17 @@ TANK.registerComponent("Weapons")
     if (gun.reloadTimer > 0)
       return;
     gun.reloadTimer = gun.reloadTime;
-    this._entity.dispatch('gunfired');
+    this._entity.dispatch('gunfired', gun);
 
     var pos = gun.worldPos;
 
     // Fire bullet
-    var e = TANK.createEntity("Bullet");
+    var e = TANK.createEntity('Bullet');
     e.Pos2D.x = pos[0];
     e.Pos2D.y = pos[1];
     e.Pos2D.rotation = t.rotation + gun.angle;
-    e.Velocity.x = Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
-    e.Velocity.y = Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
+    e.Velocity.x = v.x + Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
+    e.Velocity.y = v.y + Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
     e.Life.life = gun.projectileLife || gun.range / gun.projectileSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
@@ -4187,16 +4214,16 @@ TANK.registerComponent("Weapons")
     this._entity.SoundEmitter.play(gun.shootSound);
 
     // Recoil
-    this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
-    this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
-    this._entity.Velocity.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
+    v.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
+    v.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
+    v.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
 
     // Shake screen
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < 1) dist = 1;
     if (dist < window.innerWidth / 2 && gun.screenShake > 0)
-      TANK.main.dispatch("camerashake", gun.screenShake / (dist * 5));
+      TANK.main.dispatch('camerashake', gun.screenShake / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)
@@ -4256,7 +4283,7 @@ TANK.registerComponent("Weapons")
 
         if (!gun.image)
         {
-          ctx.fillStyle = "#fff";
+          ctx.fillStyle = '#fff';
           ctx.fillRect(-2.5, -2.5, 5, 5);
         }
         else

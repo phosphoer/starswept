@@ -1,6 +1,6 @@
-TANK.registerComponent("Weapons")
+TANK.registerComponent('Weapons')
 
-.includes("Pos2D")
+.includes('Pos2D')
 
 .construct(function()
 {
@@ -20,19 +20,20 @@ TANK.registerComponent("Weapons")
 .initialize(function()
 {
   var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
 
   TANK.main.Renderer2D.add(this);
 
   this.addGun = function(gunObj, gunSide)
   {
     var angle;
-    if (gunSide === "front")
+    if (gunSide === 'front')
       angle = 0;
-    else if (gunSide === "back")
+    else if (gunSide === 'back')
       angle = Math.PI;
-    else if (gunSide === "left")
+    else if (gunSide === 'left')
       angle = Math.PI / -2;
-    else if (gunSide === "right")
+    else if (gunSide === 'right')
       angle = Math.PI / 2;
 
     gunObj.angle = angle;
@@ -67,17 +68,17 @@ TANK.registerComponent("Weapons")
     if (gun.reloadTimer > 0)
       return;
     gun.reloadTimer = gun.reloadTime;
-    this._entity.dispatch('gunfired');
+    this._entity.dispatch('gunfired', gun);
 
     var pos = gun.worldPos;
 
     // Fire bullet
-    var e = TANK.createEntity("Bullet");
+    var e = TANK.createEntity('Bullet');
     e.Pos2D.x = pos[0];
     e.Pos2D.y = pos[1];
     e.Pos2D.rotation = t.rotation + gun.angle;
-    e.Velocity.x = Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
-    e.Velocity.y = Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
+    e.Velocity.x = v.x + Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
+    e.Velocity.y = v.y + Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
     e.Life.life = gun.projectileLife || gun.range / gun.projectileSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
@@ -94,16 +95,16 @@ TANK.registerComponent("Weapons")
     this._entity.SoundEmitter.play(gun.shootSound);
 
     // Recoil
-    this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
-    this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
-    this._entity.Velocity.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
+    v.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
+    v.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
+    v.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
 
     // Shake screen
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < 1) dist = 1;
     if (dist < window.innerWidth / 2 && gun.screenShake > 0)
-      TANK.main.dispatch("camerashake", gun.screenShake / (dist * 5));
+      TANK.main.dispatch('camerashake', gun.screenShake / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)
@@ -163,7 +164,7 @@ TANK.registerComponent("Weapons")
 
         if (!gun.image)
         {
-          ctx.fillStyle = "#fff";
+          ctx.fillStyle = '#fff';
           ctx.fillRect(-2.5, -2.5, 5, 5);
         }
         else

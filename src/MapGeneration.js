@@ -2,7 +2,7 @@ TANK.registerComponent('MapGeneration')
 
 .construct(function()
 {
-  this.numLevels = 5;
+  this.numLevels = 10;
   this.minPaths = 1;
   this.maxPaths = 3;
   this.map = {};

@@ -57,7 +57,7 @@ TANK.registerComponent('Engines')
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(this.engineBuffer.width / -1, this.engineBuffer.height / -2);
-      ctx.drawImage(this.engineBuffer.canvas, engine.x + 4, engine.y);
+      ctx.drawImage(this.engineBuffer.canvas, engine.x, engine.y);
       ctx.restore();
     }
 

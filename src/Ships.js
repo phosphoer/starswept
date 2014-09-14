@@ -22,11 +22,7 @@ Ships.fighter = function()
   {
     front:
     [
-      {
-        type: 'smallRail',
-        x: 28,
-        y: 21
-      }
+      {type: 'smallRail', x: 28, y: 21}
     ]
   };
   this.engines =
@@ -59,11 +55,7 @@ Ships.bomber = function()
   {
     front:
     [
-      {
-        type: 'mediumRocket',
-        x: 60,
-        y: 60
-      }
+      {type: 'mediumRocket', x: 60, y: 60}
     ]
   };
   this.engines =
@@ -78,6 +70,7 @@ Ships.frigate = function()
 {
   this.name = 'Frigate';
   this.resource = 'frigate';
+  this.playable = true;
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
@@ -96,51 +89,27 @@ Ships.frigate = function()
   {
     left:
     [
-      {
-        type: 'mediumRail',
-        x: 85,
-        y: 39
-      },
-      {
-        type: 'mediumRail',
-        x: 35,
-        y: 39
-      }
+      {type: 'mediumRail', x: 85, y: 39},
+      {type: 'mediumRail', x: 35, y: 39}
     ],
     front:
     [
-      {
-        type: 'mediumRail',
-        x: 106,
-        y: 69
-      }
+      {type: 'mediumRail', x: 106, y: 69}
     ],
     right:
     [
-      {
-        type: 'mediumRail',
-        x: 16,
-        y: 85
-      },
-      {
-        type: 'mediumRail',
-        x: 44,
-        y: 85
-      }
+      {type: 'mediumRail', x: 16, y: 85},
+      {type: 'mediumRail', x: 44, y: 85}
     ],
     back:
     [
-      {
-        type: 'mediumRail',
-        x: 36,
-        y: 69
-      }
+      {type: 'mediumRail', x: 36, y: 69}
     ]
   };
   this.engines =
   [
-    {x: 14, y: 39},
-    {x: 2, y: 84},
+    {x: 18, y: 39},
+    {x: 6, y: 84},
   ];
 };
 
@@ -148,6 +117,7 @@ Ships.blade = function()
 {
   this.name = 'Blade';
   this.resource = 'ship-blade';
+  this.playable = true;
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.40;
   this.maxSpeed = 150;
@@ -182,8 +152,8 @@ Ships.blade = function()
   };
   this.engines =
   [
-    {x: 17, y: 75},
-    {x: 24, y: 40}
+    {x: 21, y: 75},
+    {x: 28, y: 40}
   ];
 };
 
@@ -191,6 +161,7 @@ Ships.albatross = function()
 {
   this.name = 'Albatross';
   this.resource = 'ship-albatross';
+  this.playable = true;
   this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.35;
   this.maxSpeed = 150;
@@ -229,9 +200,53 @@ Ships.albatross = function()
   };
   this.engines =
   [
-    {x: 15, y: 45},
+    {x: 16, y: 45},
     {x: 37, y: 63},
-    {x: 81, y: 90}
+    {x: 85, y: 90}
+  ];
+};
+
+Ships.rhino = function()
+{
+  this.name = 'Rhino';
+  this.resource = 'ship-rhino';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.35;
+  this.maxSpeed = 150;
+  this.accel = 15;
+  this.turnAccel = 1.2;
+  this.health = 1;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 30;
+  this.maxFuel = 10;
+  this.optimalAngle = 0;
+  this.engineSize = [36, 16];
+  this.engineColor = [100, 255, 100];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'smallRail', x: 100, y: 60},
+      {type: 'smallRail', x: 67, y: 68},
+    ],
+    right:
+    [
+      {type: 'smallRail', x: 100, y: 88},
+      {type: 'smallRail', x: 67, y: 81},
+    ],
+    front:
+    [
+      {type: 'mediumRail', x: 139, y: 67},
+      {type: 'mediumRail', x: 139, y: 81},
+    ],
+  };
+  this.engines =
+  [
+    {x: 26, y: 76},
+    {x: 121, y: 48},
   ];
 };
 
