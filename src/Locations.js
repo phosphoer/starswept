@@ -21,7 +21,11 @@ Locations.abandonedOutpost =
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
   lightDir: Math.PI * 2 * 0.5,
-  spawns: [{components: {Clouds: {cloudColor: [180, 255, 180]}}}]
+  spawns:
+  [
+    {components: {Clouds: {cloudColor: [180, 255, 180]}}},
+    {components: {Pos2D: {x: 1000, y: -1000}, LevelProp: {resourceName: 'station-01'}}}
+  ]
 };
 
 Locations.researchStation =
@@ -32,7 +36,11 @@ Locations.researchStation =
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
   lightDir: Math.PI * 2 * 0.2,
-  spawns: [{components: {Clouds: {numClouds: 50, cloudColor: [255, 255, 180]}}}]
+  spawns:
+  [
+    {components: {Clouds: {numClouds: 50, cloudColor: [255, 255, 180]}}},
+    {components: {Pos2D: {x: 1000, y: -1000}, LevelProp: {resourceName: 'station-01'}}}
+  ]
 };
 
 Locations.pirateBase =

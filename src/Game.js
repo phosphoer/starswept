@@ -59,13 +59,9 @@ TANK.registerComponent('Game')
   resources.add('frigate-normals', 'res/img/frigate-normals.png');
   resources.add('frigate', null, ['frigate-diffuse', 'frigate-normals'], loadLighting);
 
-  // Build event log ractive
-  this.eventLogUI = new Ractive(
-  {
-    el: 'eventLogContainer',
-    template: '#eventLogTemplate',
-    data: {logs: this.eventLogs}
-  });
+  resources.add('station-01-diffuse', 'res/img/station-01.png');
+  resources.add('station-01-normals', 'res/img/station-01-normals.png');
+  resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);
 
   //
   // Rebuild lighting
@@ -138,6 +134,13 @@ TANK.registerComponent('Game')
       TANK.main.removeChild(this.mainMenu);
       this.goToShipSelection();
     });
+
+    // Remove event log
+    if (this.eventLogUI)
+    {
+      this.eventLogUI.teardown();
+      this.eventLogUI = null;
+    }
   };
 
   //
@@ -275,6 +278,17 @@ TANK.registerComponent('Game')
       this.player = TANK.createEntity('Player');
       this.player.Ship.shipData = new Ships[this.playerShipSelection]();
       TANK.main.addChild(this.player);
+    }
+
+    // Build event log ractive
+    if (!this.eventLogUI)
+    {
+      this.eventLogUI = new Ractive(
+      {
+        el: 'eventLogContainer',
+        template: '#eventLogTemplate',
+        data: {logs: this.eventLogs}
+      });
     }
 
     // Position player

@@ -809,13 +809,9 @@ TANK.registerComponent('Game')
   resources.add('frigate-normals', 'res/img/frigate-normals.png');
   resources.add('frigate', null, ['frigate-diffuse', 'frigate-normals'], loadLighting);
 
-  // Build event log ractive
-  this.eventLogUI = new Ractive(
-  {
-    el: 'eventLogContainer',
-    template: '#eventLogTemplate',
-    data: {logs: this.eventLogs}
-  });
+  resources.add('station-01-diffuse', 'res/img/station-01.png');
+  resources.add('station-01-normals', 'res/img/station-01-normals.png');
+  resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);
 
   //
   // Rebuild lighting
@@ -888,6 +884,13 @@ TANK.registerComponent('Game')
       TANK.main.removeChild(this.mainMenu);
       this.goToShipSelection();
     });
+
+    // Remove event log
+    if (this.eventLogUI)
+    {
+      this.eventLogUI.teardown();
+      this.eventLogUI = null;
+    }
   };
 
   //
@@ -1025,6 +1028,17 @@ TANK.registerComponent('Game')
       this.player = TANK.createEntity('Player');
       this.player.Ship.shipData = new Ships[this.playerShipSelection]();
       TANK.main.addChild(this.player);
+    }
+
+    // Build event log ractive
+    if (!this.eventLogUI)
+    {
+      this.eventLogUI = new Ractive(
+      {
+        el: 'eventLogContainer',
+        template: '#eventLogTemplate',
+        data: {logs: this.eventLogs}
+      });
     }
 
     // Position player
@@ -1389,6 +1403,51 @@ Guns.mediumRocket = function()
   this.y = 0;
 };
 
+TANK.registerComponent('LevelProp')
+
+.includes(['LightingAndDamage', 'RemoveOnLevelChange'])
+
+.construct(function()
+{
+  this.zdepth = 0;
+  this.resourceName = '';
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'zdepth', 0);
+  serializer.property(this, 'resourceName', '');
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  TANK.main.Renderer2D.add(this);
+
+  // Set up lighting
+  this.resource = TANK.main.Resources.get(this.resourceName);
+  this._entity.LightingAndDamage.setResource(this.resource);
+
+  //
+  // Draw code
+  //
+  this.draw = function(ctx, camera)
+  {
+    // Set up transform
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+    ctx.rotate(t.rotation);
+    ctx.translate(this.resource.diffuse.width / -2, this.resource.diffuse.height / -2);
+
+    // Draw the main buffer
+    this._entity.LightingAndDamage.redraw();
+    ctx.drawImage(this._entity.LightingAndDamage.mainBuffer.canvas, 0, 0);
+
+    ctx.restore();
+  };
+});
 TANK.registerComponent("Life")
 
 .construct(function()
@@ -1724,7 +1783,11 @@ Locations.abandonedOutpost =
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
   lightDir: Math.PI * 2 * 0.5,
-  spawns: [{components: {Clouds: {cloudColor: [180, 255, 180]}}}]
+  spawns:
+  [
+    {components: {Clouds: {cloudColor: [180, 255, 180]}}},
+    {components: {Pos2D: {x: 1000, y: -1000}, LevelProp: {resourceName: 'station-01'}}}
+  ]
 };
 
 Locations.researchStation =
@@ -1735,7 +1798,11 @@ Locations.researchStation =
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
   lightDir: Math.PI * 2 * 0.2,
-  spawns: [{components: {Clouds: {numClouds: 50, cloudColor: [255, 255, 180]}}}]
+  spawns:
+  [
+    {components: {Clouds: {numClouds: 50, cloudColor: [255, 255, 180]}}},
+    {components: {Pos2D: {x: 1000, y: -1000}, LevelProp: {resourceName: 'station-01'}}}
+  ]
 };
 
 Locations.pirateBase =
@@ -2785,7 +2852,7 @@ TANK.registerComponent("Player")
 
   this.listenTo(TANK.main, 'killplayershields', function()
   {
-    this._entity.Shield.disable(15);
+    this._entity.Ship.shieldObj.Shield.disable(15);
   });
 
   this.listenTo(TANK.main, "camerashake", function(duration)
