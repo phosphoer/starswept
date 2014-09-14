@@ -1,17 +1,34 @@
 var Events = {};
 
+//
+// Null event
+//
+Events.empty =
+{
+  text: 'You appear to be alone.'
+};
+
+//
+// Civilian ship event
+//
 Events.civilian =
 {
-  text: 'Your scanners pick up the signature of a small ship nearby',
+  text: 'Your scanners pick up the signature of a small ship nearby.',
   spawns: ['civilian']
 };
 
+//
+// Pirate event
+//
 Events.pirate =
 {
   text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
   spawns: ['pirate']
 };
 
+//
+// Derelcit event
+//
 Events.derelict =
 {
   text: 'Your scanners pick up the signature of a mid sized ship, but the signal is much fainter than you would expect. The signal originates from a short distance ahead.',
@@ -60,6 +77,9 @@ Events.derelict_2b =
   ]
 };
 
+//
+// Test event
+//
 Events.test =
 {
   text: 'A test event'

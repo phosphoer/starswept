@@ -24,6 +24,39 @@ Locations.abandonedOutpost =
   spawns: [{components: {Clouds: {cloudColor: [180, 255, 180]}}}]
 };
 
+Locations.researchStation =
+{
+  text: 'The research station looks like it hasn\'t been visited in years.',
+  name: 'A research station',
+  events: [{probability: 0.5, name: 'pirate'}, {probability: 0.5, name: 'derelict'}],
+  bgColor: [20, 20, 0, 1],
+  lightColor: [1, 1, 0.8],
+  lightDir: Math.PI * 2 * 0.2,
+  spawns: [{components: {Clouds: {numClouds: 50, cloudColor: [255, 255, 180]}}}]
+};
+
+Locations.pirateBase =
+{
+  text: 'Only pirates continue to make their home near the galaxy\'s center. You feel extremely nervous.',
+  name: 'A pirate outpost',
+  events: [{probability: 0.75, name: 'pirate'}, {probability: 0.25, name: 'empty'}],
+  bgColor: [0, 20, 20, 1],
+  lightColor: [0.8, 1, 1],
+  lightDir: Math.PI * 2 * 0.9,
+  spawns: [{components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}]
+};
+
+Locations.oldBattlefield =
+{
+  text: 'This system is littered with the wrecks of ancient warships.',
+  name: 'An old battlefield',
+  events: [{probability: 0.5, name: 'pirate'}, {probability: 0.5, name: 'empty'}],
+  bgColor: [0, 20, 20, 1],
+  lightColor: [0.8, 1, 1],
+  lightDir: Math.PI * 2 * 0.9,
+  spawns: [{components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}]
+};
+
 Locations.deepSpace =
 {
   text: 'There is nothing to see here, just empty space.',
@@ -31,6 +64,16 @@ Locations.deepSpace =
   bgColor: [0, 0, 0, 1],
   lightColor: [0.9, 0.9, 1],
   lightDir: Math.PI * 2 * 0.2,
+  spawns: []
+};
+
+Locations.redDwarf =
+{
+  text: 'A red dwarf in this system bathes the scenery in a faintly rose-colored light.',
+  name: 'Red dwarf star',
+  bgColor: [10, 0, 0, 1],
+  lightColor: [1, 0.8, 0.8],
+  lightDir: Math.PI * 2 * 0.7,
   spawns: []
 };
 
@@ -43,7 +86,7 @@ Locations.asteroidField =
   lightColor: [1, 0.7, 0.7],
   lightDir: Math.PI * 2 * 0.2,
   spawns: [
-    {components: {Clouds: {cloudColor: [220, 180, 180]}}},
-    {components: {AsteroidField: {numAsteroids: 50}}}
+    {components: {Clouds: {numClouds: 75, cloudColor: [220, 180, 180]}}},
+    {components: {AsteroidField: {numAsteroids: 40}}}
   ]
 };
