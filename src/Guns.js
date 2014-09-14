@@ -45,7 +45,7 @@ Guns.mediumRail = function()
 Guns.mediumRocket = function()
 {
   this.image = new Image();
-  this.image.src = 'res/img/small-rail.png';
+  this.image.src = 'res/img/medium-rail.png';
   this.shootSound = 'medium-rail-01';
   this.shootEffect = 'gunFireMedium';
   this.trailEffect = 'mediumRailTrail';

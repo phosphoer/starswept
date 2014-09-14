@@ -1,6 +1,6 @@
-TANK.registerComponent("Engines")
+TANK.registerComponent('Engines')
 
-.includes("Pos2D")
+.includes('Pos2D')
 
 .construct(function()
 {
@@ -14,7 +14,6 @@ TANK.registerComponent("Engines")
 {
   var t = this._entity.Pos2D;
   var ship = this._entity.Ship;
-  var lights = this._entity.Lights;
 
   TANK.main.Renderer2D.add(this);
 
@@ -51,16 +50,14 @@ TANK.registerComponent("Engines")
     ctx.translate(ship.resource.diffuse.width / -2, ship.resource.diffuse.height / -2);
     ctx.globalAlpha = ship.thrustAlpha;
 
-    for (var i = 0; i < lights.lights.length; ++i)
+    for (var i = 0; i < ship.shipData.engines.length; ++i)
     {
-      var light = lights.lights[i];
-      if (!light.isEngine)
-        continue;
+      var engine = ship.shipData.engines[i];
 
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalCompositeOperation = 'lighter';
       ctx.translate(this.engineBuffer.width / -1, this.engineBuffer.height / -2);
-      ctx.drawImage(this.engineBuffer.canvas, light.x + 4, light.y);
+      ctx.drawImage(this.engineBuffer.canvas, engine.x + 4, engine.y);
       ctx.restore();
     }
 

@@ -592,9 +592,9 @@ TANK.registerComponent('EndScreen')
 {
   document.body.removeChild(this.container);
 });
-TANK.registerComponent("Engines")
+TANK.registerComponent('Engines')
 
-.includes("Pos2D")
+.includes('Pos2D')
 
 .construct(function()
 {
@@ -608,7 +608,6 @@ TANK.registerComponent("Engines")
 {
   var t = this._entity.Pos2D;
   var ship = this._entity.Ship;
-  var lights = this._entity.Lights;
 
   TANK.main.Renderer2D.add(this);
 
@@ -645,16 +644,14 @@ TANK.registerComponent("Engines")
     ctx.translate(ship.resource.diffuse.width / -2, ship.resource.diffuse.height / -2);
     ctx.globalAlpha = ship.thrustAlpha;
 
-    for (var i = 0; i < lights.lights.length; ++i)
+    for (var i = 0; i < ship.shipData.engines.length; ++i)
     {
-      var light = lights.lights[i];
-      if (!light.isEngine)
-        continue;
+      var engine = ship.shipData.engines[i];
 
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalCompositeOperation = 'lighter';
       ctx.translate(this.engineBuffer.width / -1, this.engineBuffer.height / -2);
-      ctx.drawImage(this.engineBuffer.canvas, light.x + 4, light.y);
+      ctx.drawImage(this.engineBuffer.canvas, engine.x + 4, engine.y);
       ctx.restore();
     }
 
@@ -813,6 +810,10 @@ TANK.registerComponent('Game')
   resources.add('ship-blade-diffuse', 'res/img/ship-blade-diffuse.png');
   resources.add('ship-blade-normals', 'res/img/ship-blade-normals.png');
   resources.add('ship-blade', null, ['ship-blade-diffuse', 'ship-blade-normals'], loadLighting);
+
+  resources.add('ship-albatross-diffuse', 'res/img/ship-albatross-diffuse.png');
+  resources.add('ship-albatross-normals', 'res/img/ship-albatross-normals.png');
+  resources.add('ship-albatross', null, ['ship-albatross-diffuse', 'ship-albatross-normals'], loadLighting);
 
   resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
@@ -1392,7 +1393,7 @@ Guns.mediumRail = function()
 Guns.mediumRocket = function()
 {
   this.image = new Image();
-  this.image.src = 'res/img/small-rail.png';
+  this.image.src = 'res/img/medium-rail.png';
   this.shootSound = 'medium-rail-01';
   this.shootEffect = 'gunFireMedium';
   this.trailEffect = 'mediumRailTrail';
@@ -1675,99 +1676,6 @@ function createCanvas(width, height)
 }
 
 })(this.Lightr = this.Lightr || {});
-TANK.registerComponent("Lights")
-
-.includes("Pos2D")
-
-.construct(function()
-{
-  this.zdepth = 4;
-  this.width = 0;
-  this.height = 0;
-  this.lights = [];
-})
-
-.initialize(function()
-{
-  var t = this._entity.Pos2D;
-
-  TANK.main.Renderer2D.add(this);
-
-  // Refresh lights function
-  this.redrawLights = function()
-  {
-    for (var i = 0; i < this.lights.length; ++i)
-    {
-      var light = this.lights[i];
-      for (var j in light.states[light.state])
-        light[j] = light.states[light.state][j];
-
-      // Draw light glows
-      light.buffer = new PixelBuffer();
-      light.buffer.createBuffer(light.radius * 2, light.radius * 2);
-
-      // Draw light glows
-      var grad = light.buffer.context.createRadialGradient(light.radius, light.radius, 1, light.radius, light.radius, light.radius);
-      var colorA = light.colorA.join(",");
-      var colorB = light.colorB.join(",");
-      grad.addColorStop(0, "rgba(" + colorA + ", " + light.alpha + ")");
-      grad.addColorStop(0.5, "rgba(" + colorB + ", " + (light.alpha / 3) + ")");
-      grad.addColorStop(1, "rgba(" + colorB + ", 0.0)");
-      light.buffer.context.fillStyle = grad;
-      light.buffer.context.beginPath();
-      light.buffer.context.arc(light.buffer.width / 2, light.buffer.height / 2, light.buffer.width / 2, Math.PI * 2, false);
-      light.buffer.context.fill();
-      light.buffer.context.closePath();
-    }
-  };
-
-  this.update = function(dt)
-  {
-    for (var i = 0; i < this.lights.length; ++i)
-    {
-      var light = this.lights[i];
-      if (light.blinkTime)
-      {
-        if (!light.blinkTimer)
-          light.blinkTimer = 0;
-        light.blinkTimer += dt;
-        if (light.blinkTimer > light.blinkTime)
-        {
-          if (light.state === "on")
-            light.state = "off";
-          else if (light.state === "off")
-            light.state = "on";
-          light.blinkTimer = 0;
-          this.redrawLights();
-        }
-      }
-    }
-  };
-
-  this.draw = function(ctx, camera)
-  {
-    if (camera.z > 6)
-      return;
-
-    ctx.save();
-    ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
-    ctx.rotate(t.rotation);
-    ctx.translate(this.width / -2, this.height / -2);
-
-    for (var i = 0; i < this.lights.length; ++i)
-    {
-      var light = this.lights[i];
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.translate(-light.radius + 0.5, -light.radius + 0.5);
-      ctx.drawImage(light.buffer.canvas, light.x, light.y);
-      ctx.restore();
-    }
-
-    ctx.restore();
-  };
-});
 var Locations = {};
 
 Locations.start =
@@ -3276,7 +3184,7 @@ TANK.registerComponent('Shield')
 });
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
+.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
 
 .construct(function()
 {
@@ -3336,13 +3244,10 @@ TANK.registerComponent('Ship')
   this.decalBuffer = new PixelBuffer();
 
   // Set sizes for things
-  this._entity.Lights.lights = this.shipData.lights;
-  this._entity.Lights.width = this.width;
-  this._entity.Lights.height = this.height;
-  this._entity.Lights.redrawLights();
   this._entity.Weapons.width = this.width;
   this._entity.Weapons.height = this.height;
   this._entity.Engines.size = this.shipData.engineSize;
+  this._entity.Engines.color = 'rgba(' + this.shipData.engineColor.join(', ') + ', 0)';
   this._entity.Engines.drawEngine();
 
   // Add weapons
@@ -3479,25 +3384,6 @@ TANK.registerComponent('Ship')
     v.r += dir * damage;
 
     this.health -= damage;
-  });
-
-  //
-  // Handle thrust on / off states
-  //
-  this.listenTo(this._entity, 'thrustOn', function()
-  {
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = 'on';
-    this._entity.Lights.redrawLights();
-  });
-
-  this.listenTo(this._entity, 'thrustOff', function()
-  {
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = 'off';
-    this._entity.Lights.redrawLights();
   });
 
   //
@@ -3735,6 +3621,7 @@ Ships.fighter = function()
   this.maxFuel = 5;
   this.optimalAngle = 0;
   this.engineSize = [18, 8];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     front:
@@ -3745,41 +3632,12 @@ Ships.fighter = function()
         y: 21
       }
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 11, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 9, y: 25, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 14, y: 35, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 23, y: 26, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 11, y: 7},
+    {x: 9, y: 25},
+    {x: 14, y: 35}
   ];
 };
 
@@ -3800,6 +3658,7 @@ Ships.bomber = function()
   this.maxFuel = 7;
   this.optimalAngle = 0;
   this.engineSize = [24, 12];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     front:
@@ -3810,41 +3669,12 @@ Ships.bomber = function()
         y: 60
       }
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 29, y: 36, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 25, y: 45, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 23, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 80, y: 29, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 29, y: 36},
+    {x: 25, y: 45},
+    {x: 23, y: 75}
   ];
 };
 
@@ -3865,6 +3695,7 @@ Ships.frigate = function()
   this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [24, 16];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     left:
@@ -3909,33 +3740,11 @@ Ships.frigate = function()
         y: 69
       }
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 14, y: 39, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 2, y: 84, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 54, y: 84, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 14, y: 39},
+    {x: 2, y: 84},
   ];
 };
 
@@ -3944,7 +3753,7 @@ Ships.blade = function()
   this.name = 'Blade';
   this.resource = 'ship-blade';
   this.explodeSound = 'explode-01';
-  this.maxTurnSpeed = 0.35;
+  this.maxTurnSpeed = 0.40;
   this.maxSpeed = 150;
   this.accel = 15;
   this.turnAccel = 1.2;
@@ -3956,6 +3765,7 @@ Ships.blade = function()
   this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [48, 24];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     left:
@@ -3973,25 +3783,59 @@ Ships.blade = function()
       {type: 'smallRail', x: 136, y: 69},
       {type: 'smallRail', x: 136, y: 79},
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 17, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 24, y: 40, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
+    {x: 17, y: 75},
+    {x: 24, y: 40}
+  ];
+};
+
+Ships.albatross = function()
+{
+  this.name = 'Albatross';
+  this.resource = 'ship-albatross';
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.35;
+  this.maxSpeed = 150;
+  this.accel = 15;
+  this.turnAccel = 1.2;
+  this.health = 1;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 30;
+  this.maxFuel = 10;
+  this.optimalAngle = 0;
+  this.engineSize = [36, 20];
+  this.engineColor = [255, 100, 255];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'smallRail', x: 50, y: 44},
+      {type: 'smallRail', x: 101, y: 35},
+    ],
+    right:
+    [
+      {type: 'smallRail', x: 45, y: 85},
+      {type: 'smallRail', x: 91, y: 91},
+    ],
+    front:
+    [
+      {type: 'mediumRocket', x: 96, y: 50},
+      {type: 'mediumRocket', x: 96, y: 76},
+    ],
+    back:
+    [
+      {type: 'mediumRail', x: 44, y: 64}
+    ]
+  };
+  this.engines =
+  [
+    {x: 15, y: 45},
+    {x: 37, y: 63},
+    {x: 81, y: 90}
   ];
 };
 

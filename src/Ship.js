@@ -1,6 +1,6 @@
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Lights', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
+.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
 
 .construct(function()
 {
@@ -60,13 +60,10 @@ TANK.registerComponent('Ship')
   this.decalBuffer = new PixelBuffer();
 
   // Set sizes for things
-  this._entity.Lights.lights = this.shipData.lights;
-  this._entity.Lights.width = this.width;
-  this._entity.Lights.height = this.height;
-  this._entity.Lights.redrawLights();
   this._entity.Weapons.width = this.width;
   this._entity.Weapons.height = this.height;
   this._entity.Engines.size = this.shipData.engineSize;
+  this._entity.Engines.color = 'rgba(' + this.shipData.engineColor.join(', ') + ', 0)';
   this._entity.Engines.drawEngine();
 
   // Add weapons
@@ -203,25 +200,6 @@ TANK.registerComponent('Ship')
     v.r += dir * damage;
 
     this.health -= damage;
-  });
-
-  //
-  // Handle thrust on / off states
-  //
-  this.listenTo(this._entity, 'thrustOn', function()
-  {
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = 'on';
-    this._entity.Lights.redrawLights();
-  });
-
-  this.listenTo(this._entity, 'thrustOff', function()
-  {
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = 'off';
-    this._entity.Lights.redrawLights();
   });
 
   //

@@ -17,6 +17,7 @@ Ships.fighter = function()
   this.maxFuel = 5;
   this.optimalAngle = 0;
   this.engineSize = [18, 8];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     front:
@@ -27,41 +28,12 @@ Ships.fighter = function()
         y: 21
       }
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 11, y: 7, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 9, y: 25, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 14, y: 35, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 23, y: 26, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 11, y: 7},
+    {x: 9, y: 25},
+    {x: 14, y: 35}
   ];
 };
 
@@ -82,6 +54,7 @@ Ships.bomber = function()
   this.maxFuel = 7;
   this.optimalAngle = 0;
   this.engineSize = [24, 12];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     front:
@@ -92,41 +65,12 @@ Ships.bomber = function()
         y: 60
       }
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 29, y: 36, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 25, y: 45, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 23, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 80, y: 29, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 29, y: 36},
+    {x: 25, y: 45},
+    {x: 23, y: 75}
   ];
 };
 
@@ -147,6 +91,7 @@ Ships.frigate = function()
   this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [24, 16];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     left:
@@ -191,33 +136,11 @@ Ships.frigate = function()
         y: 69
       }
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 14, y: 39, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 2, y: 84, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 54, y: 84, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: 'off', blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 14, y: 39},
+    {x: 2, y: 84},
   ];
 };
 
@@ -226,7 +149,7 @@ Ships.blade = function()
   this.name = 'Blade';
   this.resource = 'ship-blade';
   this.explodeSound = 'explode-01';
-  this.maxTurnSpeed = 0.35;
+  this.maxTurnSpeed = 0.40;
   this.maxSpeed = 150;
   this.accel = 15;
   this.turnAccel = 1.2;
@@ -238,6 +161,7 @@ Ships.blade = function()
   this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [48, 24];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     left:
@@ -255,25 +179,59 @@ Ships.blade = function()
       {type: 'smallRail', x: 136, y: 69},
       {type: 'smallRail', x: 136, y: 79},
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 17, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 24, y: 40, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
+    {x: 17, y: 75},
+    {x: 24, y: 40}
+  ];
+};
+
+Ships.albatross = function()
+{
+  this.name = 'Albatross';
+  this.resource = 'ship-albatross';
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.35;
+  this.maxSpeed = 150;
+  this.accel = 15;
+  this.turnAccel = 1.2;
+  this.health = 1;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 30;
+  this.maxFuel = 10;
+  this.optimalAngle = 0;
+  this.engineSize = [36, 20];
+  this.engineColor = [255, 100, 255];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'smallRail', x: 50, y: 44},
+      {type: 'smallRail', x: 101, y: 35},
+    ],
+    right:
+    [
+      {type: 'smallRail', x: 45, y: 85},
+      {type: 'smallRail', x: 91, y: 91},
+    ],
+    front:
+    [
+      {type: 'mediumRocket', x: 96, y: 50},
+      {type: 'mediumRocket', x: 96, y: 76},
+    ],
+    back:
+    [
+      {type: 'mediumRail', x: 44, y: 64}
+    ]
+  };
+  this.engines =
+  [
+    {x: 15, y: 45},
+    {x: 37, y: 63},
+    {x: 81, y: 90}
   ];
 };
 
