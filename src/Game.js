@@ -43,7 +43,7 @@ TANK.registerComponent('Game')
     doneCallback(res);
   };
 
-  resources.add('asteroid-01-diffuse', 'res/img/asteroid-01.png');
+  resources.add('asteroid-01-diffuse', 'res/img/asteroid-01-diffuse.png');
   resources.add('asteroid-01-normals', 'res/img/asteroid-01-normals.png');
   resources.add('asteroid-01', null, ['asteroid-01-diffuse', 'asteroid-01-normals'], loadLighting);
 
@@ -59,7 +59,11 @@ TANK.registerComponent('Game')
   resources.add('frigate-normals', 'res/img/frigate-normals.png');
   resources.add('frigate', null, ['frigate-diffuse', 'frigate-normals'], loadLighting);
 
-  resources.add('station-01-diffuse', 'res/img/station-01.png');
+  resources.add('ship-blade-diffuse', 'res/img/ship-blade-diffuse.png');
+  resources.add('ship-blade-normals', 'res/img/ship-blade-normals.png');
+  resources.add('ship-blade', null, ['ship-blade-diffuse', 'ship-blade-normals'], loadLighting);
+
+  resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
   resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);
 

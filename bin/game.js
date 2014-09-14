@@ -247,6 +247,7 @@ TANK.registerComponent('Bullet')
   this.owner = null;
   this.damage = 0.2;
   this.trailEffect = 'mediumRailTrail';
+  this.damageEffect = 'damageMedium';
   this.size = 3;
 })
 
@@ -793,7 +794,7 @@ TANK.registerComponent('Game')
     doneCallback(res);
   };
 
-  resources.add('asteroid-01-diffuse', 'res/img/asteroid-01.png');
+  resources.add('asteroid-01-diffuse', 'res/img/asteroid-01-diffuse.png');
   resources.add('asteroid-01-normals', 'res/img/asteroid-01-normals.png');
   resources.add('asteroid-01', null, ['asteroid-01-diffuse', 'asteroid-01-normals'], loadLighting);
 
@@ -809,7 +810,11 @@ TANK.registerComponent('Game')
   resources.add('frigate-normals', 'res/img/frigate-normals.png');
   resources.add('frigate', null, ['frigate-diffuse', 'frigate-normals'], loadLighting);
 
-  resources.add('station-01-diffuse', 'res/img/station-01.png');
+  resources.add('ship-blade-diffuse', 'res/img/ship-blade-diffuse.png');
+  resources.add('ship-blade-normals', 'res/img/ship-blade-normals.png');
+  resources.add('ship-blade', null, ['ship-blade-diffuse', 'ship-blade-normals'], loadLighting);
+
+  resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
   resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);
 
@@ -1349,15 +1354,16 @@ Guns.smallRail = function()
   this.shootSound = 'small-rail-01';
   this.shootEffect = 'gunFireSmall';
   this.trailEffect = 'smallRailTrail';
+  this.damageEffect = 'damageSmall';
   this.screenShake = 0;
-  this.reloadTime = 0.5;
+  this.reloadTime = 0.25;
   this.reloadTimer = 0;
   this.range = 700;
-  this.damage = 0.03;
+  this.damage = 0.01;
   this.projectileSpeed = 900;
   this.projectileAccel = 0;
   this.projectileSize = 1;
-  this.recoil = 2;
+  this.recoil = 1;
   this.x = 0;
   this.y = 0;
 };
@@ -1369,6 +1375,7 @@ Guns.mediumRail = function()
   this.shootSound = 'medium-rail-01';
   this.shootEffect = 'gunFireMedium';
   this.trailEffect = 'mediumRailTrail';
+  this.damageEffect = 'damageMedium';
   this.screenShake = 0.5;
   this.reloadTime = 5;
   this.reloadTimer = 0;
@@ -1389,6 +1396,7 @@ Guns.mediumRocket = function()
   this.shootSound = 'medium-rail-01';
   this.shootEffect = 'gunFireMedium';
   this.trailEffect = 'mediumRailTrail';
+  this.damageEffect = 'damageMedium';
   this.screenShake = 0.5;
   this.reloadTime = 3;
   this.reloadTimer = 0;
@@ -2279,6 +2287,38 @@ ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
   emitter.particleAlphaDecayMax = 0.99;
   emitter.particleScaleDecayMin = 0.96;
   emitter.particleScaleDecayMax = 0.98;
+  return e;
+};
+
+ParticleLibrary.damageSmall = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 3;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.alignRotationToSpawnAngle = true;
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.spawnOffsetMin = [-5, -5];
+  emitter.spawnOffsetMax = [5, 5];
+  emitter.spawnSpeedMin = 250;
+  emitter.spawnSpeedMax = 350;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 0.5;
+  emitter.spawnScaleMax = 1;
+  emitter.spawnPerSecond = 400;
+  emitter.spawnDuration = 0.1;
+  emitter.particleLifeMin = 2;
+  emitter.particleLifeMax = 3;
+  emitter.particleFrictionMin = 0.92;
+  emitter.particleFrictionMax = 0.95;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  TANK.main.addChild(e);
   return e;
 };
 
@@ -3303,6 +3343,7 @@ TANK.registerComponent('Ship')
   this._entity.Weapons.width = this.width;
   this._entity.Weapons.height = this.height;
   this._entity.Engines.size = this.shipData.engineSize;
+  this._entity.Engines.drawEngine();
 
   // Add weapons
   for (var gunSide in this.shipData.guns)
@@ -3415,7 +3456,7 @@ TANK.registerComponent('Ship')
       obj.Life.life = 0;
 
       // Spawn effect
-      ParticleLibrary.damageMedium(objPos[0], objPos[1], obj.Pos2D.rotation + Math.PI);
+      ParticleLibrary[bullet.damageEffect](objPos[0], objPos[1], obj.Pos2D.rotation + Math.PI);
 
       // Shake screen if on camera
       var camera = TANK.main.Renderer2D.camera;
@@ -3432,10 +3473,10 @@ TANK.registerComponent('Ship')
   this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
   {
     // Affect trajectory
-    v.x += dir[0] * 0.02;
-    v.y += dir[1] * 0.02;
+    v.x += dir[0] * damage * 0.1;
+    v.y += dir[1] * damage * 0.1;
     var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
-    v.r += dir * 0.5;
+    v.r += dir * damage;
 
     this.health -= damage;
   });
@@ -3898,6 +3939,62 @@ Ships.frigate = function()
   ];
 };
 
+Ships.blade = function()
+{
+  this.name = 'Blade';
+  this.resource = 'ship-blade';
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.35;
+  this.maxSpeed = 150;
+  this.accel = 15;
+  this.turnAccel = 1.2;
+  this.health = 1;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 30;
+  this.maxFuel = 10;
+  this.optimalAngle = Math.PI / 2;
+  this.engineSize = [48, 24];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'mediumRail', x: 45, y: 55},
+      {type: 'mediumRail', x: 90, y: 64},
+    ],
+    right:
+    [
+      {type: 'mediumRail', x: 45, y: 94},
+      {type: 'mediumRail', x: 90, y: 86},
+    ],
+    front:
+    [
+      {type: 'smallRail', x: 136, y: 69},
+      {type: 'smallRail', x: 136, y: 79},
+    ]
+  },
+  this.lights =
+  [
+    {
+      x: 17, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 24, y: 40, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+  ];
+};
+
 // Ships.alien = function()
 // {
 //   this.name = 'Alien';
@@ -4234,6 +4331,7 @@ TANK.registerComponent("Weapons")
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
     e.Bullet.trailEffect = gun.trailEffect;
+    e.Bullet.damageEffect = gun.damageEffect;
     e.Bullet.size = gun.projectileSize;
     e.Bullet.accel = gun.projectileAccel;
     TANK.main.addChild(e);

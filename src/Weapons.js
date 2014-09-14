@@ -82,6 +82,7 @@ TANK.registerComponent("Weapons")
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
     e.Bullet.trailEffect = gun.trailEffect;
+    e.Bullet.damageEffect = gun.damageEffect;
     e.Bullet.size = gun.projectileSize;
     e.Bullet.accel = gun.projectileAccel;
     TANK.main.addChild(e);

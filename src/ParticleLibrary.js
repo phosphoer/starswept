@@ -308,6 +308,38 @@ ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
   return e;
 };
 
+ParticleLibrary.damageSmall = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 3;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.alignRotationToSpawnAngle = true;
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.spawnOffsetMin = [-5, -5];
+  emitter.spawnOffsetMax = [5, 5];
+  emitter.spawnSpeedMin = 250;
+  emitter.spawnSpeedMax = 350;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 0.5;
+  emitter.spawnScaleMax = 1;
+  emitter.spawnPerSecond = 400;
+  emitter.spawnDuration = 0.1;
+  emitter.particleLifeMin = 2;
+  emitter.particleLifeMax = 3;
+  emitter.particleFrictionMin = 0.92;
+  emitter.particleFrictionMax = 0.95;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  TANK.main.addChild(e);
+  return e;
+};
+
 ParticleLibrary.damageMedium = function(x, y, angle)
 {
   var e = TANK.createEntity(["ParticleEmitter", "Life"]);

@@ -8,6 +8,7 @@ TANK.registerComponent('Bullet')
   this.owner = null;
   this.damage = 0.2;
   this.trailEffect = 'mediumRailTrail';
+  this.damageEffect = 'damageMedium';
   this.size = 3;
 })
 

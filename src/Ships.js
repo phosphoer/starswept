@@ -221,6 +221,62 @@ Ships.frigate = function()
   ];
 };
 
+Ships.blade = function()
+{
+  this.name = 'Blade';
+  this.resource = 'ship-blade';
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.35;
+  this.maxSpeed = 150;
+  this.accel = 15;
+  this.turnAccel = 1.2;
+  this.health = 1;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 30;
+  this.maxFuel = 10;
+  this.optimalAngle = Math.PI / 2;
+  this.engineSize = [48, 24];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'mediumRail', x: 45, y: 55},
+      {type: 'mediumRail', x: 90, y: 64},
+    ],
+    right:
+    [
+      {type: 'mediumRail', x: 45, y: 94},
+      {type: 'mediumRail', x: 90, y: 86},
+    ],
+    front:
+    [
+      {type: 'smallRail', x: 136, y: 69},
+      {type: 'smallRail', x: 136, y: 79},
+    ]
+  },
+  this.lights =
+  [
+    {
+      x: 17, y: 75, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+    {
+      x: 24, y: 40, colorA: [210, 210, 255], colorB: [150, 150, 255], state: 'off', isEngine: true,
+      states:
+      {
+        on: {radius: 10, alpha: 0.8},
+        off: {radius: 6, alpha: 0.3}
+      }
+    },
+  ];
+};
+
 // Ships.alien = function()
 // {
 //   this.name = 'Alien';
