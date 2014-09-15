@@ -19,8 +19,8 @@ Locations.abandonedOutpost =
   name: 'An old abandoned trading outpost',
   events:
   [
-    {probability: 0.5, name: 'pirate'},
-    {probability: 0.5, name: 'derelict'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'derelict'}
   ],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
@@ -38,8 +38,8 @@ Locations.researchStation =
   name: 'A research station',
   events:
   [
-    {probability: 0.5, name: 'pirate'},
-    {probability: 0.5, name: 'derelict'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'derelict'}
   ],
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
@@ -57,8 +57,8 @@ Locations.pirateBase =
   name: 'A pirate outpost',
   events:
   [
-    {probability: 0.75, name: 'pirate'},
-    {probability: 0.25, name: 'empty'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'empty'}
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -75,8 +75,8 @@ Locations.oldBattlefield =
   name: 'An old battlefield',
   events:
   [
-    {probability: 0.5, name: 'pirate'},
-    {probability: 0.5, name: 'empty'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'empty'}
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -113,8 +113,8 @@ Locations.asteroidField =
   name: 'Asteroid field',
   events:
   [
-    {probability: 0.4, name: 'pirate'},
-    {probability: 0.6, name: 'derelict'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1.2, name: 'derelict'}
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],

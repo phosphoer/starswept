@@ -955,17 +955,18 @@ TANK.registerComponent('Game')
   //
   this.randomWeighted = function(weights)
   {
-    var rand = Math.random();
-    var intervals = [];
-    var min = 0;
-    var max = 0;
-    for (var i = 0; i < weights.length; ++i)
+    var minValue = Math.min.apply(null, weights);
+    var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
+    var weightArray = [];
+    for (var i = 0; i < weightsNormalized.length; ++i)
     {
-      max = min + weights[i];
-      if (rand >= min && rand <= max)
-        return i;
-      min += weights[i];
+      for (var j = 0; j < weightsNormalized[i]; ++j)
+        weightArray.push(i);
     }
+
+    var rng = new RNG();
+    var index = rng.random(0, weightArray.length);
+    return weightArray[index];
   };
 
   //
@@ -1708,8 +1709,8 @@ Locations.abandonedOutpost =
   name: 'An old abandoned trading outpost',
   events:
   [
-    {probability: 0.5, name: 'pirate'},
-    {probability: 0.5, name: 'derelict'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'derelict'}
   ],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
@@ -1727,8 +1728,8 @@ Locations.researchStation =
   name: 'A research station',
   events:
   [
-    {probability: 0.5, name: 'pirate'},
-    {probability: 0.5, name: 'derelict'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'derelict'}
   ],
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
@@ -1746,8 +1747,8 @@ Locations.pirateBase =
   name: 'A pirate outpost',
   events:
   [
-    {probability: 0.75, name: 'pirate'},
-    {probability: 0.25, name: 'empty'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'empty'}
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -1764,8 +1765,8 @@ Locations.oldBattlefield =
   name: 'An old battlefield',
   events:
   [
-    {probability: 0.5, name: 'pirate'},
-    {probability: 0.5, name: 'empty'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'empty'}
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -1802,8 +1803,8 @@ Locations.asteroidField =
   name: 'Asteroid field',
   events:
   [
-    {probability: 0.4, name: 'pirate'},
-    {probability: 0.6, name: 'derelict'}
+    {probability: 1, name: 'pirate'},
+    {probability: 1.2, name: 'derelict'}
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
@@ -2112,7 +2113,7 @@ ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
   emitter.spawnAngleMax = angle + 0.2;
   emitter.spawnScaleMin = 2;
   emitter.spawnScaleMax = 5;
-  emitter.spawnPerSecond = 15;
+  emitter.spawnPerSecond = 10;
   emitter.spawnDuration = 0.2;
   emitter.particleLifeMin = 4;
   emitter.particleLifeMax = 7;

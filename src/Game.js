@@ -207,17 +207,18 @@ TANK.registerComponent('Game')
   //
   this.randomWeighted = function(weights)
   {
-    var rand = Math.random();
-    var intervals = [];
-    var min = 0;
-    var max = 0;
-    for (var i = 0; i < weights.length; ++i)
+    var minValue = Math.min.apply(null, weights);
+    var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
+    var weightArray = [];
+    for (var i = 0; i < weightsNormalized.length; ++i)
     {
-      max = min + weights[i];
-      if (rand >= min && rand <= max)
-        return i;
-      min += weights[i];
+      for (var j = 0; j < weightsNormalized[i]; ++j)
+        weightArray.push(i);
     }
+
+    var rng = new RNG();
+    var index = rng.random(0, weightArray.length);
+    return weightArray[index];
   };
 
   //
