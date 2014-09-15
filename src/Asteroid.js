@@ -4,7 +4,7 @@ TANK.registerComponent('Asteroid')
 
 .construct(function()
 {
-  this.zdepth = 2;
+  this.zdepth = 1;
 })
 
 .initialize(function()
