@@ -19,8 +19,9 @@ Locations.abandonedOutpost =
   name: 'An old abandoned trading outpost',
   events:
   [
-    {probability: 1, name: 'pirate'},
-    {probability: 1, name: 'derelict'}
+    {probability: 2.5, name: 'pirate'},
+    {probability: 2, name: 'derelict'},
+    {probability: 1, name: 'civilian'},
   ],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
@@ -38,8 +39,9 @@ Locations.researchStation =
   name: 'A research station',
   events:
   [
-    {probability: 1, name: 'pirate'},
-    {probability: 1, name: 'derelict'}
+    {probability: 1.2, name: 'pirate'},
+    {probability: 1, name: 'derelict'},
+    {probability: 1.2, name: 'civilian'}
   ],
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
@@ -57,8 +59,9 @@ Locations.pirateBase =
   name: 'A pirate outpost',
   events:
   [
-    {probability: 1, name: 'pirate'},
-    {probability: 1, name: 'empty'}
+    {probability: 4, name: 'pirate'},
+    {probability: 2, name: 'empty'},
+    {probability: 1, name: 'civilian'},
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -76,6 +79,7 @@ Locations.oldBattlefield =
   events:
   [
     {probability: 1, name: 'pirate'},
+    {probability: 2, name: 'civilian'},
     {probability: 1, name: 'empty'}
   ],
   bgColor: [0, 20, 20, 1],
@@ -91,6 +95,11 @@ Locations.deepSpace =
 {
   text: 'There is nothing to see here, just empty space.',
   name: 'Deep space',
+  events:
+  [
+    {probability: 1, name: 'civilian'},
+    {probability: 3, name: 'empty'}
+  ],
   bgColor: [0, 0, 0, 1],
   lightColor: [0.9, 0.9, 1],
   lightDir: Math.PI * 2 * 0.2,
@@ -101,6 +110,11 @@ Locations.redDwarf =
 {
   text: 'A red dwarf in this system bathes the scenery in a faintly rose-colored light.',
   name: 'Red dwarf star',
+  events:
+  [
+    {probability: 1, name: 'civilian'},
+    {probability: 3, name: 'empty'}
+  ],
   bgColor: [10, 0, 0, 1],
   lightColor: [1, 0.8, 0.8],
   lightDir: Math.PI * 2 * 0.7,
