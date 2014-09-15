@@ -1,750 +1,11 @@
-this.Action = this.Action || {};
-
-Action.AIAttack = function(e, target)
-{
-  this.target = target;
-  this.attackDistanceMin = 350;
-  this.attackDistanceMax = 550;
-  this.giveUpTimer = 5;
-
-  this.update = function(dt)
-  {
-    var t = e.Pos2D;
-    var v = e.Velocity;
-    var ship = e.Ship;
-
-    // Check if target still exists
-    if (!this.target || !TANK.main.getChild(this.target._id))
-    {
-      this.giveUpTimer -= dt;
-      if (this.giveUpTimer < 0)
-        return true;
-    }
-
-    // Get direction to target
-    var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
-    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
-    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-    targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
-    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
-
-    // We should move to engage the target
-    // Depending on the layout of our ship, this either means attempting
-    // to line up a broadside, or aligning our fore-guns with the target
-    // If we are too close we should turn to get farther away
-    if (targetDist < this.attackDistanceMin)
-    {
-      ship.heading = targetDir + Math.PI;
-      ship.setSpeedPercent(1);
-    }
-    // We want to get to a minimum distance from the target before attempting to aim at it
-    else if (targetDist > this.attackDistanceMax)
-    {
-      ship.heading = targetDir;
-      ship.setSpeedPercent(1);
-    }
-    else
-    {
-      // Aim at a right angle to the direction to the target, to target with a broadside
-      ship.heading = targetDir + ship.shipData.optimalAngle;
-
-      // Slow down to half speed while circling
-      ship.setSpeedPercent(0.5);
-    }
-  };
-};
-this.Action = this.Action || {};
-
-Action.AIDefend = function(e, target)
-{ 
-  this.timer = 0;
-  this.stayTime = 20;
-  this.defendPos = [0, 0];
-  this.desiredDist = 200;
-  this.maxDefendDist = 600;
-  this.aggroDistance = 800;
-  this.scanTimer = 1;
-
-  this.update = function(dt)
-  {
-    var t = e.Pos2D;
-
-    // Pick a new defend position
-    this.timer -= dt;
-    if (this.timer <= 0)
-    {
-      this.pickNewPos();
-      this.timer = this.stayTime;
-    }
-
-    // Move to the control point and stop
-    var dist = TANK.Math2D.pointDistancePoint(this.defendPos, [t.x, t.y]);
-    if (dist > this.desiredDist * 3)
-      e.Ship.moveTowards(this.defendPos);
-    else if (dist > this.desiredDist)
-      e.Ship.moveTowards(this.defendPos, 0.3)
-    else
-      e.Ship.setSpeedPercent(0);
-
-    // Once we are in our defend location, we should attack any enemy ships
-    // that come near the location
-    this.scanTimer -= dt;
-    if (dist <= this.desiredDist && this.scanTimer < 0)
-    {
-      this.scanTimer = 1;
-
-      var ships = TANK.main.getChildrenWithComponent("Ship");
-      for (var i in ships)
-      {
-        // Skip ships on our team
-        var obj = ships[i];
-        if (obj.Ship.faction.team === e.Ship.faction.team)
-          continue;
-
-        // If we see a ship, clear our order queue, attack the ship, and then go back to defending this point
-        if (TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], this.defendPos) <= this.aggroDistance)
-        {
-          e.AIShip.clearOrders();
-          e.AIShip.addOrder(new Action.AIAttack(e, obj));
-          e.AIShip.addOrder(new Action.AIDefend(e, target));
-        }
-      }
-    }
-  };
-
-  this.pickNewPos = function()
-  {
-    var angle = Math.random() * Math.PI * 2;
-    var dist = Math.random() * this.maxDefendDist;
-    var offsetVec = [Math.cos(angle) * dist, Math.sin(angle) * dist];
-    this.defendPos = TANK.Math2D.add([target.Pos2D.x, target.Pos2D.y], offsetVec);
-  };
-};
-
-Action.AIDefendNearest = function(e)
-{
-  this.update = function(dt)
-  {
-    // Look at all friendly control points and give a defend
-    // order for the nearest one
-    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
-    var minDist = Infinity;
-    var nearest = null;
-    for (var i in controlPoints)
-    {
-      var obj = controlPoints[i];
-      var dist = TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], [e.Pos2D.x, e.Pos2D.y]);
-      if (dist < minDist)
-      {
-        minDist = dist;
-        nearest = obj;
-      }
-    }
-
-    e.AIShip.addOrder(new Action.AIDefend(e, nearest));
-    return true;
-  };
-};
-
-this.Action = this.Action || {};
-
-Action.AIEscort = function(e, target)
-{
-  this.target = target;
-  this.giveUpTimer = 5;
-  this.desiredDist = 300;
-  this.aggroDistance = 500;
-  this.scanTimer = 1;
-
-  this.update = function(dt)
-  {
-    var t = e.Pos2D;
-    var v = e.Velocity;
-
-    // Give up if we can't find our target
-    if (!this.target || !TANK.main.getChild(this.target._id))
-    {
-      this.giveUpTimer -= dt;
-      if (this.giveUpTimer < 0)
-        return true;
-    }
-
-    // Move towards the target ship
-    var targetPos = [target.Pos2D.x, target.Pos2D.y];
-    var targetSpeedPercent = (target.Ship.desiredSpeed / target.Ship.shipData.maxSpeed);
-    var dist = TANK.Math2D.pointDistancePoint(targetPos, [t.x, t.y]);
-    if (dist > this.desiredDist * 3)
-      e.Ship.moveTowards(targetPos);
-    else if (dist > this.desiredDist)
-      e.Ship.moveTowards(targetPos, targetSpeedPercent + 0.2)
-    else
-    {
-      e.Ship.setSpeedPercent(targetSpeedPercent);
-      e.Ship.heading = target.Ship.heading;
-    }
-
-    // Once we are in our defend location, we should attack any enemy ships
-    // that come near the location
-    this.scanTimer -= dt;
-    if (dist <= this.desiredDist && this.scanTimer < 0)
-    {
-      this.scanTimer = 1;
-
-      var ships = TANK.main.getChildrenWithComponent("Ship");
-      for (var i in ships)
-      {
-        // Skip ships on our team
-        var obj = ships[i];
-        if (obj.Ship.faction.team === e.Ship.faction.team)
-          continue;
-
-        // If we see a ship, clear our order queue, attack the ship, and then go back to defending this point
-        if (TANK.Math2D.pointDistancePoint([obj.Pos2D.x, obj.Pos2D.y], targetPos) <= this.aggroDistance)
-        {
-          e.AIShip.clearOrders();
-          e.AIShip.addOrder(new Action.AIAttack(e, obj));
-          e.AIShip.addOrder(new Action.AIEscort(e, target));
-        }
-      }
-    }
-  };
-};
-
-(function()
-{
-
-TANK.registerComponent("AIFaction")
-.includes("Faction")
+TANK.registerComponent('AIAttack')
+.includes(['Ship', 'RemoveOnLevelChange'])
 .construct(function()
-{
-  this.name = "original";
-  this.currentCaptureTarget = null;
-  this.projects = [];
-
-  this.idleShipScanTime = 5;
-  this.idleShipScanTimer = 0;
-  this.idleShips = [];
-})
-.initialize(function()
-{
-  var faction = this._entity.Faction;
-  var that = this;
-
-  this.calculateThreatAtPos = function(pos, radius, targetFaction)
-  {
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    var threat = 0;
-    for (var i in ships)
-    {
-      if (targetFaction && ships[i].Ship.faction !== targetFaction)
-        continue;
-      else if (!targetFaction && ships[i].Ship.faction === faction)
-        continue;
-
-      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
-      if (dist < radius)
-        threat += ships[i].Ship.shipData.threat;
-    }
-
-    return threat;
-  };
-
-  this.findIdleShips = function()
-  {
-    this.idleShips = [];
-    var ships = TANK.main.getChildrenWithComponent("AIShip");
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
-        this.idleShips.push(ships[i]);
-    }
-  };
-
-  this.say = function(message)
-  {
-    console.log("AI " + this.name + "(" + faction.team + "): " + message);
-  };
-
-  this.update = function(dt)
-  {
-    // Find idle ships
-    this.idleShipScanTimer -= dt;
-    if (this.idleShipScanTimer <= 0)
-    {
-      this.idleShipScanTimer = this.idleShipScanTime;
-      this.findIdleShips();
-    } 
-
-    // If we don't have a current capture target, find one and create a project for it
-    if (!this.currentCaptureTarget)
-    {
-      this.say("No capture target, picking a new one...");
-      var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
-      for (var i in controlPoints)
-      {
-        var e = controlPoints[i];
-        if (!e.ControlPoint.faction || e.ControlPoint.faction.team !== faction.team)
-        {
-          this.say("Found capture target, assigning ships...");
-          this.currentCaptureTarget = e;
-          var pos = [this.currentCaptureTarget.Pos2D.x, this.currentCaptureTarget.Pos2D.y];
-          var threat = this.calculateThreatAtPos(pos, 700, e.ControlPoint.faction);
-          var captureProject = new AIProject(this);
-          captureProject.target = e;
-          captureProject.buildCombatGroup((threat + 1) * 1.5);
-          captureProject.acquireShips();
-          captureProject.completeCondition = function()
-          {
-            return e.ControlPoint.faction === faction;
-          };
-          this.projects.push(captureProject);
-          break;
-        }
-      }
-    }
-
-    // Update existing projects
-    for (var i = 0; i < this.projects.length; ++i)
-    {
-      this.projects[i].update(dt);
-      if (this.projects[i].complete)
-        this.projects[i] = null;
-    }
-    this.projects = this.projects.filter(function(val) {return val !== null;});
-  };
-});
-
-})();
-(function()
-{
-
-TANK.registerComponent("AIFaction2")
-.includes("Faction")
-.construct(function()
-{
-  this.name = "new";
-  this.projects = [];
-
-  this.idleShipScanTime = 5;
-  this.idleShipScanTimer = 0;
-  this.idleShips = [];
-
-  this.attackProject = null;
-  this.attackTarget = null;
-  this.attackStrength = 1;
-  this.attackTime = 40;
-  this.attackTimer = 0;
-
-  this.defenseIncreaseTimer = 25;
-  this.defenseTime = 25;
-  this.defenseTimer = 0;
-  this.defenseStrength = 1;
-  this.defenseProjects = {};
-})
-.initialize(function()
-{
-  var faction = this._entity.Faction;
-  var that = this;
-
-  this.calculateThreatAtPos = function(pos, radius, targetFaction)
-  {
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    var threat = 0;
-    for (var i in ships)
-    {
-      if (targetFaction && ships[i].Ship.faction !== targetFaction)
-        continue;
-      else if (!targetFaction && ships[i].Ship.faction === faction)
-        continue;
-
-      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
-      if (dist < radius)
-        threat += ships[i].Ship.shipData.threat;
-    }
-
-    return threat;
-  };
-
-  this.findIdleShips = function()
-  {
-    this.idleShips = [];
-    var ships = TANK.main.getChildrenWithComponent("AIShip");
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
-        this.idleShips.push(ships[i]);
-    }
-  };
-
-  this.say = function(message)
-  {
-    console.log("AI " + this.name + "(" + faction.team + "): " + message);
-  };
-
-  this.update = function(dt)
-  {
-    // We should have a defense project for each owned control point
-    this.defenseTimer -= dt;
-    if (this.defenseTimer <= 0)
-    {
-      this.defenseTimer = this.defenseTime;
-      for (var i = 0; i < faction.controlPoints.length; ++i)
-      {
-        var cp = faction.controlPoints[i];
-        
-        // If there isn't a project for this point, create one
-        if (!this.defenseProjects[cp._entity._id])
-        {
-          this.say('defense project created');
-          var project = new AIProject(this);
-          project.target = cp._entity;
-          project.buildCombatGroup(this.defenseStrength);
-          project.acquireShips();
-          this.projects.push(project);
-          this.defenseProjects[cp._entity._id] = project;
-
-          // End the project if the control point no longer exists
-          var that = this;
-          project.completeCondition = function()
-          {
-            if (!TANK.main.getChild(this.target._id) || this.target.ControlPoint.faction !== faction)
-            {
-              that.say('defense project over');
-              delete that.defenseProjects[this.target._id];
-              return true;
-            }
-            return false;
-          };
-        }
-        else
-        {
-          this.defenseProjects[cp._entity._id].buildShipsForThreat(this.defenseStrength);
-          this.defenseProjects[cp._entity._id].refresh();
-        }
-      }
-    }
-
-    // Increase defense strength over time
-    this.defenseIncreaseTimer -= dt;
-    if (this.defenseIncreaseTimer < 0)
-    {
-      var choice = Math.random();
-      if (choice < 0.5)
-        this.defenseStrength += Math.random() * 5;
-      else
-        this.defenseStrength += 10 * (Math.random() * 3.1);
-      this.defenseIncreaseTimer = (60 + Math.random() * 60) * this.defenseStrength;
-      this.defenseStrength = Math.round(this.defenseStrength);
-      this.say('increasing defenses to ' + this.defenseStrength);
-    }
-
-    // Find an attack target with low defense
-    if (!this.attackTarget)
-    {
-      this.say('searching for target');
-      var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
-      var minThreat = Infinity;
-      for (var i in controlPoints)
-      {
-        var e = controlPoints[i];
-        if (!e.ControlPoint.faction || e.ControlPoint.faction.team !== faction.team)
-        {
-          var threat = this.calculateThreatAtPos([e.Pos2D.x, e.Pos2D.y], 600);
-          if (!e.ControlPoint.faction)
-            threat = -1;
-          if (threat < minThreat)
-          {
-            minThreat = threat;
-            this.attackTarget = e;
-          }
-        }
-      }
-      
-      if (this.attackTarget)
-        this.say('target found'); 
-    }
-    // Make an attack project if we don't have one
-    else if (this.attackTarget && !this.attackProject)
-    {
-      this.say('attack project created');
-      this.attackProject = new AIProject(this);
-      this.attackProject.target = this.attackTarget;
-      var that = this;
-      this.attackProject.completeCondition = function()
-      {
-        var complete = that.attackTarget.ControlPoint.faction === faction;
-        if (complete) 
-        {
-          that.say('attack project complete');
-          that.attackProject = null;
-          that.attackTarget = null;
-        }
-        return complete;
-      };
-      this.projects.push(this.attackProject);
-    }
-    // Update attack project
-    else if (this.attackTarget && this.attackProject)
-    {
-      this.attackTimer += dt;
-      if (this.attackTimer > this.attackTime)
-      {
-        this.say('attack group queued');
-        this.attackTimer = 0;
-        this.attackProject.buildShipsForThreat(this.attackStrength);
-        this.attackProject.refresh();
-        if (Math.random() < 0.5)
-          this.attackStrength += Math.random() * 5;
-        else
-          this.attackStrength += 10 * (Math.random() * 3.1);
-        this.attackTime *= 1.1;
-        this.attackTime += Math.random() * 20;
-        this.attackTime = Math.round(this.attackTime);
-        this.attackStrength = Math.round(this.attackStrength);
-        this.say('next attack in ' + this.attackTime + ' seconds with strength ' + this.attackStrength);
-      }
-    }
-
-    // Find idle ships
-    this.idleShipScanTimer -= dt;
-    if (this.idleShipScanTimer <= 0)
-    {
-      this.idleShipScanTimer = this.idleShipScanTime;
-      this.findIdleShips();
-    } 
-
-    // Update existing projects
-    for (var i = 0; i < this.projects.length; ++i)
-    {
-      this.projects[i].update(dt);
-      if (this.projects[i].complete)
-        this.projects[i] = null;
-    }
-    this.projects = this.projects.filter(function(val) {return val !== null;});
-  };
-});
-
-
-})();
-(function()
-{
-
-TANK.registerComponent("AIFaction3")
-.includes("Faction")
-.construct(function()
-{
-  this.name = "trevor";
-
-  this.idleShipScanTime = 5;
-  this.idleShipScanTimer = 0;
-  this.idleShips = [];
-})
-.initialize(function()
-{
-  var faction = this._entity.Faction;
-  var that = this;
-
-  this.calculateThreatAtPos = function(pos, radius, targetFaction)
-  {
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    var threat = 0;
-    for (var i in ships)
-    {
-      if (targetFaction && ships[i].Ship.faction !== targetFaction)
-        continue;
-      else if (!targetFaction && ships[i].Ship.faction === faction)
-        continue;
-
-      var dist = TANK.Math2D.pointDistancePoint(pos, [ships[i].Pos2D.x, ships[i].Pos2D.y]);
-      if (dist < radius)
-        threat += ships[i].Ship.shipData.threat;
-    }
-
-    return threat;
-  };
-
-  this.findIdleShips = function()
-  {
-    this.idleShips = [];
-    var ships = TANK.main.getChildrenWithComponent("AIShip");
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction === faction && ships[i].AIShip.idle)
-        this.idleShips.push(ships[i]);
-    }
-  };
-
-  this.say = function(message)
-  {
-    console.log("AI " + this.name + "(" + faction.team + "): " + message);
-  };
-
-  this.update = function(dt)
-  {
-    // Find idle ships
-    this.idleShipScanTimer -= dt;
-    if (this.idleShipScanTimer <= 0)
-    {
-      this.idleShipScanTimer = this.idleShipScanTime;
-      this.findIdleShips();
-    } 
-
-
-  };
-});
-
-})();
-function AIProject(aiFaction)
 {
   this.target = null;
-  this.shipsQueued = 0;
-  this.shipsRequired = [];
-  this.ready = false;
-  this.inProgress = false;
-  this.complete = false;
-
-  var faction = aiFaction._entity.Faction;
-
-  this.completeCondition = function()
-  {
-    return false;
-  };
-
-  this.buildCombatGroup = function(threat)
-  {
-    var tries = 50;
-    var selectedShip = null;
-    do
-    {
-      --tries;
-
-      // Find the ship with the closest threat level
-      selectedShip = null;
-      var highestThreat = 0;
-      for (var i in Ships)
-      {
-        var shipData = new Ships[i];
-        if (shipData.threat <= threat && shipData.threat > highestThreat)
-        {
-          highestThreat = shipData.threat;
-          selectedShip = i;
-        }
-      }
-
-      // Add the selected ship
-      if (selectedShip)
-      {
-        threat -= highestThreat;
-        this.shipsRequired.push({type: selectedShip});
-      }
-    } while (threat > 0 && selectedShip);
-  };
-
-  this.buildShipsForThreat = function(threat)
-  {
-    // Find current strength
-    var currentStrength = 0;
-    for (var i = 0; i < this.shipsRequired.length; ++i)
-    {
-      var shipData = new Ships[this.shipsRequired[i].type]();
-      currentStrength += shipData.threat;
-    }
-
-    // Add ships to match threat
-    if (currentStrength < threat)
-    {
-      var diff = threat - currentStrength;
-      this.buildCombatGroup(diff);
-    }
-  };
-
-  this.acquireShips = function()
-  {
-    // Assign any existing idle ships
-    for (var i = 0; i < this.shipsRequired.length; ++i)
-    {
-      for (var j = 0; j < aiFaction.idleShips.length; ++j)
-      {
-        if (!this.shipsRequired[i].assignedShip && aiFaction.idleShips[j] && aiFaction.idleShips[j].Ship.shipData.type === this.shipsRequired[i].type)
-        {
-          this.shipsRequired[i].assignedShip = aiFaction.idleShips[j];
-          aiFaction.idleShips[j] = null;
-          break;
-        }
-      }
-    }
-    aiFaction.idleShips = aiFaction.idleShips.filter(function(val) {return val !== null;});
-
-    // Queue ships for construction to fill remaining places
-    var that = this;
-    for (var i = 0; i < this.shipsRequired.length; ++i)
-    {
-      if (!this.shipsRequired[i].assignedShip)
-      {
-        ++this.shipsQueued;
-        aiFaction._entity.Faction.buyShip(this.shipsRequired[i].type, function(e, requiredShip)
-        {
-          requiredShip.assignedShip = e;
-        }, this.shipsRequired[i]);
-      }
-    }
-  };
-
-  this.refresh = function()
-  {
-    this.inProgress = false;
-    this.ready = false;
-    this.acquireShips();
-  };
-
-  this.update = function(dt)
-  {
-    // Check if the project is ready
-    if (!this.inProgress && this.shipsRequired.length > 0)
-    {
-      this.ready = true;
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        if (!this.shipsRequired[i].assignedShip)
-          this.ready = false;
-      }
-    }
-
-    // Once the project is ready, assign allocated ships to the target
-    if (this.ready && !this.inProgress)
-    {
-      this.inProgress = true;
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        this.shipsRequired[i].assignedShip.AIShip.giveContextOrder(this.target);
-      }
-    }
-
-    // Check if the project is complete
-    this.complete = this.completeCondition.call(this);
-    if (this.complete)
-    {
-      // If so, cancel all orders for the assigned ships
-      for (var i = 0; i < this.shipsRequired.length; ++i)
-      {
-        var item = this.shipsRequired[i];
-        if (item.assignedShip && TANK.main.getChild(item.assignedShip._id))
-        {
-          item.assignedShip.AIShip.clearOrders();
-        }
-      }
-    }
-  };
-};
-TANK.registerComponent("AIShip")
-
-.includes(["Ship"])
-
-.construct(function()
-{
-  this.idle = true;
-  this.actions = [];
-  this.removedActions = [];
+  this.attackDistanceMin = 450;
+  this.attackDistanceMax = 600;
+  this.giveUpTimer = 5;
 })
 
 .initialize(function()
@@ -753,114 +14,9 @@ TANK.registerComponent("AIShip")
   var v = this._entity.Velocity;
   var ship = this._entity.Ship;
 
-  // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
-  {
-
-  });
-
-  // Get the name of a context order
-  this.getContextOrder = function(target)
-  {
-    if (!target)
-      return null;
-
-    // Do something with a ship
-    if (target.Ship)
-    {
-      // Attack the ship if it is an enemy
-      if (target.Ship.faction.team !== ship.faction.team)
-        return "Attack";
-      else
-        return "Escort";
-    }
-    // Go to a control point
-    else if (target.ControlPoint)
-    {
-      if (!target.ControlPoint.faction || target.ControlPoint.faction.team !== ship.faction.team)
-        return "Capture";
-      else
-        return "Defend";
-    }
-
-    return null;
-  };
-
-  // Handle being given an order to do something with an object
-  this.giveContextOrder = function(target)
-  {
-    if (!target)
-      return;
-
-    // Do something with a ship
-    if (target.Ship)
-    {
-      this.clearOrders();
-      // Attack the ship if it is an enemy
-      if (target.Ship.faction.team != ship.faction.team)
-        this.addOrder(new Action.AIAttack(this._entity, target));
-      // Otherwise, escort the ship
-      else
-        this.addOrder(new Action.AIEscort(this._entity, target));
-    }
-    // Go to a control point
-    else if (target.ControlPoint)
-    {
-      this.clearOrders();
-      if (!target.ControlPoint.faction || target.ControlPoint.faction.team !== ship.faction.team)
-        this.addOrder(new Action.AIDefend(this._entity, target));
-      else
-        this.addOrder(new Action.AIDefend(this._entity, target));
-    }
-  };
-
-  // Add an action to the queue
-  this.addOrder = function(order)
-  {
-    this.actions.push(order);
-    this.idle = false;
-  };
-
-  // Clear the current queue of orders
-  this.clearOrders = function()
-  {
-    this.actions = [];
-  };
-
-  this.update = function(dt)
-  {
-    // If we have no orders, go defend the nearest control point
-    if (this.actions.length === 0)
-    {
-      this.addOrder(new Action.AIDefendNearest(this._entity));
-      this.idle = true;
-    }
-
-    // Run current orders
-    if (this.actions.length > 0)
-    {
-      var done = this.actions[0].update(dt);
-      if (done || this.actions[0]._done === true)
-        this.actions.splice(0, 1);
-    }
-
-    // Always scan for enemies in range and fire guns if they come within
-    // sights
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    for (var i in ships)
-    {
-      // Skip ships on our team
-      var e = ships[i];
-      if (e.Ship.faction.team === ship.faction.team)
-        continue;
-
-      // Try to shoot at this ship if it is in range
-      if (TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [t.x, t.y]) <= this._entity.Weapons.maxRange)
-        this.fireGunsAtTarget(e);
-    }
-  };
-
+  //
   // Attempt to fire guns at a given target, if it is in our sights
+  //
   this.fireGunsAtTarget = function(target)
   {
     var targetPos = [target.Pos2D.x, target.Pos2D.y];
@@ -889,54 +45,209 @@ TANK.registerComponent("AIShip")
       }
     }
   };
-});
-TANK.registerComponent("AIWatch")
 
-.includes("AIShip")
+  //
+  // Update
+  //
+  this.update = function(dt)
+  {
+    // Check if target still exists
+    if (!this.target || !TANK.main.getChild(this.target._id))
+    {
+      this.giveUpTimer -= dt;
+      if (this.giveUpTimer < 0)
+        return true;
+    }
+
+    // Get direction to target
+    var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
+    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
+    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
+
+    // Shoot
+    this.fireGunsAtTarget(this.target);
+
+    // We should move to engage the target
+    // Depending on the layout of our ship, this either means attempting
+    // to line up a broadside, or aligning our fore-guns with the target
+    // If we are too close we should turn to get farther away
+    if (targetDist < this.attackDistanceMin)
+    {
+      ship.heading = targetDir + Math.PI;
+      ship.setSpeedPercent(0.5);
+    }
+    // We want to get to a minimum distance from the target before attempting to aim at it
+    else if (targetDist > this.attackDistanceMax)
+    {
+      ship.heading = targetDir;
+      ship.setSpeedPercent(1);
+    }
+    else
+    {
+      // Aim at a right angle to the direction to the target, to target with a broadside
+      ship.heading = targetDir + ship.shipData.optimalAngle;
+
+      // Slow down to half speed while circling
+      ship.setSpeedPercent(0.5);
+    }
+  };
+});
+
+TANK.registerComponent('AIAttackPlayer')
+.includes(['Ship', 'RemoveOnLevelChange'])
+.initialize(function()
+{
+  this.update = function(dt)
+  {
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = TANK.main.Game.player;
+    this._entity.removeComponent('AIAttackPlayer');
+  };
+});
+TANK.registerComponent('AICivilian')
+.includes(['Ship', 'RemoveOnLevelChange'])
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ship = this._entity.Ship;
+  var targetDir = Math.atan2(0 - t.y, 0 - t.x);
+  ship.heading = targetDir;
+  ship.setSpeedPercent(0.5);
+
+  this.listenTo(this._entity, 'damaged', function(amount, direction, position, owner)
+  {
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = owner;
+    this._entity.removeComponent('AICivilian');
+  });
+});
+TANK.registerComponent('Asteroid')
+
+.includes(['LightingAndDamage', 'Velocity', 'PixelCollider', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
-  this.watchRange = 1000;
+  this.zdepth = 1;
 })
 
 .initialize(function()
 {
   var t = this._entity.Pos2D;
-  var ship = this._entity.Ship;
+  var v = this._entity.Velocity;
 
-  this.evaluateTarget = function(e)
+  TANK.main.Renderer2D.add(this);
+
+  this.resource = TANK.main.Resources.get('asteroid-01');
+
+  // Set up collision
+  this._entity.PixelCollider.collisionLayer = 'asteroids';
+  this._entity.PixelCollider.collidesWith = ['bullets'];
+  this._entity.PixelCollider.setImage(this.resource.diffuse);
+
+  // Set up lighting
+  this._entity.LightingAndDamage.setResource(this.resource);
+
+  v.x = (Math.random() - 0.5) * 16;
+  v.y = (Math.random() - 0.5) * 16;
+  v.r = (Math.random() - 0.5) * 0.5;
+  t.r = Math.random() * Math.PI * 2;
+
+  //
+  // Collision response
+  //
+  this.listenTo(this._entity, 'collide', function(obj, pixelPos)
   {
-    if (e.Ship.faction.team === ship.faction.team)
-      return;
+    var objPos = [obj.Pos2D.x, obj.Pos2D.y];
+    var bullet = obj.Bullet;
 
-    var targetPos = [e.Pos2D.x, e.Pos2D.y];
-    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
-    if (targetDist < this.watchRange && !(this._entity.AIShip.actions[0] instanceof Action.AIAttack))
+    if (bullet && bullet.owner !== this._entity)
     {
-      this._entity.AIShip.prependAction(new Action.AIAttack(this._entity, e));
+      // Do damage
+      obj.Life.life = 0;
+      this._entity.LightingAndDamage.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
+
+      // Spawn effect
+      ParticleLibrary.damageMedium(objPos[0], objPos[1], obj.Pos2D.rotation + Math.PI);
     }
+  });
+
+  //
+  // Draw code
+  //
+  this.draw = function(ctx, camera)
+  {
+    // Set up transform
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+    ctx.rotate(t.rotation);
+    ctx.translate(this.resource.diffuse.width / -2, this.resource.diffuse.height / -2);
+
+    // Draw the main buffer
+    this._entity.LightingAndDamage.redraw();
+    ctx.drawImage(this._entity.LightingAndDamage.mainBuffer.canvas, 0, 0);
+
+    ctx.restore();
   };
+});
+TANK.registerComponent('AsteroidField')
+
+.includes(['RemoveOnLevelChange'])
+
+.construct(function()
+{
+  this.numAsteroids = 10;
+  this.size = [5000, 5000];
+  this.asteroids = [];
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'numAsteroids', 20);
+  serializer.property(this, 'size', [10000, 10000]);
+})
+
+.initialize(function()
+{
+  var rng = new RNG();
+  for (var i = 0; i < this.numAsteroids; ++i)
+  {
+    var e = TANK.createEntity('Asteroid');
+    e.Pos2D.x = rng.random(-this.size[0] / 2, this.size[0] / 2);
+    e.Pos2D.y = rng.random(-this.size[1] / 2, this.size[1] / 2);
+    TANK.main.addChild(e);
+    this.asteroids.push(e);
+  }
 
   this.update = function(dt)
   {
-    // Iterate over ships and see if any enemies are nearby
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    for (var i in ships)
+    for (var i = 0; i < this.asteroids.length; ++i)
     {
-      this.evaluateTarget(ships[i]);
+      var e = this.asteroids[i];
+      if (e.Pos2D.x > this.size[0] / 2)
+        e.Pos2D.x = -this.size[0] / 2;
+      else if (e.Pos2D.y > this.size[1] / 2)
+        e.Pos2D.y = -this.size[1] / 2;
+      else if (e.Pos2D.x < -this.size[0] / 2)
+        e.Pos2D.x = this.size[0] / 2;
+      else if (e.Pos2D.y < -this.size[1] / 2)
+        e.Pos2D.y = this.size[1] / 2;
     }
   };
 });
-TANK.registerComponent("Bullet")
+TANK.registerComponent('Bullet')
 
-.includes(["Pos2D", "Velocity", "Collider2D", "Life"])
+.includes(['Pos2D', 'Velocity', 'Collider2D', 'Life'])
 
 .construct(function()
 {
   this.zdepth = 2;
   this.owner = null;
   this.damage = 0.2;
-  this.trailEffect = "mediumRailTrail";
+  this.trailEffect = 'mediumRailTrail';
+  this.damageEffect = 'damageMedium';
   this.size = 3;
 })
 
@@ -944,58 +255,11 @@ TANK.registerComponent("Bullet")
 {
   var t = this._entity.Pos2D;
 
-  this._entity.Collider2D.collisionLayer = "bullets";
-  this._entity.Collider2D.collidesWith = ["ships"];
+  this._entity.Collider2D.collisionLayer = 'bullets';
 
   this.trailEmitter = ParticleLibrary[this.trailEffect]();
 
   TANK.main.Renderer2D.add(this);
-
-  this.listenTo(this._entity, "collide", function(obj)
-  {
-    if (this.owner === obj)
-      return;
-
-    // Special ship collision logic
-    var hit = true;
-    if (obj.Ship)
-    {
-      hit = false;
-      if (this.owner.Ship && this.owner.Ship.faction === obj.Ship.faction)
-        return;
-
-      var testPos = [t.x, t.y];
-      var shipPos = [obj.Pos2D.x, obj.Pos2D.y];
-      var shipHalfSize = TANK.Math2D.scale([obj.Ship.collisionBuffer.width / 2, obj.Ship.collisionBuffer.height / 2], TANK.main.Game.scaleFactor);
-      testPos = TANK.Math2D.subtract(testPos, shipPos);
-      testPos = TANK.Math2D.rotate(testPos, -obj.Pos2D.rotation);
-      testPos = TANK.Math2D.add(testPos, shipHalfSize);
-      testPos = TANK.Math2D.scale(testPos, 1 / TANK.main.Game.scaleFactor);
-      var p = obj.Ship.collisionBuffer.getPixel(testPos[0], testPos[1]);
-      if (p[3] > 0)
-      {
-        // Do damage
-        obj.dispatch("damaged", this.damage, [this._entity.Velocity.x, this._entity.Velocity.y], [t.x, t.y], this.owner);
-        this._entity.Life.life = 0;
-        this.stopListeningTo(this._entity, "collide");
-        obj.Ship.addDamage(testPos[0], testPos[1], this.damage * (30 + Math.random() * 30));
-
-        // Spawn effect
-        ParticleLibrary.damageMedium(t.x, t.y, t.rotation + Math.PI);
-        hit = true;
-      }
-    }
-
-    if (!hit)
-      return;
-
-    // Shake screen if on camera
-    var camera = TANK.main.Renderer2D.camera;
-    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
-    if (dist < 1) dist = 1;
-    if (dist < window.innerWidth / 2)
-      TANK.main.dispatch("camerashake", 0.1 / dist);
-  });
 
   this.update = function(dt)
   {
@@ -1009,11 +273,10 @@ TANK.registerComponent("Bullet")
   this.draw = function(ctx, camera)
   {
     ctx.save();
-    ctx.globalCompositeOperation = "lighten";
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(1, 2);
     ctx.rotate(t.rotation);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(0, 0, this.size, Math.PI * 2, false);
     ctx.fill();
@@ -1026,644 +289,202 @@ TANK.registerComponent("Bullet")
 {
   TANK.main.removeChild(this.trailEmitter);
 });
-TANK.registerComponent("CampaignMap")
+TANK.registerComponent('CircleCollider')
 
 .construct(function()
 {
-  this.zdepth = 0;
-  this.barCommands = [];
-  this.currentPlayer = null;
-  this.currentTurn = 0;
-  this.turnsTaken = -1;
+  this.width = 10;
+  this.height = 10;
+  this.collisionLayer = '';
+  this.collidesWith = [];
+
+  this.radius = 5;
+
+  this.setRadius = function(radius)
+  {
+    var space = this._entity.getFirstParentWithComponent('CollisionManager');
+    if (this.image)
+      space.CollisionManager.remove(this);
+
+    this.radius = radius;
+    this.width = radius * 2;
+    this.height = this.width;
+
+    space.CollisionManager.add(this);
+  };
+
+  this.testCollision = function(other)
+  {
+    var t = this._entity.Pos2D;
+    var selfPos = [t.x, t.y];
+    var otherPos = [other._entity.Pos2D.x, other._entity.Pos2D.y];
+
+    return TANK.Math2D.pointDistancePoint(selfPos, otherPos) <= this.radius * TANK.main.Game.scaleFactor;
+  };
 })
 
 .initialize(function()
 {
-  var that = this;
-  this.systems = TANK.main.MapGeneration.systems;
+
+});
+TANK.registerComponent('Clouds')
+
+.includes(['RemoveOnLevelChange'])
+
+.construct(function()
+{
+  this.clouds = [];
+  this.heightMap = [];
+  this.zdepth = 5;
+
+  this.numClouds = 1;
+  this.fieldSize = [8750, 8750];
+  this.cloudColor = [255, 255, 255];
+  this.cloudSize = 512;
+  this.cloudScale = 3;
+  this.noiseFreq = 0.008 + Math.random() * 0.004;
+  this.noiseAmplitude = 0.5 + Math.random() * 0.3;
+  this.noisePersistence = 0.7 + Math.random() * 0.29;
+  this.noiseOctaves = 2;
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'numClouds', 100);
+  serializer.property(this, 'cloudColor', [255, 255, 255]);
+})
+
+.initialize(function()
+{
+  this.pixelBuffer = new PixelBuffer();
+  this.pixelBuffer.createBuffer(this.cloudSize, this.cloudSize);
+
   TANK.main.Renderer2D.add(this);
 
-  // Build bottom command bar ractive
-  this.barCommands = [];
-  this.barUI = new Ractive(
+  // Iterate over every pixel
+  this.forEachPixel = function(func)
   {
-    el: 'barContainer',
-    template: '#barTemplate',
-    data: {commands: this.barCommands}
-  });
+    for (var i = 0; i < this.cloudSize; ++i)
+    {
+      for (var j = 0; j < this.cloudSize; ++j)
+      {
+        func.apply(this, [i, j]);
+      }
+    }
+  };
 
-  this.barCommands.push(
+  //
+  // Generate the cloud
+  //
+
+  // Fill heightmap
+  for (var i = 0; i < this.cloudSize; ++i)
   {
-    name: 'Fortify System',
-    active: false,
-    activate: function()
-    {
-      that.mode = 'fortify';
-    }
-  });
-  this.barCommands.push(
+    this.heightMap[i] = [];
+    for (var j = 0; j < this.cloudSize; ++j)
+      this.heightMap[i][j] = 0;
+  }
+
+  // Calculate height map
+  noise.seed(Math.random());
+  for (var n = 0; n < this.noiseOctaves; ++n)
   {
-    name: 'Attack System',
-    active: false,
-    activate: function()
+    this.forEachPixel(function(i, j)
     {
-      that.mode = 'attack';
-    }
-  });
-  this.barCommands.push(
-  {
-    name: 'Move Flagship',
-    active: false,
-    activate: function()
-    {
-      that.mode = 'move';
-    }
-  });
-  this.barUI.on('activate', function(e)
-  {
-    that.barCommands.forEach(function(cmd)
-    {
-      cmd.active = false;
+      this.heightMap[i][j] += noise.perlin2(i * this.noiseFreq, j * this.noiseFreq) * this.noiseAmplitude;
     });
-    e.context.active = true;
-    e.context.activate();
-    that.barUI.update();
+    this.noiseAmplitude *= this.noisePersistence;
+    this.noiseFreq *= 2;
+  }
+
+  // Normalize height map to [0, 1]
+  this.heighestPoint = -Infinity;
+  this.lowestPoint = Infinity;
+  this.forEachPixel(function(i, j)
+  {
+    this.heighestPoint = Math.max(this.heighestPoint, this.heightMap[i][j]);
+    this.lowestPoint = Math.min(this.lowestPoint, this.heightMap[i][j]);
+  });
+  this.forEachPixel(function(i, j)
+  {
+    this.heightMap[i][j] = (-this.lowestPoint + this.heightMap[i][j]) / (-this.lowestPoint + this.heighestPoint);
+  });
+  this.forEachPixel(function(i, j)
+  {
+    this.heightMap[i][j] = Math.round(this.heightMap[i][j] * 100) / 100;
   });
 
-  //
-  // Go to next turn
-  //
-  this.nextTurn = function()
+  // Fade out height map based on distance
+  this.forEachPixel(function(i, j)
   {
-    ++this.turnsTaken;
-    this.currentTurn = this.turnsTaken % TANK.main.Game.players.length;
-    this.currentPlayer = TANK.main.Game.players[this.currentTurn];
-    if (!this.currentPlayer.player)
-    {
-      this.startAITurn();
-    }
-  };
-
-  //
-  // Turn taking methods
-  //
-  this.startAttack = function(system)
-  {
-    // Check that the system isn't owned by the attacker
-    if (system.owner === this.currentPlayer)
-    {
-      return;
-    }
-
-    // Check that the system has an adjacent system owned by attacker
-    var hasAdjacentOwned = false;
-    for (var j = 0; j < system.edges.length; ++j)
-      if (system.edges[j].owner === this.currentPlayer)
-        hasAdjacentOwned = true;
-
-    if (hasAdjacentOwned)
-    {
-      system.isBeingAttacked = true;
-      TANK.main.dispatchTimed(2, 'completeTurn', 'attack', system);
-    }
-  };
-
-  this.startFortify = function(system)
-  {
-    // Check that system is owned by turn taker
-    if (system.owner !== this.currentPlayer)
-    {
-      return;
-    }
-
-    system.isBeingFortified = true;
-    TANK.main.dispatchTimed(2, 'completeTurn', 'fortify', system);
-  };
-
-  this.startMove = function(system)
-  {
-    // Check that an adjacent system has a flagship
-    var flagshipSystem;
-    var flagshipIndex;
-    for (var i = 0; i < system.edges.length; ++i)
-    {
-      if (system.edges[i].flagships[this.currentTurn])
-      {
-        flagshipSystem = system.edges[i];
-        break;
-      }
-    }
-
-    if (flagshipSystem)
-    {
-      flagshipSystem.flagships[this.currentTurn] = false;
-      system.flagships[this.currentTurn] = true;
-    }
-
-    TANK.main.dispatchTimed(2, 'completeTurn', 'move', system);
-  };
-
-  //
-  // AI Turn Logic
-  //
-  this.startAITurn = function()
-  {
-    console.log('AI Turn...');
-
-    var modes = ['attack', 'fortify', 'move'];
-    var choice = Math.floor(Math.random() * 3);
-    var mode = modes[choice];
-
-    TANK.main.dispatchTimed(2, 'takeAITurn', mode);
-  };
-
-  this.aiTurnAttack = function()
-  {
-    console.log('AI attacked');
-
-    // Find a player owned node with an adjacent enemy node
-    var attackSystem = null;
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      if (system.owner !== this.currentPlayer)
-        continue;
-
-      system.edges.forEach(function(s)
-      {
-        if (s.owner !== that.currentPlayer)
-          attackSystem = s;
-      });
-
-      if (attackSystem)
-        break;
-    }
-
-    if (attackSystem)
-    {
-      this.startAttack(attackSystem);
-    }
-    else
-    {
-      console.log('Couldn\'t find a system to attack');
-    }
-  };
-
-  this.aiTurnFortify = function()
-  {
-    // Find AI owned systems
-    var aiOwnedSystems = [];
-    for (var i = 0; i < this.systems.length; ++i)
-      if (this.systems[i].owner === this.currentPlayer)
-        aiOwnedSystems.push(this.systems[i]);
-
-    // No systems to fortify
-    if (!aiOwnedSystems.length)
-    {
-      console.log('Couldn\'t find a system to fortify');
-      return;
-    }
-
-    // Pick a random system and fortify it
-    var system = aiOwnedSystems[Math.floor(Math.random() * aiOwnedSystems.length)];
-    this.startFortify(system);
-  };
-
-  this.aiTurnMove = function()
-  {
-    // Find current flagship pos
-    var flagshipSystem;
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      if (this.systems[i].flagships[this.currentTurn])
-      {
-        flagshipSystem = this.systems[i];
-        break;
-      }
-    }
-
-    // Just try again if we have no flagship
-    if (!flagshipSystem)
-    {
-      this.startAITurn();
-      return;
-    }
-
-    // Pick an edge to move flagship to
-    var index = Math.floor(Math.random() * flagshipSystem.edges.length);
-    var system = flagshipSystem.edges[index];
-
-    this.startMove(system);
-  };
-
-  this.listenTo(TANK.main, 'takeAITurn', function(mode)
-  {
-    if (mode === 'attack')
-      this.aiTurnAttack();
-    else if (mode === 'fortify')
-      this.aiTurnFortify();
-    else if (mode === 'move')
-      this.aiTurnMove();
+    var dist = TANK.Math2D.pointDistancePoint([i, j], [this.cloudSize / 2, this.cloudSize / 2]);
+    this.heightMap[i][j] *= 1 - (dist / (this.cloudSize / 2 + 2));
   });
 
-  this.listenTo(TANK.main, 'completeTurn', function(mode, system)
+  // Set pixels based on height
+  this.forEachPixel(function(i, j)
   {
-    TANK.main.Renderer2D.camera.z = 1;
-    TANK.main.Renderer2D.camera.x = 0;
-    TANK.main.Renderer2D.camera.y = 0;
+    var color = this.cloudColor.slice();
+    color.push(Math.floor(this.heightMap[i][j] * 255));
+    this.pixelBuffer.setPixel(i, j, color);
+  });
 
-    this.barCommands.forEach(function(cmd)
+  this.pixelBuffer.applyBuffer();
+
+  //
+  // Generate cloud positions
+  //
+  var rng = new RNG();
+  for (var i = 0; i < this.numClouds; ++i)
+  {
+    this.clouds.push(
     {
-      cmd.active = false;
+      x: rng.random(-this.fieldSize[0] / 2, this.fieldSize[1] / 2),
+      y: rng.random(-this.fieldSize[0] / 2, this.fieldSize[1] / 2),
+      z: 0.2 + Math.random() * 0.8,
+      r: Math.random() * Math.PI * 2
     });
-    this.barUI.update();
-    this.mode = '';
+  }
 
-    if (mode === 'attack')
-    {
-      TANK.main.Game.goToSystemBattle(system, system.owner, this.currentPlayer);
-      system.isBeingAttacked = false;
-    }
-    else if (mode === 'fortify')
-    {
-      ++system.fortifyLevel;
-      system.isBeingFortified = false;
-      this.nextTurn();
-    }
-    else if (mode === 'move')
-    {
-      this.nextTurn();
-    }
-  });
-
-  //
-  // Handle clicking on a system
-  //
-  this.listenTo(TANK.main, 'mousedown', function(e)
+  this.draw = function(ctx, camera)
   {
-    if (!this.currentPlayer.player)
-      return;
-
-    for (var i = 0; i < this.systems.length; ++i)
+    for (var i = 0; i < this.clouds.length; ++i)
     {
-      var system = this.systems[i];
-      var dist = TANK.Math2D.pointDistancePoint(system.pos, TANK.main.Game.mousePosWorld);
-      if (dist < system.radius)
-      {
-        if (this.mode === 'attack')
-          this.startAttack(system);
-        else if (this.mode === 'fortify')
-          this.startFortify(system);
-        else if (this.mode === 'move')
-          this.startMove(system);
-      }
-    }
-  });
+      var x = (this.clouds[i].x - camera.x * this.clouds[i].z) - window.innerWidth / 2;
+      var y = (this.clouds[i].y - camera.y * this.clouds[i].z) - window.innerHeight / 2;
+      while (x > this.fieldSize[0] / 2)
+        x -= this.fieldSize[0];
+      while (y > this.fieldSize[1] / 2)
+        y -= this.fieldSize[1];
+      while (x < -this.fieldSize[0] / 2)
+        x += this.fieldSize[0];
+      while (y < -this.fieldSize[1] / 2)
+        y += this.fieldSize[1];
 
-  //
-  // Render
-  //
-  this.draw = function(ctx, camera, dt)
-  {
-    ctx.save();
-    ctx.translate(-camera.x, -camera.y);
-
-    // Draw edges
-    var drawnEdges = [];
-    ctx.lineWidth = 3;
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      var owner = system.owner;
-      for (var j = 0; j < system.edges.length; ++j)
-      {
-        var systemB = system.edges[j];
-        if (drawnEdges.indexOf(systemB) >= 0)
-          continue;
-
-        ctx.strokeStyle = owner.color;
-
-        ctx.beginPath();
-        ctx.moveTo(system.pos[0], system.pos[1]);
-        ctx.lineTo(systemB.pos[0], systemB.pos[1]);
-        ctx.stroke();
-        ctx.closePath();
-      }
-      drawnEdges.push(system);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(x, y);
+      ctx.scale(this.cloudScale, this.cloudScale);
+      ctx.rotate(this.clouds[i].r);
+      ctx.translate(-this.cloudSize / 2, -this.cloudSize / 2);
+      ctx.drawImage(this.pixelBuffer.canvas, 0, 0);
+      ctx.restore();
     }
 
-    // Draw systems
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      var owner = system.owner;
-
-      // Draw attack state
-      if (system.isBeingAttacked)
-      {
-        ctx.fillStyle = '#b22';
-        ctx.beginPath();
-        ctx.arc(system.pos[0], system.pos[1], system.radius * 2, Math.PI * 2, false);
-        ctx.fill();
-        ctx.closePath();
-        camera.z *= 0.99;
-        camera.x = camera.x + (system.pos[0] - camera.x) * dt;
-        camera.y = camera.y + (system.pos[1] - camera.y) * dt;
-      }
-
-      // Draw fortify state
-      if (system.isBeingFortified)
-      {
-        ctx.fillStyle = '#55f';
-        ctx.beginPath();
-        ctx.arc(system.pos[0], system.pos[1], system.radius * 2, Math.PI * 2, false);
-        ctx.fill();
-        ctx.closePath();
-      }
-
-      // Draw system
-      ctx.fillStyle = owner.color;
-      ctx.beginPath();
-      ctx.arc(system.pos[0], system.pos[1], system.radius, Math.PI * 2, false);
-      ctx.fill();
-      ctx.closePath();
-
-      // Draw fortify level
-      ctx.fillStyle = '#fff';
-      ctx.font = '18px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(system.fortifyLevel, system.pos[0], system.pos[1]);
-
-      // Draw flagship
-      for (var j = 0; j < TANK.main.Game.players.length; ++j)
-      {
-        var player = TANK.main.Game.players[j];
-        var flagship = system.flagships[j];
-        if (flagship)
-        {
-          ctx.textAlign = 'left';
-          ctx.fillStyle = player.color;
-          ctx.fillText('Flagship', system.pos[0] + system.radius + 10, system.pos[1] + (system.radius) * j);
-        }
-      }
-    }
-
-    ctx.restore();
   };
-
-  //
-  // Go to next turn
-  //
-  this.nextTurn();
 })
 
 .uninitialize(function()
 {
 });
-
-TANK.registerComponent("Clickable")
-
-.includes("Pos2D")
-
-.construct(function()
-{
-  this.width = 0;
-  this.height = 0;
-  this.radius = 0;
-})
-
+TANK.registerComponent('Derelict')
 .initialize(function()
 {
-  var t = this._entity.Pos2D;
-
-  this.checkClick = function(pos)
+  this.listenTo(TANK.main, 'derelictleave', function()
   {
-    if (this.radius)
-    {
-      return TANK.Math2D.pointDistancePoint(pos, [t.x, t.y]) < this.radius;
-    }
-
-    return TANK.Math2D.pointInAABB(pos, [t.x, t.y], [this.width, this.height]);
-  };
+    this._entity.addComponent('AICivilian');
+  });
 });
-TANK.registerComponent('ControlPoint')
-
-.includes(['Planet', 'OrderTarget'])
-
-.construct(function()
-{
-  this.zdepth = 0;
-  this.faction = null;
-  this.value = 5;
-  this.moneyTime = 10;
-  this.moneyTimer = 0;
-  this.scanTimer = 0;
-  this.pendingFaction = null;
-  this.capturePercent = 0;
-  this.captureDistance = 500;
-  this.passiveCapture = 0.05;
-  this.queuedShips = [];
-})
-
-.initialize(function()
-{
-  var t = this._entity.Pos2D;
-
-  TANK.main.Renderer2D.add(this);
-
-  this._entity.Clickable.radius = this._entity.Planet.radius * TANK.main.Game.scaleFactor;
-
-  this.tryCapture = function(faction, amount)
-  {
-    // If no one is trying to capture us currently, start being captured by them
-    if (!this.pendingFaction)
-      this.pendingFaction = faction;
-
-    // If the faction is currently trying to capture us, then increase their capture percent
-    if (this.pendingFaction === faction)
-      this.capturePercent += amount;
-
-    // If the faction is trying to restore us, then decrease the capture percent
-    if (this.pendingFaction && this.pendingFaction.team !== faction.team)
-      this.capturePercent -= amount;
-
-    // If our capture percent reaches 1, transition ownerships
-    if (this.capturePercent >= 1)
-    {
-      this.capturePercent = 0;
-
-      var oldFaction = this.faction;
-
-      // If we are currently owned, move to neutral state
-      // Otherwise, we are now owned by pending faction
-      if (this.faction)
-        this.faction = null;
-      else
-        this.faction = this.pendingFaction;
-
-      this.pendingFaction = null;
-
-      if (oldFaction)
-        oldFaction.removeControlPoint(this);
-      if (this.faction)
-        this.faction.addControlPoint(this);
-
-      if (!this.faction)
-        console.log('Team ' + oldFaction.team + ' lost its control point');
-      else
-        console.log('Team ' + this.faction.team + ' gained a control point');
-    }
-
-    // If our capture percent reaches 0, lose the pending faction
-    if (this.capturePercent <= 0 && this.pendingFaction)
-    {
-      this.capturePercent = 0;
-      this.pendingFaction = null;
-    }
-  };
-
-  this.buyShip = function(shipType, callback, data)
-  {
-    var shipData = new Ships[shipType]();
-
-    if (this.faction.money >= shipData.cost)
-    {
-      this.faction.money -= shipData.cost;
-      this.queuedShips.push({shipData: shipData, time: shipData.buildTime, callback: callback, data: data});
-      return true;
-    }
-
-    return false;
-  };
-
-  this.draw = function(ctx, camera)
-  {
-    if (camera.z >= 8)
-    {
-      // Draw strategic icon
-      ctx.save();
-      ctx.fillStyle = this.faction ? this.faction.color : '#555';
-      ctx.lineWidth = 2;
-      ctx.translate(t.x - camera.x, t.y - camera.y);
-
-      ctx.beginPath();
-      ctx.arc(0, 0, 300, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-    else if (this.faction && this.faction.team === 0)
-    {
-      // Draw queue
-      ctx.save();
-      ctx.fillStyle = '#ddd';
-      ctx.font =  20 * camera.z + 'px sans-serif';
-      ctx.translate(t.x - camera.x, t.y - camera.y);
-      for (var i = 0; i < this.queuedShips.length; ++i)
-      {
-        var timeRemaining = Math.round(this.queuedShips[i].time);
-        ctx.fillText(this.queuedShips[i].shipData.name + ' - ' + timeRemaining + ' seconds', 400, -400 + i * 40);
-      }
-      ctx.restore();
-    }
-  };
-
-  this.update = function(dt)
-  {
-    // Passively re-capture self
-    if (this.capturePercent > 0 && this.faction)
-      this.tryCapture(this.faction, this.passiveCapture * dt);
-
-    // Earn money
-    this.moneyTimer += dt;
-    if (this.moneyTimer >= this.moneyTime)
-    {
-      this.moneyTimer = 0;
-
-      if (this.faction)
-        this.faction.money += this.value;
-    }
-
-    // Scan for nearby friendly ships that would prevent capturing
-    this.scanTimer -= dt;
-    if (this.scanTimer < 0 && this.faction)
-    {
-      this.scanTimer = 3;
-      this.friendliesNearby = false;
-      var ships = TANK.main.getChildrenWithComponent('Ship');
-      for (var i in ships)
-      {
-        var e = ships[i];
-        if (TANK.Math2D.pointDistancePoint([e.Pos2D.x, e.Pos2D.y], [t.x, t.y]) < this.captureDistance)
-        {
-          this.friendliesNearby = true;
-          break;
-        }
-      }
-    }
-
-    // Process build queue
-    if (this.queuedShips.length > 0)
-    {
-      var item = this.queuedShips[0];
-      item.time -= dt;
-      if (item.time <= 0)
-      {
-        var e = TANK.createEntity('AIShip');
-        e.Ship.faction = this.faction;
-        e.Ship.shipData = item.shipData;
-        e.Pos2D.x = t.x - 400 + Math.random() * 800;
-        e.Pos2D.y = t.y - 400 + Math.random() * 800;
-        TANK.main.addChild(e);
-
-        this.queuedShips.splice(0, 1);
-
-        if (item.callback)
-          item.callback(e, item.data);
-      }
-    }
-  };
-});
-TANK.registerComponent("Cursor")
-
-.includes(["Pos2D", "Collider2D"])
-
-.construct(function()
-{
-  this.zdepth = 5;
-})
-
-.initialize(function()
-{
-  // TANK.main.Renderer2D.add(this);
-  this._entity.Collider2D.collisionLayer = "cursors";
-
-  this.update = function(dt)
-  {
-    this.updatePos();
-  };
-
-  this.updatePos = function()
-  {
-    var t = this._entity.Pos2D;
-
-    t.x = TANK.main.Game.mousePosWorld[0];
-    t.y = TANK.main.Game.mousePosWorld[1];
-  };
-
-  this.draw = function(ctx, camera)
-  {
-    var t = this._entity.Pos2D;
-    ctx.save();
-
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(t.x - camera.x - 25, t.y - camera.y - 25, 50, 50);
-
-    ctx.restore();
-  };
-});
-
 TANK.registerComponent("DustField")
 
 .construct(function()
@@ -1715,105 +536,229 @@ TANK.registerComponent("DustField")
   };
 });
 
-TANK.registerComponent("Faction")
+TANK.registerComponent('EndScreen')
 
 .construct(function()
 {
-  this.team = 0;
-  this.color = "#666";
-  this.money = 10;
-  this.controlPoints = [];
-  this.shipsToBuy = [];
+  this.htmlText =
+  [
+    '<div class="main-menu">',
+    '  <div class="menu-title">You made it</div>',
+    '  <div class="end-score"></div>',
+    '  <div class="end-summary">',
+    '  </div>',
+    '  <div class="menu-options">',
+    '    <div class="menu-option menu-option-back">Back</div>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
+
+  this.won = true;
+  this.score = 0;
 })
 
 .initialize(function()
 {
-  this.listenTo(TANK.main, "systemBattleEnd", function()
-  {
-    TANK.main.removeChild(this._entity);
-  });
+  //
+  // Create UI
+  //
+  this.container = document.createElement('div');
+  this.container.innerHTML = this.htmlText;
+  document.body.appendChild(this.container);
 
-  this.listenTo(this._entity, "buyship", function(ship, callback, data)
-  {
-    this.buyShip(ship, callback, data);
-  });
+  this.container.querySelector('.menu-options').style.height = '30%';
 
-  this.buyShip = function(type, callback, data)
-  {
-    // Find a control point with small queue
-    var shortestQueueLength = Infinity;
-    var chosenControlPoint = null;
-    for (var i = 0; i < this.controlPoints.length; ++i)
-    {
-      if (this.controlPoints[i].queuedShips.length < shortestQueueLength)
-      {
-        shortestQueueLength = this.controlPoints[i].queuedShips.length;
-        chosenControlPoint = this.controlPoints[i];
-      }
-    }
+  // Fill out title
+  if (this.won)
+    this.container.querySelector('.menu-title').innerHTML = 'You made it';
+  else
+    this.container.querySelector('.menu-title').innerHTML = 'You died';
 
-    if (chosenControlPoint)
-    {
-      if (!chosenControlPoint.buyShip(type, callback, data))
-      {
-        this._entity.dispatchTimed(5, "buyship", type, callback, data);
-      }
-    }
-  };
+  // Fill out summary
+  this.container.querySelector('.end-score').innerHTML = 'Final score - ' + this.score;
+  this.container.querySelector('.end-summary').innerHTML = 'A summary how the game went.';
 
-  this.addControlPoint = function(controlPoint)
+  //
+  // Handle interactions
+  //
+  var backButton = this.container.querySelector('.menu-option-back');
+  backButton.addEventListener('click', function()
   {
-    controlPoint.faction = this;
-    this.controlPoints.push(controlPoint);
-  };
+    this._entity.dispatch('back');
+  }.bind(this));
+})
 
-  this.removeControlPoint = function(controlPoint)
-  {
-    for (var i = 0; i < this.controlPoints.length; ++i)
-    {
-      if (this.controlPoints[i] === controlPoint)
-      {
-        this.controlPoints.splice(i, 1);
-        break;
-      }
-    }
-  };
+.uninitialize(function()
+{
+  document.body.removeChild(this.container);
 });
-TANK.registerComponent('Game')
+TANK.registerComponent('Engines')
 
-.includes(['MapGeneration'])
+.includes('Pos2D')
+
+.construct(function()
+{
+  this.zdepth = 4;
+  this.engineBuffer = new PixelBuffer();
+  this.color = 'rgba(255, 0, 255, 0)';
+  this.size = [30, 14];
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ship = this._entity.Ship;
+
+  TANK.main.Renderer2D.add(this);
+
+  this.drawEngine = function()
+  {
+    this.engineBuffer.createBuffer(this.size[0], this.size[1]);
+
+    var context = this.engineBuffer.context;
+    var canvas = this.engineBuffer.canvas;
+
+    var c1 = [canvas.width * 0.9, canvas.height / 2, canvas.height * 0.1];
+    var c2 = [canvas.width * 0.75, canvas.height / 2, canvas.height / 2];
+
+    var grad = context.createRadialGradient(c1[0], c1[1], c1[2], c2[0], c2[1], c2[2]);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(1, this.color);
+
+    context.scale(2, 1);
+    context.translate(canvas.width / -2, 0);
+
+    context.fillStyle = grad;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  };
+
+  this.draw = function(ctx, camera)
+  {
+    if (ship.thrustAlpha <= 0)
+      return;
+
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+    ctx.rotate(t.rotation);
+    ctx.translate(ship.resource.diffuse.width / -2, ship.resource.diffuse.height / -2);
+    ctx.globalAlpha = ship.thrustAlpha;
+
+    for (var i = 0; i < ship.shipData.engines.length; ++i)
+    {
+      var engine = ship.shipData.engines[i];
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(this.engineBuffer.width / -1, this.engineBuffer.height / -2);
+      ctx.drawImage(this.engineBuffer.canvas, engine.x, engine.y);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  };
+
+  this.drawEngine();
+});
+var Events = {};
+
+//
+// Null event
+//
+Events.empty =
+{
+  text: 'You appear to be alone.'
+};
+
+//
+// Civilian ship event
+//
+Events.civilian =
+{
+  text: 'Your scanners pick up the signature of a small ship nearby.',
+  spawns: ['civilian']
+};
+
+//
+// Pirate event
+//
+Events.pirate =
+{
+  text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
+  spawns: ['pirate']
+};
+
+//
+// Derelcit event
+//
+Events.derelict =
+{
+  text: 'Your scanners pick up the signature of a mid sized ship, but the signal is much fainter than you would expect. The signal originates from a short distance ahead.',
+  spawns: ['derelict']
+};
+
+Events.derelict_1a =
+{
+  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.'
+};
+
+Events.derelict_1b =
+{
+  text: 'Upon approaching, you are contacted by the ship. The captain informs you that they have been stranded for days, and pleads with you to give them 3 fuel cells so they can return home.',
+  options:
+  [
+    {
+      text: 'Decline, you need all the fuel you\'ve got.',
+      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.'
+    },
+    {
+      text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
+      events:
+      [
+        {probability: 0.5, name: 'derelict_2a'},
+        {probability: 0.5, name: 'derelict_2b'}
+      ]
+    }
+  ]
+};
+
+Events.derelict_2a =
+{
+  text: 'The captain thanks you profusely and speeds off.',
+  dispatchEvent: 'derelictleave'
+};
+
+Events.derelict_2b =
+{
+  text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  dispatchEvent: 'killplayershields',
+  spawns:
+  [
+    'pirate',
+    'pirate'
+  ]
+};
+
+//
+// Test event
+//
+Events.test =
+{
+  text: 'A test event'
+};
+TANK.registerComponent('Game')
 
 .construct(function()
 {
   // Game scale factor
-  this.scaleFactor = 3;
-
-  // Current existing factions
-  this.players =
-  [
-    {
-      player: true,
-      color: '#3c3',
-      battleAI: 'Faction',
-      team: 0,
-    },
-    {
-      player: false,
-      color: '#d55',
-      battleAI: 'AIFaction2',
-      team: 1
-    }
-  ];
-  this.player = this.players[0];
+  this.scaleFactor = 2;
+  this.volume = 0.5;
 
   // Menu options
   this.menuOptions = [];
-  this.levelOptions = [];
-  this.menuObjects = [];
 
-  // Command options
-  this.barCommands = [];
-  this.topBarItems = [];
+  // Event log
+  this.eventLogs = [];
 
   // Mouse positions
   this.mousePosWorld = [0, 0];
@@ -1822,36 +767,75 @@ TANK.registerComponent('Game')
   // Global light direction
   this.lightDir = 0;
 
-  // Level settings
-  this.currentSystem = null;
-  this.pendingLoad = false;
-
-  this.aiArenaMode = false;
+  this.playerShipSelection = 'frigate';
 })
 
 .initialize(function()
 {
   var that = this;
+  var resources = this._entity.Resources;
+
+  // Configure Lightr
+  Lightr.minLightIntensity = 0.2;
+  Lightr.lightDiffuse = [0.8, 0.8, 1];
 
   //
-  // Build up bar commands
+  // Load resources
   //
-  for (var i in Ships)
+  function loadLighting(name, path, resources, doneCallback)
   {
-    var shipData = new Ships[i]();
-    this.barCommands.push(
-    {
-      name: 'Build ' + shipData.name,
-      shipType: i,
-      activate: function()
-      {
-        that.player.faction.buyShip(this.shipType);
-      }
-    });
-  }
+    var res = {};
+    res.diffuse = resources.get(name + '-diffuse');
+    res.normals = resources.get(name + '-normals');
+    res.lightBuffers = Lightr.bake(6, res.diffuse, res.normals);
+    doneCallback(res);
+  };
 
-  // Money counter
-  this.topBarItems.push({name: ''});
+  resources.add('asteroid-01-diffuse', 'res/img/asteroid-01-diffuse.png');
+  resources.add('asteroid-01-normals', 'res/img/asteroid-01-normals.png');
+  resources.add('asteroid-01', null, ['asteroid-01-diffuse', 'asteroid-01-normals'], loadLighting);
+
+  resources.add('fighter-diffuse', 'res/img/fighter.png');
+  resources.add('fighter-normals', 'res/img/fighter-normals.png');
+  resources.add('fighter', null, ['fighter-diffuse', 'fighter-normals'], loadLighting);
+
+  resources.add('bomber-diffuse', 'res/img/bomber.png');
+  resources.add('bomber-normals', 'res/img/bomber-normals.png');
+  resources.add('bomber', null, ['bomber-diffuse', 'bomber-normals'], loadLighting);
+
+  resources.add('frigate-diffuse', 'res/img/frigate.png');
+  resources.add('frigate-normals', 'res/img/frigate-normals.png');
+  resources.add('frigate', null, ['frigate-diffuse', 'frigate-normals'], loadLighting);
+
+  resources.add('ship-blade-diffuse', 'res/img/ship-blade-diffuse.png');
+  resources.add('ship-blade-normals', 'res/img/ship-blade-normals.png');
+  resources.add('ship-blade', null, ['ship-blade-diffuse', 'ship-blade-normals'], loadLighting);
+
+  resources.add('ship-albatross-diffuse', 'res/img/ship-albatross-diffuse.png');
+  resources.add('ship-albatross-normals', 'res/img/ship-albatross-normals.png');
+  resources.add('ship-albatross', null, ['ship-albatross-diffuse', 'ship-albatross-normals'], loadLighting);
+
+  resources.add('ship-rhino-diffuse', 'res/img/ship-rhino-diffuse.png');
+  resources.add('ship-rhino-normals', 'res/img/ship-rhino-normals.png');
+  resources.add('ship-rhino', null, ['ship-rhino-diffuse', 'ship-rhino-normals'], loadLighting);
+
+  resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
+  resources.add('station-01-normals', 'res/img/station-01-normals.png');
+  resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);
+
+  //
+  // Rebuild lighting
+  //
+  this.rebuildLighting = function()
+  {
+    var resMap = resources.getAll();
+    for (var i in resMap)
+    {
+      var res = resMap[i];
+      if (res.lightBuffers)
+        res.lightBuffers = Lightr.bake(8, res.diffuse, res.normals);
+    }
+  };
 
   //
   // Save the current game
@@ -1859,21 +843,15 @@ TANK.registerComponent('Game')
   this.save = function(slot)
   {
     var save = {};
-    save.currentTurn = this.campaignObject.CampaignMap.currentTurn;
-    save.turnsTaken = this.campaignObject.CampaignMap.turnsTaken;
-    save.systems = TANK.main.MapGeneration.save();
     localStorage['save-' + slot] = JSON.stringify(save);
   };
 
   //
-  // Load the current game
+  // Load a save slot
   //
   this.load = function(slot)
   {
     var save = JSON.parse(localStorage['save-' + slot]);
-    this.currentTurn = save.currentTurn;
-    this.turnsTaken = save.turnsTaken;
-    TANK.main.MapGeneration.load(save.systems);
   };
 
   //
@@ -1896,355 +874,307 @@ TANK.registerComponent('Game')
   //
   this.goToMainMenu = function()
   {
-    if (this.campaignObject)
-      TANK.main.removeChild(this.campaignObject);
-
-    var save = localStorage['save'];
-
-    // Build menu options
-    this.menuOptions = [];
-    this.menuOptions.push(
-    {
-      name: 'New Game',
-      activate: function()
-      {
-        that.menuUI.teardown();
-        TANK.main.MapGeneration.generateMap();
-        that.goToCampaignMap();
-        that.menuObjects.forEach(function(obj)
-        {
-          TANK.main.removeChild(obj);
-        });
-        that.menuObjects = [];
-      }
-    });
-    this.menuOptions.push(
-    {
-      name: 'Options',
-      activate: function()
-      {
-      }
-    });
-    this.menuOptions.push(
-    {
-      name: 'Quit',
-      activate: function()
-      {
-      }
-    });
-
-    // Build main menu ractive
-    this.menuUI = new Ractive(
-    {
-      el: 'menuContainer',
-      template: '#menuTemplate',
-      data: {options: this.menuOptions}
-    });
-
-    // Set ractive event listeners
-    this.menuUI.on('activate', function(e)
-    {
-      e.context.activate();
-    });
-
-    // Build main menu scene
-    this.lightDir = Math.random() * Math.PI * 2;
-
-    var planet = TANK.createEntity('Planet');
-    planet.Pos2D.x = 0;
-    planet.Pos2D.y = -400;
-    TANK.main.addChild(planet);
-    this.menuObjects.push(planet);
-
-    var moon = TANK.createEntity('Planet');
-    moon.Pos2D.x = -400;
-    moon.Pos2D.y = 400;
-    moon.Planet.radius = 48;
-    TANK.main.addChild(moon);
-    this.menuObjects.push(moon);
-
-    var ship = TANK.createEntity('Ship');
-    ship.Pos2D.x = 300;
-    ship.Pos2D.y = 200;
-    ship.Ship.shipData = new Ships.bomber();
-    ship.Ship.faction = null;
-    TANK.main.addChild(ship);
-    this.menuObjects.push(ship);
-  };
-
-  //
-  // Show the win screen menu
-  //
-  this.showWinScreen = function()
-  {
-    if (this.popupUI)
-      this.popupUI.teardown();
-
-    this.popupUI = new Ractive(
-    {
-      el: 'popupContainer',
-      template: '#winTemplate',
-    });
-
-    this.popupUI.on('back', function()
-    {
-      that.popupUI.teardown();
-      that.popupUI = null;
-      TANK.main.dispatch('systemBattleEnd');
-      that.goToCampaignMap();
-    });
-  };
-
-  //
-  // Show the lose screen menu
-  //
-  this.showLoseScreen = function()
-  {
-    if (this.popupUI)
-      this.popupUI.teardown();
-
-    this.popupUI = new Ractive(
-    {
-      el: 'popupContainer',
-      template: '#loseTemplate',
-    });
-
-    this.popupUI.on('back', function()
-    {
-      that.popupUI.teardown();
-      that.popupUI = null;
-      TANK.main.dispatch('systemBattleEnd');
-      that.goToCampaignMap();
-    });
-  };
-
-  //
-  // Load a new level
-  //
-  this.loadLevelNow = function(system)
-  {
-    var players = [this.currentSystemDefender, this.currentSystemAttacker];
-
-    // Generate a level
-    var level = {};
-    level.lightDir = 1.5;
-    level.lightDiffuse = [0.8, 1, 1];
-    level.controlPoints = [];
-    level.ships = [];
-    level.controlPoints.push({x: 0, y: 0, faction: 0});
-    level.controlPoints.push({x: 4000, y: 4000, faction: 1});
-    level.ships.push({player: players[0].player, faction: 0, ship: "frigate", x: 0, y: 0});
-    level.ships.push({player: players[1].player, faction: 1, ship: "frigate", x: 4000, y: 4000});
-
-    // Create faction entities
-    for (var i = 0; i < players.length; ++i)
-    {
-      var e = TANK.createEntity(players[i].battleAI);
-      e.Faction.team = players[i].team;
-      e.Faction.color = players[i].color;
-      players[i].faction = e.Faction;
-      TANK.main.addChild(e);
-    }
-
-    // Create control points
-    for (var i = 0; i < level.controlPoints.length; ++i)
-    {
-      var cp = level.controlPoints[i];
-      e = TANK.createEntity('ControlPoint');
-      e.Pos2D.x = cp.x;
-      e.Pos2D.y = cp.y;
-      if (cp.faction >= 0)
-        players[cp.faction].faction.addControlPoint(e.ControlPoint);
-      TANK.main.addChild(e);
-    }
-
-    // Create ships
-    for (var i = 0; i < level.ships.length; ++i)
-    {
-      e = level.ships[i].player ? TANK.createEntity('Player') : TANK.createEntity('AIShip');
-      e.Pos2D.x = level.ships[i].x;
-      e.Pos2D.y = level.ships[i].y;
-      e.Ship.shipData = new Ships[level.ships[i].ship];
-      e.Ship.faction = players[level.ships[i].faction].faction;
-      TANK.main.addChild(e);
-    }
-
-    // Other level attributes
-    this.lightDir = level.lightDir;
-    Lightr.lightDiffuse = level.lightDiffuse;
-    bakeShipLighting();
-
-    TANK.main.dispatch('systemBattleStart', system);
-  };
-
-  //
-  // Begin a real time system battle
-  //
-  this.goToSystemBattle = function(system, defender, attacker)
-  {
-    // Send out a message to all existing level objects to be destroyed
-    TANK.main.removeChild(this.campaignObject);
-
-    // Set current level marker and set a pending load
-    this.currentSystem = system;
-    this.currentSystemDefender = defender;
-    this.currentSystemAttacker = attacker;
-    this.pendingLoad = true;
-  };
-
-  //
-  // Go to campaign map
-  //
-  this.goToCampaignMap = function()
-  {
+    TANK.main.Renderer2D.camera.z = 1;
     TANK.main.Renderer2D.camera.x = 0;
     TANK.main.Renderer2D.camera.y = 0;
 
-    if (!this.campaignObject)
-      this.campaignObject = TANK.createEntity('CampaignMap');
+    // Remove any existing objects
+    this.player = null;
+    TANK.main.removeAllChildren();
+    this.clearEventLog();
 
-    TANK.main.addChild(this.campaignObject);
+    // Build main menu scene
+    this.lightDir = Math.random() * Math.PI * 2;
+    this.mainMenu = TANK.createEntity('MainMenu');
+    TANK.main.addChild(this.mainMenu);
+
+    // Handle main menu interactions
+    this.listenTo(this.mainMenu, 'newgame', function()
+    {
+      TANK.main.removeChild(this.mainMenu);
+      this.goToShipSelection();
+    });
+
+    // Remove event log
+    if (this.eventLogUI)
+    {
+      this.eventLogUI.teardown();
+      this.eventLogUI = null;
+    }
   };
+
+  //
+  // Go to selection screen
+  //
+  this.goToShipSelection = function()
+  {
+    // Build menu
+    this.shipSelection = TANK.createEntity('ShipSelection');
+    TANK.main.addChild(this.shipSelection);
+
+    // Handle interaction
+    this.listenTo(this.shipSelection, 'selectionmade', function(selection)
+    {
+      TANK.main.removeChild(this.shipSelection);
+      this.playerShipSelection = selection;
+      this.goToNode(TANK.main.MapGeneration.map);
+    });
+  };
+
+  //
+  // Go to end screen
+  //
+  this.goToWinScreen = function()
+  {
+    this.clearEventLog();
+    this.endScreen = TANK.createEntity('EndScreen');
+    this.endScreen.EndScreen.won = true;
+    TANK.main.addChild(this.endScreen);
+
+    this.listenTo(this.endScreen, 'back', function()
+    {
+      this.goToMainMenu();
+    });
+  };
+
+  this.goToLoseScreen = function()
+  {
+    this.clearEventLog();
+    this.endScreen = TANK.createEntity('EndScreen');
+    this.endScreen.EndScreen.won = false;
+    TANK.main.addChild(this.endScreen);
+
+    this.listenTo(this.endScreen, 'back', function()
+    {
+      this.goToMainMenu();
+    });
+  };
+
+  //
+  // Pick a random weighted index
+  //
+  this.randomWeighted = function(weights)
+  {
+    var minValue = Math.min.apply(null, weights);
+    var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
+    var weightArray = [];
+    for (var i = 0; i < weightsNormalized.length; ++i)
+    {
+      for (var j = 0; j < weightsNormalized[i]; ++j)
+        weightArray.push(i);
+    }
+
+    var rng = new RNG();
+    var index = rng.random(0, weightArray.length);
+    return weightArray[index];
+  };
+
+  //
+  // Add an event log
+  //
+  this.addEventLog = function(logText)
+  {
+    this.eventLogs.push({text: logText});
+    var logContainer = document.querySelector('.event-log');
+    logContainer.scrollTop = logContainer.scrollHeight;
+  };
+
+  //
+  // Clear event log
+  //
+  this.clearEventLog = function()
+  {
+    while (this.eventLogs.length)
+      this.eventLogs.pop();
+  };
+
+  //
+  // Show location options
+  //
+  this.showLocationOptions = function()
+  {
+    for (var i = 0; i < this.currentNode.paths.length; ++i)
+    {
+      var node = this.currentNode.paths[i];
+      var location = Locations[node.locationName];
+      var desc = (node.depth < 1) ? 'Indirect route' : 'Direct route';
+      this.addEventLog((i + 1) + '. ' + location.name + ' (' + desc + ')');
+    }
+
+    this.waitingForJump = true;
+  };
+
+  //
+  // Go to a new node on the map
+  //
+  this.goToNode = function(node)
+  {
+    var e = TANK.createEntity('WarpEffect');
+    TANK.main.addChild(e);
+    this.warping = true;
+    this.warpTimer = 3;
+    this.pendingNode = node;
+  };
+
+  //
+  // Load a location
+  //
+  this.loadNewLocation = function(name)
+  {
+    // Clear existing objects
+    TANK.main.dispatch('locationchange');
+
+    // Grab the location object
+    var location = Locations[name];
+    this.currentLocation = location;
+
+    // Generate paths
+    TANK.main.MapGeneration.generateChildren(this.currentNode);
+
+    // Set location attributes
+    TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
+    Lightr.lightDiffuse = location.lightColor;
+    this.lightDir = location.lightDir;
+    this.rebuildLighting();
+
+    // Create player entity if it doesn't exist
+    if (!this.player)
+    {
+      this.player = TANK.createEntity('Player');
+      this.player.Ship.shipData = new Ships[this.playerShipSelection]();
+      TANK.main.addChild(this.player);
+    }
+
+    // Build event log ractive
+    if (!this.eventLogUI)
+    {
+      this.eventLogUI = new Ractive(
+      {
+        el: 'eventLogContainer',
+        template: '#eventLogTemplate',
+        data: {logs: this.eventLogs}
+      });
+    }
+
+    // Position player
+    this.player.Pos2D.x = 0;
+    this.player.Pos2D.y = 0;
+
+    this.addEventLog('Warp complete. ' + this.player.Ship.fuel + ' fuel cells remaining.');
+
+    // Spawn location objects
+    for (var i = 0; i < location.spawns.length; ++i)
+    {
+      var spawn = location.spawns[i];
+
+      // Using Spawns library
+      if (typeof spawn === 'string')
+      {
+        Spawns[spawn]();
+      }
+      // Or using an object literal as a prototype
+      else
+      {
+        var e = TANK.createEntity();
+        e.load(spawn);
+        TANK.main.addChild(e);
+      }
+    }
+
+    // Log location text
+    this.addEventLog(location.text);
+
+    // Trigger location event
+    if (location.events && location.events.length > 0)
+    {
+      var weights = location.events.map(function(ev) {return ev.probability;});
+      var chosenIndex = this.randomWeighted(weights);
+      var chosenEvent = location.events[chosenIndex];
+      this.triggerEvent(chosenEvent.name);
+    }
+
+    // Log default tutorial message
+    this.warpReady = false;
+    this.player.Ship.warpCharge = 0;
+    this.addEventLog('Warp drive charging...');
+
+    // If this node is the end node, then we win
+    if (this.currentNode.depth >= TANK.main.MapGeneration.numLevels)
+      this.goToWinScreen();
+  };
+
+  //
+  // Trigger an event
+  //
+  this.triggerEvent = function(eventName)
+  {
+    var event = Events[eventName];
+    event.spawns = event.spawns || [];
+    event.options = event.options || [];
+
+    // Show event text
+    this.addEventLog(event.text);
+
+    // Spawn event entities
+    for (var i = 0; i < event.spawns.length; ++i)
+    {
+      var spawn = event.spawns[i];
+
+      // Using Spawns library
+      if (typeof spawn === 'string')
+      {
+        Spawns[spawn]();
+      }
+      // Or using an object literal as a prototype
+      else
+      {
+        var e = TANK.createEntity();
+        e.load(spawn);
+        TANK.main.addChild(e);
+      }
+    }
+
+    // Dispatch any messages the event has
+    if (event.dispatchEvent)
+      TANK.main.dispatch(event.dispatchEvent);
+
+    // If the event has options, wait for a choice to be made
+    if (event.options.length > 0)
+    {
+      this.eventAwaitingInput = event;
+      this.waitingForJump = false;
+      for (var i = 0; i < event.options.length; ++i)
+        this.addEventLog((i + 1) + '. ' + event.options[i].text);
+    }
+  };
+
+  //
+  // Resource load handler
+  //
+  this.listenTo(TANK.main, 'resourcesloaded', function()
+  {
+    this.goToMainMenu();
+  });
 
   //
   // Game start handler
   //
   this.listenTo(TANK.main, 'start', function()
   {
-    this.goToMainMenu();
+    resources.load();
   });
 
   //
-  // Level start handler
+  // Game end handler
   //
-  this.listenTo(TANK.main, 'systemBattleStart', function(system)
+  this.listenTo(TANK.main, 'gamewin', function()
   {
-    // Build bottom command bar ractive
-    this.barUI = new Ractive(
-    {
-      el: 'barContainer',
-      template: '#barTemplate',
-      data: {commands: this.barCommands}
-    });
-
-    // Build top command bar ractive
-    this.topBarUI = new Ractive(
-    {
-      el: 'topBarContainer',
-      template: '#topBarTemplate',
-      data: {items: this.topBarItems}
-    });
-
-    // Set ractive event listeners
-    this.barUI.on('activate', function(e)
-    {
-      e.context.activate();
-    });
-
-    TANK.main.dispatchTimed(3, 'scanForEndCondition');
+    this.goToWinScreen();
   });
 
-  //
-  // Level end handler
-  //
-  this.listenTo(TANK.main, 'systemBattleEnd', function()
+  this.listenTo(TANK.main, 'gamelose', function()
   {
-    // Remove command bars
-    if (this.topBarUI)
-      this.topBarUI.teardown();
-    if (this.barUI)
-      this.barUI.teardown();
-    this.topBarUI = null;
-    this.barUI = null;
-  });
-
-  //
-  // Look for a ship for player to transfer to while dead
-  //
-  this.listenTo(TANK.main, 'scanforplayership', function(faction, pos)
-  {
-    console.log('Looking for ship to transfer to...');
-    var ships = TANK.main.getChildrenWithComponent('Ship');
-    var closestShip = null;
-    var minDist = Infinity;
-    if (!pos)
-      pos = [0, 0];
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction !== faction)
-        continue;
-
-      var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
-      var dist = TANK.Math2D.pointDistancePoint(pos, shipPos);
-      if (dist < minDist)
-      {
-        minDist = dist;
-        closestShip = ships[i];
-        console.log('Found ship ' + i);
-      }
-    }
-
-    if (closestShip)
-    {
-      console.log('Transferring to ship ' + closestShip._id);
-      // Transfer control to closest ship
-      closestShip.removeComponent('AIShip');
-      closestShip.removeComponent('AIWatch');
-      closestShip.addComponent('Player');
-    }
-    else
-    {
-      // If we couldn't find a ship to transfer control to, inform the game to wait for
-      // a new ship to be built
-      TANK.main.dispatchTimed(3, 'scanforplayership', faction, pos);
-    }
-  });
-
-  //
-  // Check for level end condition
-  //
-  this.listenTo(TANK.main, 'scanForEndCondition', function()
-  {
-    var attackerWin = true;
-    var defenderWin = true;
-
-    // Check if the attacker owns any or all control points
-    var controlPoints = TANK.main.getChildrenWithComponent('ControlPoint');
-    for (var i in controlPoints)
-    {
-      if (controlPoints[i].ControlPoint.faction === this.currentSystemDefender.faction)
-        attackerWin = false;
-      else
-        defenderWin = false;
-    }
-
-    // Check if there are any friendly or enemy ships left
-    var ships = TANK.main.getChildrenWithComponent('Ship');
-    for (var i in ships)
-    {
-      if (ships[i].Ship.faction === this.currentSystemDefender.faction)
-        attackerWin = false;
-      else
-        defenderWin = false;
-    }
-
-    var winner;
-    if (attackerWin)
-      winner = this.currentSystemAttacker;
-    if (defenderWin)
-      winner = this.currentSystemDefender;
-
-    if (winner)
-    {
-      this.currentSystem.owner = winner;
-      if (winner.player)
-        this.showWinScreen();
-      else
-        this.showLoseScreen();
-      return;
-    }
-
-    TANK.main.dispatchTimed(3, 'scanForEndCondition');
+    this.goToLoseScreen();
   });
 
   //
@@ -2255,38 +1185,78 @@ TANK.registerComponent('Game')
     this.updateMousePos([e.x, e.y]);
   });
 
-  this.listenTo(TANK.main, 'touchmove', function(e)
-  {
-    this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
-  });
-  this.listenTo(TANK.main, 'touchstart', function(e)
-  {
-    this.updateMousePos([e.touches[0].clientX, e.touches[0].clientY]);
-  });
-
   this.listenTo(TANK.main, 'mousewheel', function(e)
   {
+    if (this.warping)
+      return;
     var delta = e.wheelDelta;
     TANK.main.Renderer2D.camera.z += delta * 0.005 * (TANK.main.Renderer2D.camera.z * 0.1);
     if (TANK.main.Renderer2D.camera.z < 0.5)
       TANK.main.Renderer2D.camera.z = 0.5;
-    if (TANK.main.Renderer2D.camera.z > 12)
-      TANK.main.Renderer2D.camera.z = 12;
+    if (TANK.main.Renderer2D.camera.z > 5)
+      TANK.main.Renderer2D.camera.z = 5;
   });
 
-  this.listenTo(TANK.main, 'gesturechange', function(e)
+  this.listenTo(TANK.main, 'keydown', function(e)
   {
-    if (e.scale)
+    // Key to begin jump
+    if (e.keyCode === TANK.Key.J)
     {
-      this.zooming = true;
-      var scale = 1 / e.scale;
-      scale = Math.min(scale, 1.1);
-      scale = Math.max(scale, 0.9);
-      TANK.main.Renderer2D.camera.z *= scale;
-      if (TANK.main.Renderer2D.camera.z < 1)
-        TANK.main.Renderer2D.camera.z = 1;
-      if (TANK.main.Renderer2D.camera.z > 100)
-        TANK.main.Renderer2D.camera.z = 100;
+      this.showLocationOptions();
+    }
+
+    // Numbered choice keys
+    if (e.keyCode >= TANK.Key.NUM0 && e.keyCode <= TANK.Key.NUM9)
+    {
+      // 0 index choice from 1 key
+      var choice = e.keyCode - TANK.Key.NUM1;
+
+      // Choose to jump to a location
+      if (this.waitingForJump)
+      {
+        this.waitingForJump = false;
+
+        if (!this.warpReady)
+        {
+          var timeRemaining = this.player.Ship.shipData.warpChargeTime - this.player.Ship.warpCharge;
+          this.addEventLog('Warp drive charged in ' + Math.round(timeRemaining) + ' seconds.');
+          return;
+        }
+
+        if (this.player.Ship.fuel < 1)
+        {
+          this.addEventLog('No fuel.');
+          return;
+        }
+
+        if (choice < this.currentNode.paths.length)
+        {
+          this.player.Ship.fuel -= 1;
+          this.goToNode(this.currentNode.paths[choice]);
+        }
+      }
+      // Choose an answer for an event
+      else if (this.eventAwaitingInput)
+      {
+        if (choice < this.eventAwaitingInput.options.length)
+        {
+          // Show response text
+          var chosenOption = this.eventAwaitingInput.options[choice];
+          if (chosenOption.responseText)
+            this.addEventLog(chosenOption.responseText);
+
+          // Trigger an event, if any
+          if (chosenOption.events)
+          {
+            var weights = chosenOption.events.map(function(ev) {return ev.probability;});
+            var chosenIndex = this.randomWeighted(weights);
+            var chosenEvent = chosenOption.events[chosenIndex];
+            this.triggerEvent(chosenEvent.name);
+          }
+
+          this.eventAwaitingInput = null;
+        }
+      }
     }
   });
 
@@ -2295,16 +1265,28 @@ TANK.registerComponent('Game')
   //
   this.update = function(dt)
   {
-    // Load levels
-    if (this.pendingLoad)
+    // Check if player is ready to warp
+    if (this.player)
     {
-      this.loadLevelNow(this.currentSystem);
-      this.pendingLoad = false;
+      if (this.player.Ship.warpCharge >= this.player.Ship.shipData.warpChargeTime && !this.warpReady)
+      {
+        this.addEventLog('...Warp drive charged. Press J to warp when ready.');
+        this.warpReady = true;
+      }
     }
 
-    // Update faction money count
-    if (this.players[0] && this.players[0].faction && this.topBarUI)
-      this.topBarUI.set('items[0].name', 'Funds: ' + this.players[0].faction.money);
+    // Handle warp logic
+    if (this.warpTimer > 0)
+    {
+      // Countdown timer to warp
+      this.warpTimer -= dt;
+      if (this.warpTimer <= 0)
+      {
+        this.warping = false;
+        this.currentNode = this.pendingNode;
+        this.loadNewLocation(this.currentNode.locationName);
+      }
+    }
   };
 });
 
@@ -2375,22 +1357,24 @@ TANK.registerComponent("Glow")
 });
 var Guns = {};
 
-
 Guns.smallRail = function()
 {
   this.image = new Image();
-  this.image.src = "res/small-rail.png";
-  this.shootEffect = "gunFireSmall";
-  this.trailEffect = "smallRailTrail";
+  this.image.src = 'res/img/small-rail.png';
+  this.shootSound = 'small-rail-01';
+  this.shootEffect = 'gunFireSmall';
+  this.trailEffect = 'smallRailTrail';
+  this.damageEffect = 'damageSmall';
   this.screenShake = 0;
-  this.reloadTime = 1;
+  this.reloadTime = 0.3;
   this.reloadTimer = 0;
-  this.range = 500;
-  this.damage = 0.05;
+  this.range = 700;
+  this.damage = 0.01;
   this.projectileSpeed = 900;
   this.projectileAccel = 0;
   this.projectileSize = 1;
-  this.recoil = 2;
+  this.shieldDisableTime = 0.25;
+  this.recoil = 1;
   this.x = 0;
   this.y = 0;
 };
@@ -2398,17 +1382,20 @@ Guns.smallRail = function()
 Guns.mediumRail = function()
 {
   this.image = new Image();
-  this.image.src = "res/medium-rail.png";
-  this.shootEffect = "gunFireMedium";
-  this.trailEffect = "mediumRailTrail";
+  this.image.src = 'res/img/medium-rail.png';
+  this.shootSound = 'medium-rail-01';
+  this.shootEffect = 'gunFireMedium';
+  this.trailEffect = 'mediumRailTrail';
+  this.damageEffect = 'damageMedium';
   this.screenShake = 0.5;
   this.reloadTime = 5;
   this.reloadTimer = 0;
-  this.range = 800;
+  this.range = 1200;
   this.damage = 0.1;
   this.projectileSpeed = 800;
   this.projectileAccel = 0;
   this.projectileSize = 3;
+  this.shieldDisableTime = 0.25;
   this.recoil = 7;
   this.x = 0;
   this.y = 0;
@@ -2417,61 +1404,71 @@ Guns.mediumRail = function()
 Guns.mediumRocket = function()
 {
   this.image = new Image();
-  this.image.src = "res/small-rail.png";
-  this.shootEffect = "gunFireMedium";
-  this.trailEffect = "mediumRailTrail";
+  this.image.src = 'res/img/medium-rail.png';
+  this.shootSound = 'medium-rail-01';
+  this.shootEffect = 'gunFireMedium';
+  this.trailEffect = 'mediumRailTrail';
+  this.damageEffect = 'damageMedium';
   this.screenShake = 0.5;
   this.reloadTime = 3;
   this.reloadTimer = 0;
   this.range = 800;
   this.damage = 0.2;
-  this.projectileLife = 5;
+  this.projectileLife = 7;
   this.projectileSpeed = 200;
   this.projectileAccel = 50;
   this.projectileSize = 3;
+  this.shieldDisableTime = 0.75;
   this.recoil = 7;
   this.x = 0;
   this.y = 0;
 };
 
-var Levels = [];
+TANK.registerComponent('LevelProp')
 
-Levels[0] =
-{
-  name: "Sample Level",
-  difficulty: 1,
-  lightDir: 1.5,
-  lightDiffuse: [0.8, 1, 1],
-  controlPoints:
-  [
-    {x: 0, y: 0, faction: 0},
-    {x: 4000, y: 4000, faction: 1}
-  ],
-  ships:
-  [
-    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
-    {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
-  ]
-};
+.includes(['LightingAndDamage', 'RemoveOnLevelChange'])
 
-Levels[1] =
+.construct(function()
 {
-  name: "Triangle",
-  difficulty: 2,
-  lightDir: 0.5,
-  lightDiffuse: [1, 1, 0.9],
-  controlPoints:
-  [
-    {x: 0, y: 0, faction: 0},
-    {x: 5000, y: 5000, faction: 1},
-    {x: 5000, y: 0, faction: -1}
-  ],
-  ships:
-  [
-    {player: true, faction: 0, ship: "frigate", x: 0, y: 0},
-    {player: false, faction: 1, ship: "frigate", x: 4000, y: 4000}
-  ]
-};
+  this.zdepth = 0;
+  this.resourceName = '';
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'zdepth', 0);
+  serializer.property(this, 'resourceName', '');
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  TANK.main.Renderer2D.add(this);
+
+  // Set up lighting
+  this.resource = TANK.main.Resources.get(this.resourceName);
+  this._entity.LightingAndDamage.setResource(this.resource);
+
+  //
+  // Draw code
+  //
+  this.draw = function(ctx, camera)
+  {
+    // Set up transform
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+    ctx.rotate(t.rotation);
+    ctx.translate(this.resource.diffuse.width / -2, this.resource.diffuse.height / -2);
+
+    // Draw the main buffer
+    this._entity.LightingAndDamage.redraw();
+    ctx.drawImage(this._entity.LightingAndDamage.mainBuffer.canvas, 0, 0);
+
+    ctx.restore();
+  };
+});
 TANK.registerComponent("Life")
 
 .construct(function()
@@ -2486,6 +1483,71 @@ TANK.registerComponent("Life")
     this.life -= dt;
     if (this.life < 0)
       this._entity._parent.removeChild(this._entity);
+  };
+});
+TANK.registerComponent('LightingAndDamage')
+
+.includes(['Pos2D'])
+
+.construct(function()
+{
+  this.resource = null;
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  this.setResource = function(res)
+  {
+    this.resource = res;
+
+    // Create texture buffers
+    this.mainBuffer = new PixelBuffer();
+    this.damageBuffer = new PixelBuffer();
+    this.decalBuffer = new PixelBuffer();
+
+    // Setup texture buffers
+    this.mainBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
+    this.damageBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
+    this.decalBuffer.createBuffer(res.diffuse.width, res.diffuse.height);
+  }
+
+  // Add damage decals
+  this.addDamage = function(x, y, radius)
+  {
+    // Cut out radius around damage
+    this.damageBuffer.setPixelRadiusRand(x, y, radius - 2, [255, 255, 255, 255], 0.7, radius, [0, 0, 0, 0], 0.0);
+    this.damageBuffer.applyBuffer();
+
+    // Draw burnt edge around damage
+    this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
+    this.decalBuffer.applyBuffer();
+  };
+
+  this.redraw = function()
+  {
+    this.mainBuffer.context.save();
+    this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
+    this.mainBuffer.context.drawImage(this.resource.diffuse, 0, 0);
+
+    // Draw lighting
+    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
+    for (var i = 0; i < this.resource.lightBuffers.length; ++i)
+    {
+      var lightDirOffset = (Math.PI * 2 / this.resource.lightBuffers.length) * i - Math.PI / 2;
+      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
+      if (this.mainBuffer.context.globalAlpha > 0)
+        this.mainBuffer.context.drawImage(this.resource.lightBuffers[i], 0, 0);
+    }
+
+    // Draw damage buffer
+    this.mainBuffer.context.globalAlpha = 1;
+    this.mainBuffer.context.globalCompositeOperation = 'source-atop';
+    this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
+    this.mainBuffer.context.globalCompositeOperation = 'destination-out';
+    this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
+    this.mainBuffer.context.restore();
   };
 });
 (function(api)
@@ -2626,319 +1688,255 @@ function createCanvas(width, height)
 }
 
 })(this.Lightr = this.Lightr || {});
-TANK.registerComponent("Lights")
+var Locations = {};
 
-.includes("Pos2D")
+Locations.start =
+{
+  text: 'Here you are, at the edge of civilized space. Your destination lies deep in the heart of the galaxy, where anarchy reigns.',
+  events: [],
+  bgColor: [0, 0, 20, 1],
+  lightColor: [0.7, 0.7, 1],
+  lightDir: Math.PI * 2 * 0.8,
+  spawns:
+  [
+    {components: {Pos2D: {x: 0, y: 0}, Planet: {}}}
+  ]
+};
+
+Locations.abandonedOutpost =
+{
+  text: 'A dingy trading outpost sits ahead, listing heavily to the side.',
+  name: 'An old abandoned trading outpost',
+  events:
+  [
+    {probability: 2.5, name: 'pirate'},
+    {probability: 2, name: 'derelict'},
+    {probability: 1, name: 'civilian'},
+  ],
+  bgColor: [0, 20, 0, 1],
+  lightColor: [0.8, 1, 0.8],
+  lightDir: Math.PI * 2 * 0.5,
+  spawns:
+  [
+    {components: {Clouds: {cloudColor: [180, 255, 180]}}},
+    {components: {Pos2D: {x: 1000, y: -1000}, LevelProp: {resourceName: 'station-01'}}}
+  ]
+};
+
+Locations.researchStation =
+{
+  text: 'The research station looks like it hasn\'t been visited in years.',
+  name: 'A research station',
+  events:
+  [
+    {probability: 1.2, name: 'pirate'},
+    {probability: 1, name: 'derelict'},
+    {probability: 1.2, name: 'civilian'}
+  ],
+  bgColor: [20, 20, 0, 1],
+  lightColor: [1, 1, 0.8],
+  lightDir: Math.PI * 2 * 0.2,
+  spawns:
+  [
+    {components: {Clouds: {numClouds: 50, cloudColor: [255, 255, 180]}}},
+    {components: {Pos2D: {x: 1000, y: -1000}, LevelProp: {resourceName: 'station-01'}}}
+  ]
+};
+
+Locations.pirateBase =
+{
+  text: 'Only pirates continue to make their home near the galaxy\'s center. You feel extremely nervous.',
+  name: 'A pirate outpost',
+  events:
+  [
+    {probability: 4, name: 'pirate'},
+    {probability: 2, name: 'empty'},
+    {probability: 1, name: 'civilian'},
+  ],
+  bgColor: [0, 20, 20, 1],
+  lightColor: [0.8, 1, 1],
+  lightDir: Math.PI * 2 * 0.9,
+  spawns:
+  [
+    {components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}
+  ]
+};
+
+Locations.oldBattlefield =
+{
+  text: 'This system is littered with the wrecks of ancient warships.',
+  name: 'An old battlefield',
+  events:
+  [
+    {probability: 1, name: 'pirate'},
+    {probability: 2, name: 'civilian'},
+    {probability: 1, name: 'empty'}
+  ],
+  bgColor: [0, 20, 20, 1],
+  lightColor: [0.8, 1, 1],
+  lightDir: Math.PI * 2 * 0.9,
+  spawns:
+  [
+    {components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}
+  ]
+};
+
+Locations.deepSpace =
+{
+  text: 'There is nothing to see here, just empty space.',
+  name: 'Deep space',
+  events:
+  [
+    {probability: 1, name: 'civilian'},
+    {probability: 3, name: 'empty'}
+  ],
+  bgColor: [0, 0, 0, 1],
+  lightColor: [0.9, 0.9, 1],
+  lightDir: Math.PI * 2 * 0.2,
+  spawns: []
+};
+
+Locations.redDwarf =
+{
+  text: 'A red dwarf in this system bathes the scenery in a faintly rose-colored light.',
+  name: 'Red dwarf star',
+  events:
+  [
+    {probability: 1, name: 'civilian'},
+    {probability: 3, name: 'empty'}
+  ],
+  bgColor: [10, 0, 0, 1],
+  lightColor: [1, 0.8, 0.8],
+  lightDir: Math.PI * 2 * 0.7,
+  spawns: []
+};
+
+Locations.asteroidField =
+{
+  text: 'Here in the depths of an asteroid field, anything can happen. Watch your back.',
+  name: 'Asteroid field',
+  events:
+  [
+    {probability: 1, name: 'pirate'},
+    {probability: 1.2, name: 'derelict'}
+  ],
+  bgColor: [30, 0, 0, 1],
+  lightColor: [1, 0.7, 0.7],
+  lightDir: Math.PI * 2 * 0.2,
+  spawns:
+  [
+    {components: {Clouds: {numClouds: 75, cloudColor: [220, 180, 180]}}},
+    {components: {AsteroidField: {numAsteroids: 40}}}
+  ]
+};
+TANK.registerComponent('MainMenu')
 
 .construct(function()
 {
-  this.zdepth = 4;
-  this.width = 0;
-  this.height = 0;
-  this.lights = [];
+  this.htmlText =
+  [
+    '<div class="main-menu">',
+    '  <div class="menu-title">Starswept Voyage</div>',
+    '  <div class="menu-options">',
+    '    <div class="menu-option menu-option-new">New Game</div>',
+    '    <div class="menu-option menu-option-options">Options</div>',
+    '    <div class="menu-option menu-option-quit">Quit</div>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
 })
 
 .initialize(function()
 {
-  var t = this._entity.Pos2D;
+  //
+  // Create UI
+  //
+  this.container = document.createElement('div');
+  this.container.innerHTML = this.htmlText;
+  document.body.appendChild(this.container);
 
-  TANK.main.Renderer2D.add(this);
-
-  // Refresh lights function
-  this.redrawLights = function()
+  //
+  // Handle interactions
+  //
+  var newGameButton = this.container.querySelector('.menu-option-new');
+  newGameButton.addEventListener('click', function()
   {
-    for (var i = 0; i < this.lights.length; ++i)
-    {
-      var light = this.lights[i];
-      for (var j in light.states[light.state])
-        light[j] = light.states[light.state][j];
+    this._entity.dispatch('newgame');
+  }.bind(this));
 
-      // Draw light glows
-      light.buffer = new PixelBuffer();
-      light.buffer.createBuffer(light.radius * 2, light.radius * 2);
+  //
+  // Create scene
+  //
+  this.planet = TANK.createEntity('Planet');
+  this.planet.Pos2D.x = 0;
+  this.planet.Pos2D.y = -400;
+  TANK.main.addChild(this.planet);
 
-      // Draw light glows
-      var grad = light.buffer.context.createRadialGradient(light.radius, light.radius, 1, light.radius, light.radius, light.radius);
-      var colorA = light.colorA.join(",");
-      var colorB = light.colorB.join(",");
-      grad.addColorStop(0, "rgba(" + colorA + ", " + light.alpha + ")");
-      grad.addColorStop(0.5, "rgba(" + colorB + ", " + (light.alpha / 3) + ")");
-      grad.addColorStop(1, "rgba(" + colorB + ", 0.0)");
-      light.buffer.context.fillStyle = grad;
-      light.buffer.context.beginPath();
-      light.buffer.context.arc(light.buffer.width / 2, light.buffer.height / 2, light.buffer.width / 2, Math.PI * 2, false);
-      light.buffer.context.fill();
-      light.buffer.context.closePath();
-    }
-  };
+  this.moon = TANK.createEntity('Planet');
+  this.moon.Pos2D.x = -400;
+  this.moon.Pos2D.y = 400;
+  this.moon.Planet.radius = 48;
+  TANK.main.addChild(this.moon);
 
-  this.update = function(dt)
-  {
-    for (var i = 0; i < this.lights.length; ++i)
-    {
-      var light = this.lights[i];
-      if (light.blinkTime)
-      {
-        if (!light.blinkTimer)
-          light.blinkTimer = 0;
-        light.blinkTimer += dt;
-        if (light.blinkTimer > light.blinkTime)
-        {
-          if (light.state === "on")
-            light.state = "off";
-          else if (light.state === "off")
-            light.state = "on";
-          light.blinkTimer = 0;
-          this.redrawLights();
-        }
-      }
-    }
-  };
+  this.ship = TANK.createEntity('Ship');
+  this.ship.Pos2D.x = 400;
+  this.ship.Pos2D.y = 300;
+  this.ship.Ship.shipData = new Ships.bomber();
+  TANK.main.addChild(this.ship);
+})
 
-  this.draw = function(ctx, camera)
-  {
-    ctx.save();
-    ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
-    ctx.rotate(t.rotation);
-    ctx.translate(this.width / -2, this.height / -2);
-
-    for (var i = 0; i < this.lights.length; ++i)
-    {
-      var light = this.lights[i];
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.translate(-light.radius + 0.5, -light.radius + 0.5);
-      ctx.drawImage(light.buffer.canvas, light.x, light.y);
-      ctx.restore();
-    }
-
-    ctx.restore();
-  };
+.uninitialize(function()
+{
+  document.body.removeChild(this.container);
+  TANK.main.removeChild(this.planet);
+  TANK.main.removeChild(this.moon);
+  TANK.main.removeChild(this.ship);
 });
-TANK.registerComponent("MapGeneration")
+TANK.registerComponent('MapGeneration')
 
 .construct(function()
 {
-  this.size = 400;
-  this.minDist = 100;
-  this.systems = [];
-  this.islands = [];
-})
+  this.numLevels = 6;
+  this.numPaths = 3;
+  this.map = {};
+  var rng = new RNG();
 
-.initialize(function()
-{
-  var that = this;
-
-  //
-  // Map generation logic
-  //
-  this.generateMap = function()
+  this.generateNode = function(depth)
   {
-    this.systems = [];
+    var node = {};
 
-    // Generate systems
-    for (var i = 0; i < 10; ++i)
+    // Pick a location for this node to represent
+    var possibleLocations = Object.keys(Locations);
+    possibleLocations.splice(possibleLocations.indexOf('start'), 1);
+    var index = Math.floor(Math.random() * possibleLocations.length);
+    node.locationName = possibleLocations[index];
+    node.depth = depth;
+
+    // Use start location if at beginning
+    if (depth === 0)
+      node.locationName = 'start';
+
+    return node;
+  };
+
+  this.generateChildren = function(node)
+  {
+    node.paths = [];
+    for (var i = 0; i < this.numPaths; ++i)
     {
-      this.systems.push(
-      {
-        index: i,
-        pos:
-        [
-          -this.size + Math.random() * this.size * 2,
-          -this.size + Math.random() * this.size * 2
-        ],
-        radius: 20,
-        edges: [],
-        owner: TANK.main.Game.players[1],
-        flagships: [],
-        fortifyLevel: 0
-      });
+      var childDepth = 0.5;
+      if (i === 1)
+        childDepth = 1;
 
-      // Ensure systems are far apart
-      var system = this.systems[i];
-      var angle = Math.random() * Math.PI * 2;
-      for (;;)
-      {
-        var minDist = this.systems.reduce(function(prev, cur)
-        {
-          if (cur === system)
-            return prev;
-          return Math.min(prev, TANK.Math2D.pointDistancePoint(system.pos, cur.pos));
-        }, Infinity);
-
-        if (minDist > this.minDist)
-          break;
-
-        system.pos[0] += Math.cos(angle) * 10;
-        system.pos[1] += Math.sin(angle) * 10;
-      }
-    }
-
-    // Make edges
-    this.systems.forEach(function(system)
-    {
-      // Get systems in distance order
-      var systemsOrdered = this.systems.slice();
-      systemsOrdered.sort(function(a, b)
-      {
-        var distA = TANK.Math2D.pointDistancePoint(system.pos, a.pos);
-        var distB = TANK.Math2D.pointDistancePoint(system.pos, b.pos);
-        return distA > distB;
-      });
-      systemsOrdered.splice(0, 1);
-
-      // Connect to closest system
-      var closest = systemsOrdered[0];
-      system.edges.push(closest);
-      closest.edges.push(system);
-      systemsOrdered.splice(0, 1);
-
-      // Find the next closest system that is not inline with the previous
-      var closestVec = TANK.Math2D.normalize(TANK.Math2D.subtract(closest.pos, system.pos));
-      var nextClosest = null;
-      for (var i = 0; i < systemsOrdered.length; ++i)
-      {
-        var s= systemsOrdered[i];
-        var systemVec = TANK.Math2D.normalize(TANK.Math2D.subtract(s.pos, system.pos));
-        var dot = TANK.Math2D.dot(closestVec, systemVec);
-        if (Math.abs(1 - dot) > 0.1)
-        {
-          nextClosest = s;
-          break;
-        }
-      };
-
-      if (nextClosest)
-      {
-        system.edges.push(nextClosest);
-        nextClosest.edges.push(system);
-      }
-
-    }.bind(this));
-
-    // Make the first node owned
-    this.systems[0].owner = TANK.main.Game.players[0];
-
-    // Init flagships
-    this.systems[0].flagships[0] = true;
-    this.systems[1].flagships[1] = true;
-
-    // Helper to recursively explore a graph
-    var exploreNode = function(node, islandNodes)
-    {
-      if (node.visited)
-        return false;
-
-      // Visit the node
-      node.visited = true;
-      islandNodes.push(node);
-
-      // Explore each adjacent node
-      for (var i = 0; i < node.edges.length; ++i)
-        exploreNode(node.edges[i], islandNodes);
-
-      return true;
-    };
-
-    // Helper to connect two islands
-    var connectIslands = function(a, b)
-    {
-      // Find the two closest nodes between the islands
-      var minDist = Infinity;
-      var nodeA = null;
-      var nodeB = null;
-
-      for (var i = 0; i < a.length; ++i)
-      {
-        for (var j = 0; j < b.length; ++j)
-        {
-          var dist = TANK.Math2D.pointDistancePoint(a[i].pos, b[j].pos);
-          if (dist < minDist)
-          {
-            minDist = dist;
-            nodeA = a[i];
-            nodeB = b[j];
-          }
-        }
-      }
-
-      nodeA.edges.push(nodeB);
-      nodeB.edges.push(nodeA);
-    };
-
-    // Explore every node to find islands
-    this.islands = [];
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var node = this.systems[i];
-      var island = [];
-      if (exploreNode(node, island))
-        this.islands.push(island);
-    }
-
-    // Connect each island to the next
-    for (var i = 1; i < this.islands.length; ++i)
-    {
-      var islandA = this.islands[i - 1];
-      var islandB = this.islands[i];
-      connectIslands(islandA, islandB);
+      var childNode = this.generateNode(node.depth + childDepth);
+      if (childNode)
+        node.paths.push(childNode);
     }
   };
 
-  this.save = function()
-  {
-    var systems = [];
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var system = this.systems[i];
-      var systemSave = {};
-      systemSave.index = system.index;
-      systemSave.pos = system.pos;
-      systemSave.radius = system.radius;
-      systemSave.owner = TANK.main.Game.players.indexOf(system.owner);
-      systemSave.fortifyLevel = system.fortifyLevel;
-      systemSave.edges = [];
-      system.edges.forEach(function(s)
-      {
-        systemSave.edges.push(s.index);
-      });
-      systems.push(systemSave);
-    }
-
-    return systems;
-  };
-
-  this.load = function(systems)
-  {
-    this.systems = [];
-    this.islands = [];
-
-    for (var i = 0; i < systems.length; ++i)
-    {
-      var systemSave = systems[i];
-      var system = {};
-      system.index = systemSave.index;
-      system.pos = systemSave.pos;
-      system.radius = systemSave.radius;
-      system.owner = TANK.main.Game.players[systemSave.owner];
-      system.fortifyLevel = systemSave.fortifyLevel;
-      system.edges = [];
-      this.systems.push(system);
-    }
-
-    for (var i = 0; i < this.systems.length; ++i)
-    {
-      var systemSave = systems[i];
-      var system = this.systems[i];
-      systemSave.edges.forEach(function(systemIndex)
-      {
-        system.edges.push(that.systems[systemIndex]);
-      });
-    }
-  };
+  this.map = this.generateNode(0);
 });
-TANK.registerComponent("OrderTarget").includes("Clickable");
+
 var ParticleLibrary = {};
 
 ParticleLibrary.slowMediumFire = function()
@@ -2946,7 +1944,7 @@ ParticleLibrary.slowMediumFire = function()
   var e = TANK.createEntity("ParticleEmitter");
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
   emitter.spawnOffsetMin = [-50, -50];
   emitter.spawnOffsetMax = [50, 50];
   emitter.spawnScaleMin = 1;
@@ -2985,7 +1983,7 @@ ParticleLibrary.explosionMediumFire = function(x, y)
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
   emitter.spawnOffsetMin = [-40, -40];
   emitter.spawnOffsetMax = [40, 40];
   emitter.spawnSpeedMin = 150;
@@ -3017,7 +2015,7 @@ ParticleLibrary.explosionMediumFireballs = function(x, y)
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 250;
@@ -3048,7 +2046,7 @@ ParticleLibrary.explosionMediumSparks = function(x, y)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 350;
@@ -3079,7 +2077,7 @@ ParticleLibrary.explosionMediumSmoke = function(x, y)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.particleImage.src = "res/img/particle-smoke-1.png";
   emitter.spawnOffsetMin = [-70, -70];
   emitter.spawnOffsetMax = [70, 70];
   emitter.spawnSpeedMin = 50;
@@ -3120,7 +2118,7 @@ ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.particleImage.src = "res/img/particle-smoke-1.png";
   emitter.spawnOffsetMin = [-8, -8];
   emitter.spawnOffsetMax = [8, 8];
   emitter.spawnSpeedMin = 100;
@@ -3129,7 +2127,7 @@ ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
   emitter.spawnAngleMax = angle + 0.2;
   emitter.spawnScaleMin = 2;
   emitter.spawnScaleMax = 5;
-  emitter.spawnPerSecond = 15;
+  emitter.spawnPerSecond = 10;
   emitter.spawnDuration = 0.2;
   emitter.particleLifeMin = 4;
   emitter.particleLifeMax = 7;
@@ -3153,7 +2151,7 @@ ParticleLibrary.gunFireSmallSparks = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -3194,7 +2192,7 @@ ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/particle-smoke-1.png";
+  emitter.particleImage.src = "res/img/particle-smoke-1.png";
   emitter.spawnOffsetMin = [-20, -20];
   emitter.spawnOffsetMax = [20, 20];
   emitter.spawnSpeedMin = 100;
@@ -3227,7 +2225,7 @@ ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 350;
@@ -3249,6 +2247,38 @@ ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
   return e;
 };
 
+ParticleLibrary.damageSmall = function(x, y, angle)
+{
+  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  e.Pos2D.x = x;
+  e.Pos2D.y = y;
+  e.Life.life = 3;
+  var emitter = e.ParticleEmitter;
+  emitter.zdepth = 5;
+  emitter.alignRotationToSpawnAngle = true;
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.spawnOffsetMin = [-5, -5];
+  emitter.spawnOffsetMax = [5, 5];
+  emitter.spawnSpeedMin = 250;
+  emitter.spawnSpeedMax = 350;
+  emitter.spawnAngleMin = angle - 0.2;
+  emitter.spawnAngleMax = angle + 0.2;
+  emitter.spawnScaleMin = 0.5;
+  emitter.spawnScaleMax = 1;
+  emitter.spawnPerSecond = 400;
+  emitter.spawnDuration = 0.1;
+  emitter.particleLifeMin = 2;
+  emitter.particleLifeMax = 3;
+  emitter.particleFrictionMin = 0.92;
+  emitter.particleFrictionMax = 0.95;
+  emitter.particleAlphaDecayMin = 0.97;
+  emitter.particleAlphaDecayMax = 0.99;
+  emitter.particleScaleDecayMin = 0.96;
+  emitter.particleScaleDecayMax = 0.98;
+  TANK.main.addChild(e);
+  return e;
+};
+
 ParticleLibrary.damageMedium = function(x, y, angle)
 {
   var e = TANK.createEntity(["ParticleEmitter", "Life"]);
@@ -3258,7 +2288,7 @@ ParticleLibrary.damageMedium = function(x, y, angle)
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/particle-fire-1.png";
+  emitter.particleImage.src = "res/img/particle-fire-1.png";
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -3285,7 +2315,7 @@ ParticleLibrary.smallRailTrail = function()
 {
   var e = TANK.createEntity(["ParticleEmitter"]);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnPerSecond = 100;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.3;
@@ -3301,7 +2331,7 @@ ParticleLibrary.mediumRailTrail = function()
 {
   var e = TANK.createEntity(["ParticleEmitter"]);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/particle-spark-1.png";
+  emitter.particleImage.src = "res/img/particle-spark-1.png";
   emitter.spawnPerSecond = 200;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.4;
@@ -3393,6 +2423,8 @@ function PixelBuffer()
   {
     x = Math.round(x);
     y = Math.round(y);
+    x = Math.min(this.buffer.width, Math.max(0, x));
+    y = Math.min(this.buffer.height, Math.max(0, y));
     var index = x * 4 + (y * this.buffer.width * 4);
     var pixel = [];
     pixel[0] = this.buffer.data[index + 0];
@@ -3427,12 +2459,64 @@ function PixelBuffer()
     }
   };
 }
+TANK.registerComponent('PixelCollider')
+
+.construct(function()
+{
+  this.width = 0;
+  this.height = 0;
+  this.collisionLayer = '';
+  this.collidesWith = [];
+
+  this.image = null;
+  this.collisionBuffer = new PixelBuffer();
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  this.setImage = function(image)
+  {
+    var space = this._entity.getFirstParentWithComponent('CollisionManager');
+    if (this.image)
+      space.CollisionManager.remove(this);
+
+    this.image = image;
+    this.collisionBuffer.createBuffer(image.width, image.height);
+    this.collisionBuffer.context.drawImage(this.image, 0, 0);
+    this.collisionBuffer.readBuffer();
+    this.width = image.width * TANK.main.Game.scaleFactor;
+    this.height = image.height * TANK.main.Game.scaleFactor;
+
+    space.CollisionManager.add(this);
+  };
+
+  this.testCollision = function(other)
+  {
+    var selfPos = [t.x, t.y];
+    var selfSize = [this.width, this.height];
+    var otherPos = [other._entity.Pos2D.x, other._entity.Pos2D.y];
+    var inRect = TANK.Math2D.pointInOBB(otherPos, selfPos, selfSize, t.rotation);
+    if (!inRect)
+      return null;
+
+    var selfHalfSize = TANK.Math2D.scale(selfSize, 0.5);
+    otherPos = TANK.Math2D.subtract(otherPos, selfPos);
+    otherPos = TANK.Math2D.rotate(otherPos, -t.rotation);
+    otherPos = TANK.Math2D.add(otherPos, selfHalfSize);
+    otherPos = TANK.Math2D.scale(otherPos, 1 / TANK.main.Game.scaleFactor);
+    var p = this.collisionBuffer.getPixel(otherPos[0], otherPos[1]);
+
+    return (p[3] > 0) ? otherPos : null;
+  };
+});
 (function()
 {
 
-TANK.registerComponent("Planet")
+TANK.registerComponent('Planet')
 
-.includes(["Pos2D", "Collider2D"])
+.includes(['Pos2D', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
@@ -3455,8 +2539,8 @@ TANK.registerComponent("Planet")
     [255, 255, 255, 255]
   ];
 
-  this.noiseFreq = 0.002 + Math.random() * 0.01;
-  this.noiseAmplitude = 0.5 + Math.random() * 3;
+  this.noiseFreq = 0.004 + Math.random() * 0.004;
+  this.noiseAmplitude = 0.5 + Math.random() * 0.3;
   this.noisePersistence = 0.7 + Math.random() * 0.29;
   this.noiseOctaves = 8;
 })
@@ -3464,10 +2548,6 @@ TANK.registerComponent("Planet")
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
-
-  this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.collidesWith.push("cursors");
 
   // Iterate over every pixel
   this.forEachPixel = function(func)
@@ -3572,14 +2652,14 @@ TANK.registerComponent("Planet")
   this.pixelBuffer.applyBuffer();
 
   // Draw atmosphere
-  var atmosColor = this.atmosColor[0] + "," + this.atmosColor[1] + "," + this.atmosColor[2];
-  var atmosColorAlpha = atmosColor + "," + this.atmosColor[3];
+  var atmosColor = this.atmosColor[0] + ',' + this.atmosColor[1] + ',' + this.atmosColor[2];
+  var atmosColorAlpha = atmosColor + ',' + this.atmosColor[3];
   this.lightBuffer.context.translate((this.lightSize) / 2, (this.lightSize) / 2);
   var grad = this.lightBuffer.context.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius * 1.1);
-  grad.addColorStop(0, "rgba(" + atmosColor + ", 0.0)");
-  grad.addColorStop(0.5, "rgba(" + atmosColor + ", 0.0)");
-  grad.addColorStop(0.8, "rgba(" + atmosColorAlpha + ")");
-  grad.addColorStop(1, "rgba(" + atmosColor + ", 0.0)");
+  grad.addColorStop(0, 'rgba(' + atmosColor + ', 0.0)');
+  grad.addColorStop(0.5, 'rgba(' + atmosColor + ', 0.0)');
+  grad.addColorStop(0.8, 'rgba(' + atmosColorAlpha + ')');
+  grad.addColorStop(1, 'rgba(' + atmosColor + ', 0.0)');
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
   this.lightBuffer.context.arc(0, 0, this.radius * 1.2, 2 * Math.PI, false);
@@ -3590,10 +2670,10 @@ TANK.registerComponent("Planet")
   var x = -this.radius;
   var y = 0;
   grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.2, x, y, this.radius * 1.8);
-  grad.addColorStop(0, "rgba(0, 0, 0, 0.0)");
-  grad.addColorStop(0.6, "rgba(0, 0, 0, 0.6)");
-  grad.addColorStop(0.8, "rgba(0, 0, 0, 0.7)");
-  grad.addColorStop(1, "rgba(0, 0, 0, 0.9)");
+  grad.addColorStop(0, 'rgba(0, 0, 0, 0.0)');
+  grad.addColorStop(0.6, 'rgba(0, 0, 0, 0.6)');
+  grad.addColorStop(0.8, 'rgba(0, 0, 0, 0.7)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
 
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
@@ -3601,16 +2681,13 @@ TANK.registerComponent("Planet")
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
-  this.listenTo(TANK.main, "systemBattleEnd", function()
+  this.listenTo(TANK.main, 'systemBattleEnd', function()
   {
     TANK.main.removeChild(this._entity);
   });
 
   this.draw = function(ctx, camera, dt)
   {
-    if (camera.z >= 8)
-      return;
-
     ctx.save();
 
     // Draw planet
@@ -3671,15 +2748,14 @@ var PlanetColors =
 ];
 
 }());
-TANK.registerComponent("Player")
+TANK.registerComponent('Player')
 
-.includes("Ship")
+.includes('Ship')
 
 .construct(function()
 {
   this.zdepth = 5;
   this.shakeTime = 0;
-  this.clickTimer = 1;
 
   this.headingPos = [0, 0];
   this.headingLeft = false;
@@ -3687,7 +2763,6 @@ TANK.registerComponent("Player")
   this.speedUp = false;
   this.speedDown = false;
   this.fireButtons = [];
-  this.selectedShips = [];
 })
 
 .initialize(function()
@@ -3713,19 +2788,10 @@ TANK.registerComponent("Player")
   {
     this.mouseDown = true;
 
-    // Handle double tap
-    if (this.clickTimer < .3)
-    {
-        TANK.main.dispatch("doubleclick", e);
-        return;
-    }
-    this.clickTimer = 0;
-
     // Handle tapping a fire button
     var mousePos = TANK.Math2D.subtract(TANK.main.Game.mousePosScreen, [window.innerWidth / 2, window.innerHeight / 2]);
     for (var i = 0; i < this.fireButtons.length; ++i)
     {
-      // var pos = TANK.Math2D.rotate(this.fireButtons[i].pos, t.rotation);
       var pos = TANK.Math2D.scale(this.fireButtons[i].pos, TANK.main.Game.scaleFactor);
       pos = TANK.Math2D.add(pos, this.headingPos);
       var dist = TANK.Math2D.pointDistancePoint(pos, mousePos);
@@ -3736,77 +2802,12 @@ TANK.registerComponent("Player")
         return;
       }
     }
-
-    // Handle giving an order to an already made selection
-    if (this.selectedShips.length > 0)
-    {
-      var targets = TANK.main.getChildrenWithComponent("OrderTarget");
-      for (var i in targets)
-      {
-        if (targets[i].Clickable.checkClick(TANK.main.Game.mousePosWorld))
-        {
-          this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(targets[i]);
-          this.pendingTarget = targets[i];
-          return;
-        }
-      }
-    }
-
-    // Handle the beginning of a selection drag if the mouse down was outside
-    // of the heading radius
-    var distToHUD = TANK.Math2D.pointDistancePoint(this.headingPos, mousePos);
-    if (distToHUD > this.headingRadiusScaled && !TANK.main.Game.zooming)
-    {
-      this.selecting = true;
-      this.selectPos = [TANK.main.Game.mousePosWorld[0], TANK.main.Game.mousePosWorld[1]];
-      this.selectRadius = 0;
-    }
   };
 
   this.mouseUpHandler = function(e)
   {
-    // Handle giving an order to an already made selection
-    var mousePos = TANK.main.Game.mousePosWorld;
-    if (this.selectedShips.length > 0 && this.pendingOrder)
-    {
-      var targets = TANK.main.getChildrenWithComponent("OrderTarget");
-      for (var i in targets)
-      {
-        if (targets[i].Clickable.checkClick(mousePos))
-        {
-          for (var j = 0; j < this.selectedShips.length; ++j)
-            this.selectedShips[j].AIShip.giveContextOrder(targets[i]);
-          this.clearSelection();
-          break;
-        }
-      }
-    }
-
-    // If we were in selection mode, we should find out what we selected
-    if (this.selecting)
-    {
-      // Only ships in our faction can be selected
-      this.clearSelection();
-      var ships = TANK.main.getChildrenWithComponent("AIShip");
-      for (var i in ships)
-      {
-        if (ships[i].Ship.faction === ship.faction)
-        {
-          if (TANK.Math2D.pointDistancePoint([ships[i].Pos2D.x, ships[i].Pos2D.y], this.selectPos) < this.selectRadius)
-          {
-            this.selectedShips.push(ships[i]);
-            ships[i].Ship.selected = true;
-          }
-        }
-      }
-    }
-
-    TANK.main.Game.zooming = false;
     this.mouseDown = false;
     this.fireButtonDown = false;
-    this.selecting = false;
-    this.pendingTarget = null;
-    this.pendingOrder = null;
   };
 
   this.mouseMoveHandler = function(e)
@@ -3835,55 +2836,32 @@ TANK.registerComponent("Player")
     }
   };
 
-  this.listenTo(this._entity, "collide", function(obj)
+  this.listenTo(this._entity, 'explode', function()
+  {
+    TANK.main.dispatchTimed(3, 'gamelose');
+  });
+
+  this.listenTo(this._entity, 'collide', function(obj)
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
       this.shakeCamera(0.1);
   });
 
-  this.listenTo(TANK.main, "camerashake", function(duration)
+  this.listenTo(TANK.main, 'killplayershields', function()
+  {
+    this._entity.Ship.shieldObj.Shield.disable(15);
+  });
+
+  this.listenTo(TANK.main, 'camerashake', function(duration)
   {
     this.shakeCamera(duration);
   });
 
-  this.listenTo(TANK.main, "doubleclick", function(e)
-  {
-    // If we double click a ship in the same faction, we can
-    // transfer control to it
-    var ships = TANK.main.getChildrenWithComponent("Ship");
-    for (var i in ships)
-    {
-        // Skip our own ship
-        if (ships[i] === this._entity)
-            continue;
+  this.listenTo(TANK.main, 'mousedown', this.mouseDownHandler);
+  this.listenTo(TANK.main, 'mouseup', this.mouseUpHandler);
+  this.listenTo(TANK.main, 'mousemove', this.mouseMoveHandler);
 
-        // Skip ships not on our faction
-        if (ships[i].Ship.faction !== this._entity.Ship.faction)
-          continue;
-
-        // Check if mouse is over the ship
-        var shipPos = [ships[i].Pos2D.x, ships[i].Pos2D.y];
-        var shipSize = [ships[i].Collider2D.width, ships[i].Collider2D.height];
-        if (TANK.Math2D.pointInOBB(TANK.main.Game.mousePosWorld, shipPos, shipSize, ships[i].Pos2D.rotation))
-        {
-            // Transfer control to the ship
-            this._entity.removeComponent("Player");
-            this._entity.addComponent("AIShip");
-            ships[i].addComponent("Player");
-            ships[i].removeComponent("AIShip");
-            ships[i].removeComponent("AIWatch");
-        }
-    }
-  });
-
-  this.listenTo(TANK.main, "mousedown", this.mouseDownHandler);
-  this.listenTo(TANK.main, "mouseup", this.mouseUpHandler);
-  this.listenTo(TANK.main, "mousemove", this.mouseMoveHandler);
-  this.listenTo(TANK.main, "touchstart", this.mouseDownHandler);
-  this.listenTo(TANK.main, "touchend", this.mouseUpHandler);
-  this.listenTo(TANK.main, "touchmove", this.mouseMoveHandler);
-
-  this.listenTo(TANK.main, "keydown", function(e)
+  this.listenTo(TANK.main, 'keydown', function(e)
   {
     if (e.keyCode === TANK.Key.W)
       this.speedUp = true;
@@ -3893,18 +2871,9 @@ TANK.registerComponent("Player")
       this.headingLeft = true;
     if (e.keyCode === TANK.Key.D)
       this.headingRight = true;
-
-    if (e.keyCode === TANK.Key.LEFT_ARROW)
-      this._entity.Weapons.fireGuns("left");
-    if (e.keyCode === TANK.Key.RIGHT_ARROW)
-      this._entity.Weapons.fireGuns("right");
-    if (e.keyCode === TANK.Key.UP_ARROW)
-      this._entity.Weapons.fireGuns("front");
-    if (e.keyCode === TANK.Key.DOWN_ARROW)
-      this._entity.Weapons.fireGuns("back");
   });
 
-  this.listenTo(TANK.main, "keyup", function(e)
+  this.listenTo(TANK.main, 'keyup', function(e)
   {
     if (e.keyCode === TANK.Key.W)
       this.speedUp = false;
@@ -3918,34 +2887,16 @@ TANK.registerComponent("Player")
 
   this.update = function(dt)
   {
-    // Timers
-    this.clickTimer += dt;
-
-    // Calculate selection radius
-    if (this.selecting)
-    {
-      this.selectRadius = TANK.Math2D.pointDistancePoint(this.selectPos, TANK.main.Game.mousePosWorld);
-    }
-
-    // Check if mouse is still over order target
-    if (this.pendingTarget)
-    {
-      if (this.pendingTarget.Clickable.checkClick(TANK.main.Game.mousePosWorld))
-        this.pendingOrder = this.selectedShips[0].AIShip.getContextOrder(this.pendingTarget);
-      else
-        this.pendingOrder = null;
-    }
-
     // Calculate HUD size
     this.headingRadius = 50;
     this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
     this.headingPos = [window.innerWidth / 2 - this.headingRadiusScaled - 30, window.innerHeight / 2 - this.headingRadiusScaled - 60];
     this.fireButtons =
     [
-      {side: "left", pos: [0, -this.headingRadius * 0.75], radius: 6},
-      {side: "right", pos: [0, this.headingRadius * 0.75], radius: 6},
-      {side: "front", pos: [this.headingRadius * 0.75, 0], radius: 6},
-      {side: "back", pos: [-this.headingRadius * 0.75, 0], radius: 6},
+      {side: 'left', pos: [0, -this.headingRadius * 0.75], radius: 6},
+      {side: 'right', pos: [0, this.headingRadius * 0.75], radius: 6},
+      {side: 'front', pos: [this.headingRadius * 0.75, 0], radius: 6},
+      {side: 'back', pos: [-this.headingRadius * 0.75, 0], radius: 6},
     ];
 
     // Heading controls
@@ -3959,6 +2910,16 @@ TANK.registerComponent("Player")
       ship.desiredSpeed += dt * 80;
     if (this.speedDown)
       ship.desiredSpeed -= dt * 80;
+
+    // Shoot
+    if (TANK.main.Input.isDown(TANK.Key.LEFT_ARROW))
+      this._entity.Weapons.fireGuns('left');
+    if (TANK.main.Input.isDown(TANK.Key.RIGHT_ARROW))
+      this._entity.Weapons.fireGuns('right');
+    if (TANK.main.Input.isDown(TANK.Key.UP_ARROW))
+      this._entity.Weapons.fireGuns('front');
+    if (TANK.main.Input.isDown(TANK.Key.DOWN_ARROW))
+      this._entity.Weapons.fireGuns('back');
 
     // Camera follow
     TANK.main.Renderer2D.camera.x = t.x;
@@ -3975,42 +2936,6 @@ TANK.registerComponent("Player")
 
   this.draw = function(ctx, camera)
   {
-    // Draw selection radius
-    if (this.selecting)
-    {
-      ctx.save()
-      ctx.translate(-camera.x, -camera.y);
-
-      // Inner circle
-      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.beginPath();
-      ctx.arc(this.selectPos[0], this.selectPos[1], 10 * camera.z, Math.PI * 2, false);
-      ctx.closePath();
-      ctx.fill();
-
-      // Selection radius
-      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.beginPath();
-      ctx.arc(this.selectPos[0], this.selectPos[1], this.selectRadius, Math.PI * 2, false);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // Draw context order text
-    if (this.pendingOrder)
-    {
-      var mousePos = TANK.main.Game.mousePosWorld;
-      ctx.save()
-      ctx.translate(-camera.x, -camera.y);
-      var fontSize = 20 * camera.z;
-      ctx.font = fontSize + "px sans-serif";
-      ctx.fillStyle = "#ddd";
-      ctx.fillText(this.pendingOrder, mousePos[0], mousePos[1]);
-      ctx.restore();
-    }
-
     // Draw player HUD
     ctx.save();
     ctx.scale(camera.z, camera.z);
@@ -4019,7 +2944,7 @@ TANK.registerComponent("Player")
 
     // Draw compass
     // Outer circle
-    ctx.strokeStyle = "rgba(200, 200, 200, 0.3)";
+    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(0, 0, this.headingRadius, Math.PI * 2, false);
@@ -4038,7 +2963,7 @@ TANK.registerComponent("Player")
     ctx.stroke();
 
     // Speed line
-    ctx.strokeStyle = "rgba(100, 100, 250, 0.8)";
+    ctx.strokeStyle = 'rgba(100, 100, 250, 0.8)';
     ctx.lineWidth = 1.5;
     var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
     var startPos = [Math.cos(ship.heading), Math.sin(ship.heading)];
@@ -4061,9 +2986,7 @@ TANK.registerComponent("Player")
     }
 
     // Draw weapon buttons
-    ctx.fillStyle = "rgba(255, 80, 80, 0.5)";
-
-    // Front Back
+    ctx.fillStyle = 'rgba(255, 80, 80, 0.5)';
     for (var i = 0; i < this.fireButtons.length; ++i)
     {
       drawGun(this.fireButtons[i]);
@@ -4072,9 +2995,246 @@ TANK.registerComponent("Player")
     ctx.restore();
   };
 });
-TANK.registerComponent("Ship")
+TANK.registerComponent('RemoveOnLevelChange')
+.initialize(function()
+{
+  this.listenTo(TANK.main, 'locationchange', function()
+  {
+    TANK.main.removeChild(this._entity);
+  });
+});
 
-.includes(["Pos2D", "Velocity", "Lights", "Collider2D", "Weapons", "OrderTarget"])
+TANK.registerComponent('Resources')
+.construct(function()
+{
+  this._resourcesToLoad = {};
+  this._resourcesLoaded = 0;
+  this._resources = {};
+  this._queuedResources = [];
+})
+
+.initialize(function()
+{
+  //
+  // Add a resource to be loaded
+  //
+  this.add = function(name, path, dependencies, loader)
+  {
+    this._resourcesToLoad[name] =
+    {
+      name: name,
+      path: path,
+      dependencies: dependencies || [],
+      loader: loader
+    };
+  };
+
+  //
+  // Get a resource by name
+  //
+  this.get = function(name)
+  {
+    return this._resources[name];
+  };
+
+  //
+  // Get a map of all resources
+  //
+  this.getAll = function()
+  {
+    return this._resources;
+  };
+
+  //
+  // Load all queued resources
+  //
+  this.load = function()
+  {
+    for (var i in this._resourcesToLoad)
+      this._loadResource(this._resourcesToLoad[i], true);
+  };
+
+  this._resourceLoaded = function(res, loadedRes)
+  {
+    // Mark resource as loaded
+    this._resources[res.name] = loadedRes;
+    ++this._resourcesLoaded;
+    res.loaded = true;
+
+    // Dispatch done event when all resources loaded
+    var numResources = Object.keys(this._resourcesToLoad).length;
+    if (this._resourcesLoaded >= numResources)
+    {
+      this._entity.dispatch('resourcesloaded');
+      return;
+    }
+
+    // Check if we can load any of our queued resources now
+    for (var i = 0; i < this._queuedResources.length; ++i)
+      this._loadResource(this._queuedResources[i], false);
+  };
+
+  this._loadResource = function(res, addToQueue)
+  {
+    // Skip if done
+    if (res.loaded)
+    {
+      return;
+    }
+
+    // Check if all dependencies are loaded
+    var dependenciesMet = true;
+    for (var i = 0; i < res.dependencies.length; ++i)
+    {
+      var dep = this._resourcesToLoad[res.dependencies[i]];
+      if (!dep.loaded)
+        dependenciesMet = false;
+    }
+
+    // If not, add this resource to the queue for later
+    if (!dependenciesMet)
+    {
+      if (addToQueue)
+      {
+        this._queuedResources.push(res);
+      }
+      return;
+    }
+
+    // Otherwise, we can now load the resource
+    if (res.loader)
+    {
+      res.loader(res.name, res.path, this, function(loadedRes)
+      {
+        this._resourceLoaded(res, loadedRes);
+      }.bind(this));
+    }
+    else if (res.path)
+    {
+      if (res.path.search(/(.png|.jpg|.jpeg|.gif)/) >= 0)
+      {
+        var img = new Image();
+        img.src = res.path;
+        img.onload = function()
+        {
+          this._resourceLoaded(res, img);
+        }.bind(this);
+      }
+    }
+  };
+});
+TANK.registerComponent('Shield')
+.includes(['Pos2D', 'CircleCollider'])
+.construct(function()
+{
+  this.zdepth = 5;
+
+  this.health = 1;
+  this.maxHealth = 1;
+  this.regenRate = 0.1;
+  this.radius = 5;
+  this.burstTimer = 0;
+  this.burstTime = 5;
+  this.disabledTimer = 0;
+  this.bubbleOpacity = 0;
+  this.disabled = false;
+  this.recovering = false;
+})
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  this._entity.CircleCollider.collisionLayer = 'shields';
+  this._entity.CircleCollider.collidesWith = ['bullets'];
+  this._entity.CircleCollider.setRadius(this.radius);
+
+  TANK.main.Renderer2D.add(this);
+
+  this.disable = function(time)
+  {
+    this.disabled = true;
+    this.disabledTimer = time;
+  };
+
+  this.listenTo(this._entity, 'collide', function(obj)
+  {
+    if (this.disabled || this.health <= 0)
+      return;
+
+    if (obj.Bullet)
+    {
+      obj.Life.life = 0;
+      this.health -= obj.Bullet.damage;
+      this.bubbleOpacity = this.health / this.maxHealth;
+      if (this.health <= 0)
+      {
+        this.burstTimer = this.burstTime;
+        this.recovering = true;
+      }
+
+      t.rotation = Math.atan2(obj.Pos2D.y - t.y, obj.Pos2D.x - t.x);
+    }
+  });
+
+  this.update = function(dt)
+  {
+    if (this.disabled)
+    {
+      this.disabledTimer -= dt;
+      if (this.disabledTimer <= 0)
+      {
+        this.disabled = false;
+      }
+      return;
+    }
+
+    if (this.bubbleOpacity > 0.01)
+      this.bubbleOpacity *= 0.9;
+    else
+      this.bubbleOpacity = 0;
+
+    if (this.recovering)
+    {
+      this.burstTimer -= dt;
+      if (this.burstTimer <= 0)
+        this.recovering = false;
+    }
+    else
+    {
+      this.health += dt * this.regenRate;
+      this.health = Math.min(this.health, this.maxHealth);
+    }
+  };
+
+  this.draw = function(ctx, camera, dt)
+  {
+    if (this.disabled)
+      return;
+
+    ctx.save();
+
+    var grad = ctx.createRadialGradient(this.radius * 0.75, 0, this.radius * 0.2, this.radius * 0.25, 0, this.radius * 0.75);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    grad.addColorStop(1, 'rgba(150, 200, 255, 0.0)');
+
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+    ctx.rotate(t.rotation);
+
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = this.bubbleOpacity;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  };
+});
+TANK.registerComponent('Ship')
+
+.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
 
 .construct(function()
 {
@@ -4084,11 +3244,15 @@ TANK.registerComponent("Ship")
   this.thrustAlpha = 0;
   this.heading = 0;
   this.desiredSpeed = 0;
+  this.warpCharge = 0;
+  this.fuel = 0;
+  this.shieldTimer = 5;
+  this.shieldRecharging = false;
 
   this.dead = false;
 
+  this.iff = 0;
   this.shipData = null;
-  this.faction = null;
   this.deadTimer = 0;
 })
 
@@ -4099,43 +3263,42 @@ TANK.registerComponent("Ship")
 
   TANK.main.Renderer2D.add(this);
 
-  // Set up collision
-  this._entity.Collider2D.collisionLayer = "ships";
-  this._entity.Collider2D.collidesWith = ["bullets"];
-
   // Get some data from ship
-  this.image = this.shipData.__proto__.image;
-  this.imageEngine = this.shipData.__proto__.imageEngine;
-  this.imageNormals = this.shipData.__proto__.imageNormals;
-  this.lightBuffers = this.shipData.__proto__.lightBuffers;
+  this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
+  this.fuel = this.shipData.maxFuel;
+  this.width = this.resource.diffuse.width;
+  this.height = this.resource.diffuse.height;
+
+  // Set up shield
+  this.shieldObj = TANK.createEntity('Shield');
+  this._entity.addChild(this.shieldObj);
+  this.shieldObj.Shield.health = this.shipData.shield;
+  this.shieldObj.Shield.maxHealth = this.shipData.shield;
+  this.shieldObj.Shield.regenRate = this.shipData.shieldGen;
+  this.shieldObj.Shield.radius = this.shipData.shieldRadius;
+  this.shieldObj.Pos2D.x = t.x;
+  this.shieldObj.Pos2D.y = t.y;
+
+  // Set up collision
+  this._entity.PixelCollider.collisionLayer = 'ships';
+  this._entity.PixelCollider.collidesWith = ['bullets'];
+  this._entity.PixelCollider.setImage(this.resource.diffuse);
+
+  // Set up lighting
+  this._entity.LightingAndDamage.setResource(this.resource);
 
   // Create texture buffers
   this.mainBuffer = new PixelBuffer();
   this.damageBuffer = new PixelBuffer();
   this.decalBuffer = new PixelBuffer();
-  this.collisionBuffer = new PixelBuffer();
 
   // Set sizes for things
-  this._entity.Lights.lights = this.shipData.lights;
-  this._entity.Lights.width = this.image.width;
-  this._entity.Lights.height = this.image.height;
-  this._entity.Lights.redrawLights();
-  this._entity.Collider2D.width = this.image.width * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.image.height * TANK.main.Game.scaleFactor;
-  this._entity.Clickable.width = this.image.width * TANK.main.Game.scaleFactor;
-  this._entity.Clickable.height = this.image.height * TANK.main.Game.scaleFactor;
-  this._entity.Weapons.width = this.image.width;
-  this._entity.Weapons.height = this.image.height;
-
-  // Setup texture buffers
-  this.mainBuffer.createBuffer(this.image.width, this.image.height);
-  this.damageBuffer.createBuffer(this.image.width, this.image.height);
-  this.decalBuffer.createBuffer(this.image.width, this.image.height);
-  this.collisionBuffer.createBuffer(this.image.width, this.image.height);
-  this.collisionBuffer.context.drawImage(this.image, 0, 0);
-  this.collisionBuffer.readBuffer();
-
+  this._entity.Weapons.width = this.width;
+  this._entity.Weapons.height = this.height;
+  this._entity.Engines.size = this.shipData.engineSize;
+  this._entity.Engines.color = 'rgba(' + this.shipData.engineColor.join(', ') + ', 0)';
+  this._entity.Engines.drawEngine();
 
   // Add weapons
   for (var gunSide in this.shipData.guns)
@@ -4151,13 +3314,15 @@ TANK.registerComponent("Ship")
     }
   };
 
+  //
   // Move towards a given point
+  //
   this.moveTowards = function(pos, speedPercent)
   {
     this.heading = Math.atan2(pos[1] - t.y, pos[0] - t.x);
 
     // Set speed
-    if (typeof speedPercent === "undefined")
+    if (typeof speedPercent === 'undefined')
       this.setSpeedPercent(1)
     else
       this.setSpeedPercent(speedPercent)
@@ -4168,21 +3333,21 @@ TANK.registerComponent("Ship")
       this.setSpeedPercent(0);
   };
 
+  //
+  // Set speed
+  //
   this.setSpeedPercent = function(percent)
   {
     this.desiredSpeed = Math.min(this.shipData.maxSpeed, this.shipData.maxSpeed * percent);
   };
 
-  // Add damage decals to the ship
+  //
+  // Apply damage
+  //
   this.addDamage = function(x, y, radius)
   {
-    // Cut out radius around damage
-    this.damageBuffer.setPixelRadiusRand(x, y, radius - 2, [255, 255, 255, 255], 0.7, radius, [0, 0, 0, 0], 0.0);
-    this.damageBuffer.applyBuffer();
-
-    // Draw burnt edge around damage
-    this.decalBuffer.setPixelRadius(x, y, radius - 1, [200, 100, 0, 255], radius, [0, 0, 0, 50]);
-    this.decalBuffer.applyBuffer();
+    this._entity.LightingAndDamage.addDamage(x, y, radius);
+    this._entity.SoundEmitter.play('hit-01');
 
     // Do damage to weapons on the ship
     for (var side in this._entity.Weapons.guns)
@@ -4200,14 +3365,12 @@ TANK.registerComponent("Ship")
     }
   };
 
+  //
   // Explode the ship
+  //
   this.explode = function()
   {
-    // If we are the player, we should transfer player control to another ship
-    if (this._entity.Player)
-    {
-      TANK.main.dispatchTimed(1, "scanforplayership", this.faction, [t.x, t.y]);
-    }
+    this._entity.dispatch('explode');
 
     // Remove objects
     TANK.main.removeChild(this._entity);
@@ -4215,51 +3378,73 @@ TANK.registerComponent("Ship")
 
     // Create explosion effect
     ParticleLibrary.explosionMedium(t.x, t.y);
+    this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < window.innerWidth / 2)
-      TANK.main.dispatch("camerashake", 0.5);
+      TANK.main.dispatch('camerashake', 0.5);
   };
 
-  this.listenTo(TANK.main, "systemBattleEnd", function()
+  //
+  // Gun firing response
+  //
+  this.listenTo(this._entity, 'gunfired', function(gun)
   {
-    TANK.main.removeChild(this._entity);
+    this.shieldObj.Shield.disable(gun.shieldDisableTime);
   });
 
+  //
+  // Collision response
+  //
+  this.listenTo(this._entity, 'collide', function(obj, pixelPos)
+  {
+    var objPos = [obj.Pos2D.x, obj.Pos2D.y];
+    var bullet = obj.Bullet;
+
+    if (bullet && bullet.owner !== this._entity)
+    {
+      // Do damage
+      this.addDamage(pixelPos[0], pixelPos[1], bullet.damage * (30 + Math.random() * 30));
+      this._entity.dispatch('damaged', bullet.damage, [obj.Velocity.x, obj.Velocity.y], objPos, bullet.owner);
+      obj.Life.life = 0;
+
+      // Spawn effect
+      ParticleLibrary[bullet.damageEffect](objPos[0], objPos[1], obj.Pos2D.rotation + Math.PI);
+
+      // Shake screen if on camera
+      var camera = TANK.main.Renderer2D.camera;
+      var dist = TANK.Math2D.pointDistancePoint(objPos, [camera.x, camera.y]);
+      if (dist < 1) dist = 1;
+      if (dist < window.innerWidth / 2)
+        TANK.main.dispatch('camerashake', 0.1 / dist);
+    }
+  });
+
+  //
   // Damage response
-  this.listenTo(this._entity, "damaged", function(damage, dir, pos, owner)
+  //
+  this.listenTo(this._entity, 'damaged', function(damage, dir, pos, owner)
   {
     // Affect trajectory
-    v.x += dir[0] * 0.02;
-    v.y += dir[1] * 0.02;
+    v.x += dir[0] * damage * 0.1;
+    v.y += dir[1] * damage * 0.1;
     var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
-    v.r += dir * 0.5;
+    v.r += dir * damage;
 
-    // Do damage
     this.health -= damage;
   });
 
-  this.listenTo(this._entity, "thrustOn", function()
-  {
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "on";
-    this._entity.Lights.redrawLights();
-  });
-
-  this.listenTo(this._entity, "thrustOff", function()
-  {
-    for (var i = 0; i < this.shipData.lights.length; ++i)
-      if (this.shipData.lights[i].isEngine)
-        this.shipData.lights[i].state = "off";
-    this._entity.Lights.redrawLights();
-  });
-
+  //
   // Update loop
+  //
   this.update = function(dt)
   {
+    // Update shield
+    this.shieldObj.Pos2D.x = t.x;
+    this.shieldObj.Pos2D.y = t.y;
+
     // Check if dead
     if (this.health < 0 && !this.dead)
     {
@@ -4312,14 +3497,14 @@ TANK.registerComponent("Ship")
       v.x += Math.cos(t.rotation) * dt * this.shipData.accel;
       v.y += Math.sin(t.rotation) * dt * this.shipData.accel;
       if (!this.thrustOn)
-        this._entity.dispatch("ThrustOn");
+        this._entity.dispatch('ThrustOn');
       this.thrustOn = true;
     }
     // Otherwise, turn off the thrusters
     else
     {
       if (this.thrustOn)
-        this._entity.dispatch("ThrustOff");
+        this._entity.dispatch('ThrustOff');
       this.thrustOn = false;
     }
     // Slow down if moving faster than we want
@@ -4344,6 +3529,7 @@ TANK.registerComponent("Ship")
 
     // Timers
     this.reloadTimer -= dt;
+    this.warpCharge += dt;
 
     // Handle engine alpha
     if (this.thrustOn)
@@ -4352,325 +3538,379 @@ TANK.registerComponent("Ship")
       this.thrustAlpha -= dt;
     this.thrustAlpha = Math.max(0, this.thrustAlpha);
     this.thrustAlpha = Math.min(1, this.thrustAlpha);
-
-    // Capture nearby control points
-    var controlPoints = TANK.main.getChildrenWithComponent("ControlPoint");
-    for (var i in controlPoints)
-    {
-      var e = controlPoints[i];
-
-      // Skip control points that belong to us and aren't contested
-      if (e.ControlPoint.faction && e.ControlPoint.faction.team === this.faction.team && !e.ControlPoint.pendingFaction)
-        continue;
-
-      // Try to capture or restore control point if it is within range
-      var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [e.Pos2D.x, e.Pos2D.y]);
-      if (dist < e.ControlPoint.captureDistance)
-      {
-        e.ControlPoint.tryCapture(this.faction, 0.1 * dt);
-        break;
-      }
-    };
-  };
-
-  this.redrawShip = function()
-  {
-    this.mainBuffer.context.save();
-    this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
-    this.mainBuffer.context.drawImage(this.image, 0, 0);
-
-    // Draw lighting
-    this.lightBuffers = this.shipData.__proto__.lightBuffers;
-    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    for (var i = 0; i < this.lightBuffers.length; ++i)
-    {
-      var lightDirOffset = (Math.PI * 2 / this.lightBuffers.length) * i - Math.PI / 2;
-      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
-      if (this.mainBuffer.context.globalAlpha > 0)
-        this.mainBuffer.context.drawImage(this.lightBuffers[i], 0, 0);
-    }
-
-    // Draw damage buffer
-    this.mainBuffer.context.globalAlpha = 1;
-    this.mainBuffer.context.globalCompositeOperation = "source-atop";
-    this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
-    this.mainBuffer.context.globalCompositeOperation = "destination-out";
-    this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
-    this.mainBuffer.context.restore();
   };
 
   this.draw = function(ctx, camera)
   {
-    if (!this.lightBuffers)
-      return;
-
     ctx.save();
 
     // Set up transform
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
     ctx.rotate(t.rotation);
-    ctx.translate(this.image.width / -2, this.image.height / -2);
+    ctx.translate(this.resource.diffuse.width / -2, this.resource.diffuse.height / -2);
 
     // Draw the main ship buffer
-    this.redrawShip();
-    ctx.drawImage(this.mainBuffer.canvas, 0, 0);
-
-    // Draw engine
-    if (this.thrustOn || this.thrustAlpha > 0)
-    {
-      ctx.globalAlpha = this.thrustAlpha;
-      ctx.drawImage(this.imageEngine, 0, 0);
-    }
-
-    // Draw team indicator
-    if (camera.z < 8 && this.faction)
-    {
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = this.faction.color;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-5, -2.5);
-      ctx.lineTo(-2.5, -5);
-
-      ctx.moveTo(this.image.width, 0);
-      ctx.lineTo(this.image.width + 5, -2.5);
-      ctx.lineTo(this.image.width + 2.5, -5);
-
-      ctx.moveTo(this.image.width, this.image.height);
-      ctx.lineTo(this.image.width + 5, this.image.height + 2.5);
-      ctx.lineTo(this.image.width + 2.5, this.image.height + 5);
-
-      ctx.moveTo(0, this.image.height);
-      ctx.lineTo(-5, this.image.height + 2.5);
-      ctx.lineTo(-2.5, this.image.height + 5);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // Draw selection box
-    if (this.selected)
-    {
-      ctx.globalAlpha = 1;
-      ctx.lineWidth = 1 * camera.z;
-      ctx.strokeStyle = "rgba(150, 255, 150, 0.8)";
-      ctx.strokeRect(0, 0, this.image.width, this.image.height);
-    }
+    this._entity.LightingAndDamage.redraw();
+    ctx.drawImage(this._entity.LightingAndDamage.mainBuffer.canvas, 0, 0);
 
     ctx.restore();
   };
+});
+TANK.registerComponent('ShipSelection')
+
+.construct(function()
+{
+  this.htmlText =
+  [
+    '<div class="main-menu">',
+    '  <div class="menu-title">Select a Ship</div>',
+    '  <div class="ship-select ship-select-left">&lt;</div>',
+    '  <div class="ship-select ship-select-right">&gt;</div>',
+    '  <div class="menu-options">',
+    '    <div class="menu-option menu-option-go">Start</div>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
+
+  this.ships = [];
+  this.selection = 0;
+})
+
+.initialize(function()
+{
+  //
+  // Create UI
+  //
+  this.container = document.createElement('div');
+  this.container.innerHTML = this.htmlText;
+  document.body.appendChild(this.container)
+
+  this.container.querySelector('.menu-options').style.height = '30%';
+
+  //
+  // Handle interactions
+  //
+  this.container.querySelector('.ship-select-left').addEventListener('click', function()
+  {
+    this.shiftSelection(-1);
+  }.bind(this));
+  this.container.querySelector('.ship-select-right').addEventListener('click', function()
+  {
+    this.shiftSelection(1);
+  }.bind(this));
+  this.container.querySelector('.menu-option-go').addEventListener('click', function()
+  {
+    this._entity.dispatch('selectionmade', this.ships[this.selection].shipType);
+  }.bind(this));
+
+  //
+  // Create scene
+  //
+  var x = 0;
+  for (var i in Ships)
+  {
+    var ship = new Ships[i]();
+    if (!ship.playable)
+      continue;
+
+    var e = TANK.createEntity('Ship');
+    e.Pos2D.x = x;
+    e.Pos2D.y = 0;
+    e.Ship.shipData = ship;
+    e.shipType = i;
+    TANK.main.addChild(e);
+    this.ships.push(e);
+    x += 500;
+  }
+
+  //
+  // Move selection
+  //
+  this.shiftSelection = function(amount)
+  {
+    this.selection += amount;
+    this.selection = Math.max(0, this.selection);
+    this.selection = Math.min(this.ships.length - 1, this.selection);
+  };
+
+  //
+  // Update
+  //
+  this.update = function(dt)
+  {
+    for (var i = 0; i < this.ships.length; ++i)
+    {
+      var dist = i - this.selection;
+      var desiredPos = dist * 500;
+      var t = this.ships[i].Pos2D;
+      t.x = t.x + (desiredPos - t.x) * 0.2;
+    }
+  };
+})
+
+.uninitialize(function()
+{
+  document.body.removeChild(this.container);
+  for (var i = 0; i < this.ships.length; ++i)
+    TANK.main.removeChild(this.ships[i]);
+  this.ship = [];
 });
 var Ships = {};
 
 Ships.fighter = function()
 {
-  this.name = "Fighter";
+  this.name = 'Fighter';
+  this.resource = 'fighter';
+  this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 1.0;
   this.maxSpeed = 250;
   this.accel = 35;
   this.turnAccel = 2.0;
   this.health = 0.2;
-  this.cost = 5;
-  this.buildTime = 5;
-  this.threat = 1;
+  this.shield = 0.2;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 30;
+  this.warpChargeTime = 10;
+  this.maxFuel = 5;
   this.optimalAngle = 0;
+  this.engineSize = [18, 8];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     front:
     [
-      {
-        type: "smallRail",
-        x: 19,
-        y: 14
-      }
+      {type: 'smallRail', x: 28, y: 21}
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 3, y: 6, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 2, y: 15, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 4, y: 22, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 13, y: 15, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 11, y: 7},
+    {x: 9, y: 25},
+    {x: 14, y: 35}
   ];
 };
 
 Ships.bomber = function()
 {
-  this.name = "Bomber";
+  this.name = 'Bomber';
+  this.resource = 'bomber';
+  this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.8;
   this.maxSpeed = 200;
   this.accel = 35;
   this.turnAccel = 1.6;
   this.health = 0.4;
-  this.cost = 15;
-  this.buildTime = 10;
-  this.threat = 3;
+  this.shield = 0.4;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 50;
+  this.warpChargeTime = 15;
+  this.maxFuel = 7;
   this.optimalAngle = 0;
+  this.engineSize = [24, 12];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     front:
     [
-      {
-        type: "mediumRocket",
-        x: 36,
-        y: 28
-      }
+      {type: 'mediumRocket', x: 60, y: 60}
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 16, y: 20, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 9, y: 24, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 15, y: 38, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 49, y: 23, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 29, y: 36},
+    {x: 25, y: 45},
+    {x: 23, y: 75}
   ];
 };
 
 Ships.frigate = function()
 {
-  this.name = "Frigate";
+  this.name = 'Frigate';
+  this.resource = 'frigate';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
   this.maxTurnSpeed = 0.35;
-  this.maxSpeed = 150;
-  this.accel = 15;
+  this.maxSpeed = 120;
+  this.accel = 12;
   this.turnAccel = 1.2;
   this.health = 1;
-  this.cost = 30;
-  this.buildTime = 15;
-  this.threat = 10;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 60;
+  this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;
+  this.engineSize = [24, 16];
+  this.engineColor = [50, 100, 255];
   this.guns =
   {
     left:
     [
-      {
-        type: "mediumRail",
-        x: 20,
-        y: 3
-      },
-      {
-        type: "mediumRail",
-        x: 40,
-        y: 3
-      }
+      {type: 'mediumRail', x: 85, y: 39},
+      {type: 'mediumRail', x: 35, y: 39}
     ],
     front:
     [
-      {
-        type: "mediumRail",
-        x: 78,
-        y: 28
-      }
+      {type: 'mediumRail', x: 106, y: 69}
     ],
     right:
     [
-      {
-        type: "mediumRail",
-        x: 20,
-        y: 45
-      },
-      {
-        type: "mediumRail",
-        x: 40,
-        y: 45
-      }
+      {type: 'mediumRail', x: 16, y: 85},
+      {type: 'mediumRail', x: 44, y: 85}
     ],
     back:
     [
-      {
-        type: "mediumRail",
-        x: 23,
-        y: 30
-      }
+      {type: 'mediumRail', x: 36, y: 69}
     ]
-  },
-  this.lights =
+  };
+  this.engines =
   [
-    {
-      x: 6, y: 3, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 6, y: 43, colorA: [210, 210, 255], colorB: [150, 150, 255], state: "off", isEngine: true,
-      states:
-      {
-        on: {radius: 10, alpha: 0.8},
-        off: {radius: 6, alpha: 0.3}
-      }
-    },
-    {
-      x: 49, y: 3, radius: 6, colorA: [255, 180, 180], colorB: [255, 150, 150], state: "off", blinkTime: 1.5,
-      states:
-      {
-        on: {alpha: 0.5},
-        off: {alpha: 0.2}
-      }
-    }
+    {x: 18, y: 39},
+    {x: 6, y: 84},
+  ];
+};
+
+Ships.blade = function()
+{
+  this.name = 'Blade';
+  this.resource = 'ship-blade';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.30;
+  this.maxSpeed = 150;
+  this.accel = 16;
+  this.turnAccel = 1.1;
+  this.health = 1.5;
+  this.shield = 0.25;
+  this.shieldGen = 0.015;
+  this.shieldRadius = 85;
+  this.warpChargeTime = 30;
+  this.maxFuel = 7;
+  this.optimalAngle = Math.PI / 2;
+  this.engineSize = [48, 24];
+  this.engineColor = [50, 100, 255];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'mediumRail', x: 45, y: 55},
+      {type: 'mediumRail', x: 90, y: 64},
+    ],
+    right:
+    [
+      {type: 'mediumRail', x: 45, y: 94},
+      {type: 'mediumRail', x: 90, y: 86},
+    ],
+    front:
+    [
+      {type: 'smallRail', x: 136, y: 69},
+      {type: 'smallRail', x: 136, y: 79},
+    ]
+  };
+  this.engines =
+  [
+    {x: 21, y: 75},
+    {x: 28, y: 40}
+  ];
+};
+
+Ships.albatross = function()
+{
+  this.name = 'Albatross';
+  this.resource = 'ship-albatross';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.40;
+  this.maxSpeed = 100;
+  this.accel = 10;
+  this.turnAccel = 1.2;
+  this.health = 0.5;
+  this.shield = 1;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 60;
+  this.maxFuel = 13;
+  this.optimalAngle = 0;
+  this.engineSize = [36, 20];
+  this.engineColor = [255, 100, 255];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'smallRail', x: 50, y: 44},
+      {type: 'smallRail', x: 101, y: 35},
+    ],
+    right:
+    [
+      {type: 'smallRail', x: 45, y: 85},
+      {type: 'smallRail', x: 91, y: 91},
+    ],
+    front:
+    [
+      {type: 'mediumRocket', x: 96, y: 50},
+      {type: 'mediumRocket', x: 96, y: 76},
+    ],
+    back:
+    [
+      {type: 'mediumRail', x: 44, y: 64}
+    ]
+  };
+  this.engines =
+  [
+    {x: 16, y: 45},
+    {x: 37, y: 63},
+    {x: 85, y: 90}
+  ];
+};
+
+Ships.rhino = function()
+{
+  this.name = 'Rhino';
+  this.resource = 'ship-rhino';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.25;
+  this.maxSpeed = 100;
+  this.accel = 10;
+  this.turnAccel = 1.2;
+  this.health = 1;
+  this.shield = 0.5;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 60;
+  this.maxFuel = 10;
+  this.optimalAngle = 0;
+  this.engineSize = [36, 16];
+  this.engineColor = [100, 255, 100];
+  this.guns =
+  {
+    left:
+    [
+      {type: 'smallRail', x: 100, y: 60},
+      {type: 'smallRail', x: 67, y: 68},
+    ],
+    right:
+    [
+      {type: 'smallRail', x: 100, y: 88},
+      {type: 'smallRail', x: 67, y: 81},
+    ],
+    front:
+    [
+      {type: 'mediumRail', x: 139, y: 67},
+      {type: 'mediumRail', x: 139, y: 81},
+    ],
+  };
+  this.engines =
+  [
+    {x: 26, y: 76},
+    {x: 121, y: 48},
   ];
 };
 
 // Ships.alien = function()
 // {
-//   this.name = "Alien";
+//   this.name = 'Alien';
 //   this.maxTurnSpeed = 0.35;
 //   this.maxSpeed = 150;
 //   this.accel = 15;
@@ -4686,7 +3926,7 @@ Ships.frigate = function()
 //   this.lights =
 //   [
 //     {
-//       x: 10, y: 33, colorA: [255, 200, 255], colorB: [255, 140, 255], state: "off", isEngine: true,
+//       x: 10, y: 33, colorA: [255, 200, 255], colorB: [255, 140, 255], state: 'off', isEngine: true,
 //       states:
 //       {
 //         on: {radius: 10, alpha: 0.8},
@@ -4695,41 +3935,80 @@ Ships.frigate = function()
 //     }
 //   ];
 // };
-
-// Configure Lightr
-Lightr.minLightIntensity = 0.2;
-Lightr.lightDiffuse = [0.8, 0.8, 1];
-
-// Load ship images
-for (var i in Ships)
+function LoadSounds()
 {
-  var ship = Ships[i];
-  ship.prototype.type = i;
-  ship.prototype.image = new Image();
-  ship.prototype.imageEngine = new Image();
-  ship.prototype.imageNormals = new Image();
-  ship.prototype.image.src = "res/" + i + ".png";
-  ship.prototype.imageEngine.src = "res/" + i + "-engine.png";
-  ship.prototype.imageNormals.src = "res/" + i + "-normals.png";
+  var sounds =
+  [
+    'small-rail-01',
+    'medium-rail-01',
+    'explode-01',
+    'blip-01',
+    'hit-01'
+  ];
 
-  ship.prototype.image.onload = function()
+  for (var i = 0; i < sounds.length; ++i)
   {
-    this.prototype.imageNormals.onload = function()
-    {
-      this.prototype.lightBuffers = Lightr.bake(8, this.prototype.image, this.prototype.imageNormals);
-    }.bind(this);
-  }.bind(ship);
-}
-
-var bakeShipLighting = function()
-{
-  for (var i in Ships)
-  {
-    var ship = Ships[i];
-    ship.prototype.lightBuffers = Lightr.bake(8, ship.prototype.image, ship.prototype.imageNormals);
+    var name = sounds[i];
+    var fileName = 'res/snd/' + name + '.wav';
+    Wave.load(fileName, name);
   }
+}
+TANK.registerComponent('SoundEmitter')
+
+.includes(['Pos2D'])
+
+.construct(function()
+{
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ear = TANK.main.Renderer2D.camera;
+  var earRange = 600;
+
+  this.play = function(name)
+  {
+    var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [ear.x, ear.y]);
+    var volume = Math.min(1, earRange / dist) * TANK.main.Game.volume;
+    Wave.play(name, volume);
+  };
+});
+var Spawns = {};
+
+Spawns.civilian = function()
+{
+  var e = TANK.createEntity('AICivilian');
+  e.Ship.shipData = new Ships.fighter();
+  e.Pos2D.x = -2000 + Math.random() * 4000;
+  e.Pos2D.y = -2000 + Math.random() * 4000;
+  TANK.main.addChild(e);
 };
 
+Spawns.pirate = function()
+{
+  var e = TANK.createEntity('AIAttackPlayer');
+  e.Ship.shipData = new Ships.frigate();
+  e.Pos2D.x = -2000 + Math.random() * 4000;
+  e.Pos2D.y = -2000 + Math.random() * 4000;
+  TANK.main.addChild(e);
+};
+
+Spawns.derelict = function()
+{
+  var e = TANK.createEntity(['Ship', 'Derelict']);
+  e.Ship.shipData = new Ships.frigate();
+  e.Pos2D.x = 3000;
+  e.Pos2D.y = 0;
+  TANK.main.addChild(e);
+
+  e = TANK.createEntity('TriggerRadius');
+  e.TriggerRadius.radius = 1000;
+  e.TriggerRadius.events = [{probability: 0.25, name: 'derelict_1a'}, {probability: 0.75, name: 'derelict_1b'}];
+  e.Pos2D.x = 4000;
+  e.Pos2D.y = 0;
+  TANK.main.addChild(e);
+};
 TANK.registerComponent("StarField")
 
 .construct(function()
@@ -4740,9 +4019,6 @@ TANK.registerComponent("StarField")
 
 .initialize(function()
 {
-  this.pixelBuffer = new PixelBuffer();
-  this.pixelBuffer.createBuffer(window.innerWidth, window.innerHeight);
-
   TANK.main.Renderer2D.add(this);
 
   var i;
@@ -4751,8 +4027,8 @@ TANK.registerComponent("StarField")
     var r =
     this.stars.push(
     {
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
+      x: Math.random(),
+      y: Math.random(),
       z: Math.random() * 0.01 + 0.001,
       size: Math.random() * 3 + 0.1,
       color: "rgba(" + Math.round(150 + Math.random() * 100) +
@@ -4762,13 +4038,19 @@ TANK.registerComponent("StarField")
     });
   }
 
-  for (i = 0; i < this.stars.length; ++i)
+  this.redraw = function()
   {
-    var x = (this.stars[i].x);
-    var y = (this.stars[i].y);
+    this.pixelBuffer = new PixelBuffer();
+    this.pixelBuffer.createBuffer(window.innerWidth, window.innerHeight);
 
-    this.pixelBuffer.context.fillStyle = this.stars[i].color;
-    this.pixelBuffer.context.fillRect(x, y, this.stars[i].size, this.stars[i].size);
+    for (i = 0; i < this.stars.length; ++i)
+    {
+      var x = (this.stars[i].x);
+      var y = (this.stars[i].y);
+
+      this.pixelBuffer.context.fillStyle = this.stars[i].color;
+      this.pixelBuffer.context.fillRect(x * window.innerWidth, y * window.innerHeight, this.stars[i].size, this.stars[i].size);
+    }
   }
 
   this.draw = function(ctx, camera)
@@ -4778,42 +4060,109 @@ TANK.registerComponent("StarField")
     ctx.drawImage(this.pixelBuffer.canvas, -window.innerWidth / 2, -window.innerHeight / 2);
     ctx.restore();
   };
+
+  window.addEventListener('resize', this.redraw.bind(this));
+  this.redraw();
 });
 
-TANK.registerComponent("Template")
+TANK.registerComponent('TriggerRadius')
 
-.includes("Pos2D")
+.includes(['Pos2D'])
 
 .construct(function()
 {
+  this.radius = 1000;
+  this.events = [];
+  this.removeOnTrigger = true;
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'radius', 1000);
+  serializer.property(this, 'events', []);
+  serializer.property(this, 'removeOnTrigger', true);
 })
 
 .initialize(function()
 {
-});
-var isMobile = {
-    android: function() {
-        return navigator.userAgent.match(/Android/i);
-    },
-    blackberry: function() {
-        return navigator.userAgent.match(/BlackBerry/i);
-    },
-    ios: function() {
-        return navigator.userAgent.match(/iPhone|iPad|iPod/i);
-    },
-    opera: function() {
-        return navigator.userAgent.match(/Opera Mini/i);
-    },
-    windows: function() {
-        return navigator.userAgent.match(/IEMobile/i);
-    },
-    any: function() {
-        return (isMobile.android() || isMobile.blackberry() || isMobile.ios() || isMobile.opera() || isMobile.windows());
-    }
-};
-TANK.registerComponent("Weapons")
+  var t = this._entity.Pos2D;
 
-.includes("Pos2D")
+  this.update = function(dt)
+  {
+    // Check if player comes within a certain range
+    var player = TANK.main.Game.player;
+    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius)
+    {
+      var weights = this.events.map(function(ev) {return ev.probability;});
+      var chosenIndex = TANK.main.Game.randomWeighted(weights);
+      var chosenEvent = this.events[chosenIndex];
+      TANK.main.Game.triggerEvent(chosenEvent.name);
+
+      if (this.removeOnTrigger)
+        this._entity._parent.removeChild(this._entity);
+    }
+  };
+});
+TANK.registerComponent('WarpEffect')
+.includes(['RemoveOnLevelChange'])
+.construct(function()
+{
+  this.et = 1;
+  this.zdepth = 10;
+})
+.initialize(function()
+{
+  TANK.main.Renderer2D.add(this);
+  // this.oldClearColor = TANK.main.Renderer2D.clearColor;
+  // TANK.main.Renderer2D.clearColor = [0, 0, 0, 0];
+
+  var scale = 2;
+  var context = TANK.main.Renderer2D.context;
+  var pixelBuffer = new PixelBuffer();
+  pixelBuffer.createBuffer(Math.floor(context.canvas.width / scale), Math.floor(context.canvas.height / scale));
+  pixelBuffer.context.scale(1 / scale, 1 / scale);
+  pixelBuffer.context.drawImage(context.canvas, 0, 0);
+
+  var pixelBufferCopy = new PixelBuffer();
+  pixelBufferCopy.createBuffer(Math.floor(context.canvas.width / scale), Math.floor(context.canvas.height / scale));
+  pixelBufferCopy.context.scale(1 / scale, 1 / scale);
+  pixelBufferCopy.context.drawImage(context.canvas, 0, 0);
+  pixelBufferCopy.readBuffer();
+
+  this.draw = function(ctx, camera, dt)
+  {
+    camera.z = 1;
+
+    ctx.save();
+    this.et += dt;
+    pixelBuffer.readBuffer();
+    for (var i = 0; i < 3000; ++i)
+    {
+      var point = [Math.random() * pixelBuffer.width, Math.random() * pixelBuffer.height];
+      var vec = TANK.Math2D.scale(TANK.Math2D.normalize(TANK.Math2D.subtract([pixelBuffer.width / 2, pixelBuffer.height / 2], point)), this.et * this.et * 2);
+      var sample = pixelBuffer.getPixel(Math.floor(point[0]), Math.floor(point[1])).map(function(v) {return v * 1.1;});
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0]), Math.floor(point[1] + vec[1]), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 2), Math.floor(point[1] + vec[1] * 2), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 1.5), Math.floor(point[1] + vec[1] * 1.5), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] / 2), Math.floor(point[1] + vec[1] / 2), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] / 4), Math.floor(point[1] + vec[1] / 4), sample);
+    }
+    pixelBuffer.applyBuffer();
+
+    ctx.scale(scale, scale);
+    ctx.translate(-pixelBuffer.width / 2, -pixelBuffer.height / 2);
+    ctx.drawImage(pixelBuffer.canvas, 0, 0);
+    ctx.restore();
+  };
+})
+
+.uninitialize(function()
+{
+  // TANK.main.Renderer2D.clearColor = this.oldClearColor;
+});
+TANK.registerComponent('Weapons')
+
+.includes('Pos2D')
 
 .construct(function()
 {
@@ -4833,19 +4182,20 @@ TANK.registerComponent("Weapons")
 .initialize(function()
 {
   var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
 
   TANK.main.Renderer2D.add(this);
 
   this.addGun = function(gunObj, gunSide)
   {
     var angle;
-    if (gunSide === "front")
+    if (gunSide === 'front')
       angle = 0;
-    else if (gunSide === "back")
+    else if (gunSide === 'back')
       angle = Math.PI;
-    else if (gunSide === "left")
+    else if (gunSide === 'left')
       angle = Math.PI / -2;
-    else if (gunSide === "right")
+    else if (gunSide === 'right')
       angle = Math.PI / 2;
 
     gunObj.angle = angle;
@@ -4870,7 +4220,7 @@ TANK.registerComponent("Weapons")
   {
     if (this.guns[gunSide].length === 0)
       return 0;
-    var gun = this.guns[gunSide][0]; 
+    var gun = this.guns[gunSide][0];
     return 1 - gun.reloadTimer / gun.reloadTime;
   };
 
@@ -4880,20 +4230,22 @@ TANK.registerComponent("Weapons")
     if (gun.reloadTimer > 0)
       return;
     gun.reloadTimer = gun.reloadTime;
+    this._entity.dispatch('gunfired', gun);
 
     var pos = gun.worldPos;
 
     // Fire bullet
-    var e = TANK.createEntity("Bullet");
+    var e = TANK.createEntity('Bullet');
     e.Pos2D.x = pos[0];
     e.Pos2D.y = pos[1];
     e.Pos2D.rotation = t.rotation + gun.angle;
-    e.Velocity.x = Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
-    e.Velocity.y = Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
+    e.Velocity.x = v.x + Math.cos(t.rotation + gun.angle) * gun.projectileSpeed;
+    e.Velocity.y = v.y + Math.sin(t.rotation + gun.angle) * gun.projectileSpeed;
     e.Life.life = gun.projectileLife || gun.range / gun.projectileSpeed;
     e.Bullet.owner = this._entity;
     e.Bullet.damage = gun.damage;
     e.Bullet.trailEffect = gun.trailEffect;
+    e.Bullet.damageEffect = gun.damageEffect;
     e.Bullet.size = gun.projectileSize;
     e.Bullet.accel = gun.projectileAccel;
     TANK.main.addChild(e);
@@ -4901,17 +4253,20 @@ TANK.registerComponent("Weapons")
     // Create effect
     ParticleLibrary[gun.shootEffect](pos[0], pos[1], t.rotation + gun.angle);
 
+    // Play sound
+    this._entity.SoundEmitter.play(gun.shootSound);
+
     // Recoil
-    this._entity.Velocity.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
-    this._entity.Velocity.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
-    this._entity.Velocity.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
+    v.x -= Math.cos(t.rotation + gun.angle) * gun.recoil;
+    v.y -= Math.sin(t.rotation + gun.angle) * gun.recoil;
+    v.r += -gun.recoil * 0.05 + Math.random() * gun.recoil * 0.1;
 
     // Shake screen
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
     if (dist < 1) dist = 1;
     if (dist < window.innerWidth / 2 && gun.screenShake > 0)
-      TANK.main.dispatch("camerashake", gun.screenShake / (dist * 5));
+      TANK.main.dispatch('camerashake', gun.screenShake / (dist * 5));
   };
 
   this.fireGuns = function(gunSide)
@@ -4944,13 +4299,16 @@ TANK.registerComponent("Weapons")
         guns[j].worldPos = pos;
 
         // Find max range
-        this.maxRange = Math.max(this.maxRange, guns[j].range);    
+        this.maxRange = Math.max(this.maxRange, guns[j].range);
       }
     }
   };
 
   this.draw = function(ctx, camera)
   {
+    if (camera.z > 6)
+      return;
+
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
     ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
@@ -4968,7 +4326,7 @@ TANK.registerComponent("Weapons")
 
         if (!gun.image)
         {
-          ctx.fillStyle = "#fff";
+          ctx.fillStyle = '#fff';
           ctx.fillRect(-2.5, -2.5, 5, 5);
         }
         else
@@ -4987,10 +4345,12 @@ TANK.registerComponent("Weapons")
 
 function main()
 {
-  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField", "DustField"]);
+  LoadSounds();
 
-  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
-  TANK.main.Input.context = document.querySelector("#stage");
+  TANK.createEngine(['Input', 'CollisionManager', 'Renderer2D', 'Resources', 'Game', 'MapGeneration', 'StarField', 'DustField']);
+
+  TANK.main.Renderer2D.context = document.querySelector('#canvas').getContext('2d');
+  TANK.main.Input.context = document.querySelector('#stage');
 
   TANK.start();
 }

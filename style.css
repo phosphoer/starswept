@@ -1,3 +1,5 @@
+@font-face {font-family: space-frigate; src: url(res/fnt/spacefr.ttf);}
+
 html, body
 {
   padding: 0px;
@@ -16,6 +18,7 @@ html, body
   width: 100%;
   height: 100%;
   position: absolute;
+  font-family: space-frigate;
 }
 
 .menu-title
@@ -24,6 +27,8 @@ html, body
   font-size: 96px;
   color: #ddd;
   margin-top: 100px;
+  padding: 20px;
+  background-color: rgba(10, 10, 10, 0.4);
 }
 
 .menu-options
@@ -48,120 +53,68 @@ html, body
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Level menu */
-.level-menu
-{
-  width: 100%;
-  height: 100%;
-  position: absolute;
-}
-
-.level-options
-{
-  width: 100%;
-  height: 100%;
-  position: absolute;
-}
-
-.level-option
+.end-score
 {
   color: #ddd;
-  font-size: 18px;
-  padding: 5px;
-}
-
-.level-option:hover
-{
-  background: rgba(255, 255, 255, 0.5);
-}
-
-/* Pop up */
-.popup-window
-{
-  position: absolute;
-  width: 50%;
-  left: 25%;
-  top: 25%;
-  padding: 10px;
-  background: rgba(30, 30, 30, 0.9);
-  color: #ddd;
-  font-size: 18px;
-}
-
-.popup-footer
-{
-  padding-top: 20px;
-  padding-bottom: 10px;
-}
-
-.popup-title
-{
-  font-size: 32px;
-  text-align: center;
-}
-
-.popup-button
-{
-  background: #333;
-  padding: 5px;
   font-size: 24px;
-}
-
-.popup-button:hover
-{
-  background: #555;
-}
-
-/* Command bar */
-.bar
-{
-  box-sizing: border-box;
-  position: absolute;
-  left: 0px;
-  bottom: 0px;
   width: 100%;
-  min-height: 40px;
-  padding: 5px;
-  background: #222;
-}
-
-.top-bar
-{
-  box-sizing: border-box;
-  position: absolute;
-  left: 0px;
-  top: 0px;
-  width: 100%;
-  min-height: 40px;
-  padding: 5px;
-  background: #222;
-}
-
-.bar-button
-{
-  display: inline-block;
-  min-width: 80px;
-  padding: 5px;
-  background: #444;
-  color: #ddd;
+  margin-top: 50px;
   text-align: center;
 }
 
-.bar-button.on
-{
-  background: #888;
-}
-
-.bar-button:hover
-{
-  background: #666;
-}
-
-.bar-item
+.end-summary
 {
   color: #ddd;
-  display: inline-block;
-  min-width: 80px;
-  padding: 5px;
+  font-size: 18px;
+  width: 100%;
+  margin-top: 50px;
+  padding: 0 20px;
+  text-indent: 50px;
+}
+
+.ship-select
+{
+  position: absolute;
+  top: 50%;
+  margin-top: -150px;
+  width: 50px;
+  height: 300px;
+  line-height: 275px;
   text-align: center;
+  font-size: 96px;
+  color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.ship-select:hover
+{
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.ship-select-left
+{
+  left: 300px;
+}
+
+.ship-select-right
+{
+  right: 300px;
+}
+
+.event-log
+{
+  background-color: rgba(0, 0, 0, 0.4);
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 10px;
+  width: 400px;
+  height: 300px;
+  overflow-y: auto;
+  color: #ddd;
+}
+
+.event-log-item
+{
+  margin: 10px 0;
 }

@@ -1,9 +1,9 @@
 (function()
 {
 
-TANK.registerComponent("Planet")
+TANK.registerComponent('Planet')
 
-.includes(["Pos2D", "Collider2D"])
+.includes(['Pos2D', 'RemoveOnLevelChange'])
 
 .construct(function()
 {
@@ -26,8 +26,8 @@ TANK.registerComponent("Planet")
     [255, 255, 255, 255]
   ];
 
-  this.noiseFreq = 0.002 + Math.random() * 0.01;
-  this.noiseAmplitude = 0.5 + Math.random() * 3;
+  this.noiseFreq = 0.004 + Math.random() * 0.004;
+  this.noiseAmplitude = 0.5 + Math.random() * 0.3;
   this.noisePersistence = 0.7 + Math.random() * 0.29;
   this.noiseOctaves = 8;
 })
@@ -35,10 +35,6 @@ TANK.registerComponent("Planet")
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
-
-  this._entity.Collider2D.width = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.height = this.radius * 2 * TANK.main.Game.scaleFactor;
-  this._entity.Collider2D.collidesWith.push("cursors");
 
   // Iterate over every pixel
   this.forEachPixel = function(func)
@@ -143,14 +139,14 @@ TANK.registerComponent("Planet")
   this.pixelBuffer.applyBuffer();
 
   // Draw atmosphere
-  var atmosColor = this.atmosColor[0] + "," + this.atmosColor[1] + "," + this.atmosColor[2];
-  var atmosColorAlpha = atmosColor + "," + this.atmosColor[3];
+  var atmosColor = this.atmosColor[0] + ',' + this.atmosColor[1] + ',' + this.atmosColor[2];
+  var atmosColorAlpha = atmosColor + ',' + this.atmosColor[3];
   this.lightBuffer.context.translate((this.lightSize) / 2, (this.lightSize) / 2);
   var grad = this.lightBuffer.context.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius * 1.1);
-  grad.addColorStop(0, "rgba(" + atmosColor + ", 0.0)");
-  grad.addColorStop(0.5, "rgba(" + atmosColor + ", 0.0)");
-  grad.addColorStop(0.8, "rgba(" + atmosColorAlpha + ")");
-  grad.addColorStop(1, "rgba(" + atmosColor + ", 0.0)");
+  grad.addColorStop(0, 'rgba(' + atmosColor + ', 0.0)');
+  grad.addColorStop(0.5, 'rgba(' + atmosColor + ', 0.0)');
+  grad.addColorStop(0.8, 'rgba(' + atmosColorAlpha + ')');
+  grad.addColorStop(1, 'rgba(' + atmosColor + ', 0.0)');
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
   this.lightBuffer.context.arc(0, 0, this.radius * 1.2, 2 * Math.PI, false);
@@ -161,10 +157,10 @@ TANK.registerComponent("Planet")
   var x = -this.radius;
   var y = 0;
   grad = this.lightBuffer.context.createRadialGradient(x - this.radius / 4, y, this.radius * 1.2, x, y, this.radius * 1.8);
-  grad.addColorStop(0, "rgba(0, 0, 0, 0.0)");
-  grad.addColorStop(0.6, "rgba(0, 0, 0, 0.6)");
-  grad.addColorStop(0.8, "rgba(0, 0, 0, 0.7)");
-  grad.addColorStop(1, "rgba(0, 0, 0, 0.9)");
+  grad.addColorStop(0, 'rgba(0, 0, 0, 0.0)');
+  grad.addColorStop(0.6, 'rgba(0, 0, 0, 0.6)');
+  grad.addColorStop(0.8, 'rgba(0, 0, 0, 0.7)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
 
   this.lightBuffer.context.fillStyle = grad;
   this.lightBuffer.context.beginPath();
@@ -172,16 +168,13 @@ TANK.registerComponent("Planet")
   this.lightBuffer.context.fill();
   this.lightBuffer.context.closePath();
 
-  this.listenTo(TANK.main, "systemBattleEnd", function()
+  this.listenTo(TANK.main, 'systemBattleEnd', function()
   {
     TANK.main.removeChild(this._entity);
   });
 
   this.draw = function(ctx, camera, dt)
   {
-    if (camera.z >= 8)
-      return;
-
     ctx.save();
 
     // Draw planet

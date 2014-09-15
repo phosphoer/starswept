@@ -1,9 +1,11 @@
 function main()
 {
-  TANK.createEngine(["Input", "Renderer2D", "Game", "StarField", "DustField"]);
+  LoadSounds();
 
-  TANK.main.Renderer2D.context = document.querySelector("#canvas").getContext("2d");
-  TANK.main.Input.context = document.querySelector("#stage");
+  TANK.createEngine(['Input', 'CollisionManager', 'Renderer2D', 'Resources', 'Game', 'MapGeneration', 'StarField', 'DustField']);
+
+  TANK.main.Renderer2D.context = document.querySelector('#canvas').getContext('2d');
+  TANK.main.Input.context = document.querySelector('#stage');
 
   TANK.start();
 }

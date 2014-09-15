@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>A New Sky</title>
+    <title>Starswept Voyage</title>
     <meta content='initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
     <link rel='stylesheet' href='style.css' />
 
     <!-- Include TANK here -->
-    <script src='lib/jquery.min.js'></script>
     <script src='lib/perlin.js'></script>
+    <script src='lib/rng.js'></script>
+    <script src='lib/wave.js'></script>
     <script src='lib/tank.js'></script>
     <script src='lib/components.js'></script>
     <script src='bin/game.js'></script>
@@ -49,77 +50,14 @@
     </script>
 
     <!-- Ractive containers -->
-    <div id='popupContainer'></div>
-    <div id='menuContainer'></div>
-    <div id='barContainer'></div>
-    <div id='topBarContainer'></div>
+    <div id='eventLogContainer'></div>
 
-    <!-- Win screen template -->
-    <script id='winTemplate' type='text/ractive'>
-      <div class='popup-window'>
-        <div class='popup-title'>You win!</div>
-        <div class='popup-info'>Time - 0</div>
-        <div class='popup-info'>Ships built - 0</div>
-        <div class='popup-info'>Ships lost - 0</div>
-        <div class='popup-info'>Ships destroyed - 0</div>
-        <div class='popup-footer'>
-          <div class='popup-button' on-click='back'>Back</div>
-        </div>
-      </div>
-    </script>
-
-    <!-- Lose screen template -->
-    <script id='loseTemplate' type='text/ractive'>
-      <div class='popup-window'>
-        <div class='popup-title'>You lost</div>
-        <div class='popup-info'>Time - 0</div>
-        <div class='popup-info'>Ships built - 0</div>
-        <div class='popup-info'>Ships lost - 0</div>
-        <div class='popup-info'>Ships destroyed - 0</div>
-        <div class='popup-footer'>
-          <div class='popup-button' on-click='back'>Back</div>
-        </div>
-      </div>
-    </script>
-
-    <!-- Main menu template -->
-    <script id='menuTemplate' type='text/ractive'>
-      <div class='main-menu'>
-        <div class='menu-title'>Space Game</div>
-        <div class='menu-options'>
-          {{#options}}
-            <div class='menu-option' on-click='activate'>{{name}}</div>
-          {{/options}}
-        </div>
-      </div>
-    </script>
-
-    <!-- Level menu template -->
-    <script id='levelTemplate' type='text/ractive'>
-      <div class='level-menu'>
-        <div class='level-options'>
-          {{#options}}
-            <div class='level-option' on-click='activate'>{{name}}</div>
-          {{/options}}
-        </div>
-      </div>
-    </script>
-
-    <!-- Bottom command bar template -->
-    <script id='barTemplate' type='text/ractive'>
-      <div class='bar'>
-        {{#commands}}
-          <div class='bar-button {{active ? "on" : "off"}}' on-click='activate'>{{name}}</div>
-        {{/commands}}
-      </div>
-    </script>
-
-    <!-- Top bar template -->
-    <script id='topBarTemplate' type='text/ractive'>
-      <div class='top-bar'>
-        {{#items}}
-          <div class='bar-item'>{{name}}</div>
-        {{/items}}
+    <!-- Log text template -->
+    <script id='eventLogTemplate' type='text/ractive'>
+      <div class='event-log'>
+        {{#logs}}
+          <div class='event-log-item'>{{text}}</div>
+        {{/logs}}
       </div>
     </script>
 
