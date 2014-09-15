@@ -39,7 +39,7 @@ TANK.registerComponent('Game')
     var res = {};
     res.diffuse = resources.get(name + '-diffuse');
     res.normals = resources.get(name + '-normals');
-    res.lightBuffers = Lightr.bake(8, res.diffuse, res.normals);
+    res.lightBuffers = Lightr.bake(6, res.diffuse, res.normals);
     doneCallback(res);
   };
 
@@ -248,7 +248,8 @@ TANK.registerComponent('Game')
     {
       var node = this.currentNode.paths[i];
       var location = Locations[node.locationName];
-      this.addEventLog((i + 1) + '. ' + location.name);
+      var desc = (node.depth < 1) ? 'Indirect route' : 'Direct route';
+      this.addEventLog((i + 1) + '. ' + location.name + ' (' + desc + ')');
     }
 
     this.waitingForJump = true;
@@ -277,6 +278,9 @@ TANK.registerComponent('Game')
     // Grab the location object
     var location = Locations[name];
     this.currentLocation = location;
+
+    // Generate paths
+    TANK.main.MapGeneration.generateChildren(this.currentNode);
 
     // Set location attributes
     TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';

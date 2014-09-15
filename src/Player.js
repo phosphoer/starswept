@@ -1,6 +1,6 @@
-TANK.registerComponent("Player")
+TANK.registerComponent('Player')
 
-.includes("Ship")
+.includes('Ship')
 
 .construct(function()
 {
@@ -91,7 +91,7 @@ TANK.registerComponent("Player")
     TANK.main.dispatchTimed(3, 'gamelose');
   });
 
-  this.listenTo(this._entity, "collide", function(obj)
+  this.listenTo(this._entity, 'collide', function(obj)
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
       this.shakeCamera(0.1);
@@ -102,16 +102,16 @@ TANK.registerComponent("Player")
     this._entity.Ship.shieldObj.Shield.disable(15);
   });
 
-  this.listenTo(TANK.main, "camerashake", function(duration)
+  this.listenTo(TANK.main, 'camerashake', function(duration)
   {
     this.shakeCamera(duration);
   });
 
-  this.listenTo(TANK.main, "mousedown", this.mouseDownHandler);
-  this.listenTo(TANK.main, "mouseup", this.mouseUpHandler);
-  this.listenTo(TANK.main, "mousemove", this.mouseMoveHandler);
+  this.listenTo(TANK.main, 'mousedown', this.mouseDownHandler);
+  this.listenTo(TANK.main, 'mouseup', this.mouseUpHandler);
+  this.listenTo(TANK.main, 'mousemove', this.mouseMoveHandler);
 
-  this.listenTo(TANK.main, "keydown", function(e)
+  this.listenTo(TANK.main, 'keydown', function(e)
   {
     if (e.keyCode === TANK.Key.W)
       this.speedUp = true;
@@ -121,18 +121,9 @@ TANK.registerComponent("Player")
       this.headingLeft = true;
     if (e.keyCode === TANK.Key.D)
       this.headingRight = true;
-
-    if (e.keyCode === TANK.Key.LEFT_ARROW)
-      this._entity.Weapons.fireGuns("left");
-    if (e.keyCode === TANK.Key.RIGHT_ARROW)
-      this._entity.Weapons.fireGuns("right");
-    if (e.keyCode === TANK.Key.UP_ARROW)
-      this._entity.Weapons.fireGuns("front");
-    if (e.keyCode === TANK.Key.DOWN_ARROW)
-      this._entity.Weapons.fireGuns("back");
   });
 
-  this.listenTo(TANK.main, "keyup", function(e)
+  this.listenTo(TANK.main, 'keyup', function(e)
   {
     if (e.keyCode === TANK.Key.W)
       this.speedUp = false;
@@ -152,10 +143,10 @@ TANK.registerComponent("Player")
     this.headingPos = [window.innerWidth / 2 - this.headingRadiusScaled - 30, window.innerHeight / 2 - this.headingRadiusScaled - 60];
     this.fireButtons =
     [
-      {side: "left", pos: [0, -this.headingRadius * 0.75], radius: 6},
-      {side: "right", pos: [0, this.headingRadius * 0.75], radius: 6},
-      {side: "front", pos: [this.headingRadius * 0.75, 0], radius: 6},
-      {side: "back", pos: [-this.headingRadius * 0.75, 0], radius: 6},
+      {side: 'left', pos: [0, -this.headingRadius * 0.75], radius: 6},
+      {side: 'right', pos: [0, this.headingRadius * 0.75], radius: 6},
+      {side: 'front', pos: [this.headingRadius * 0.75, 0], radius: 6},
+      {side: 'back', pos: [-this.headingRadius * 0.75, 0], radius: 6},
     ];
 
     // Heading controls
@@ -169,6 +160,16 @@ TANK.registerComponent("Player")
       ship.desiredSpeed += dt * 80;
     if (this.speedDown)
       ship.desiredSpeed -= dt * 80;
+
+    // Shoot
+    if (TANK.main.Input.isDown(TANK.Key.LEFT_ARROW))
+      this._entity.Weapons.fireGuns('left');
+    if (TANK.main.Input.isDown(TANK.Key.RIGHT_ARROW))
+      this._entity.Weapons.fireGuns('right');
+    if (TANK.main.Input.isDown(TANK.Key.UP_ARROW))
+      this._entity.Weapons.fireGuns('front');
+    if (TANK.main.Input.isDown(TANK.Key.DOWN_ARROW))
+      this._entity.Weapons.fireGuns('back');
 
     // Camera follow
     TANK.main.Renderer2D.camera.x = t.x;
@@ -193,7 +194,7 @@ TANK.registerComponent("Player")
 
     // Draw compass
     // Outer circle
-    ctx.strokeStyle = "rgba(200, 200, 200, 0.3)";
+    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(0, 0, this.headingRadius, Math.PI * 2, false);
@@ -212,7 +213,7 @@ TANK.registerComponent("Player")
     ctx.stroke();
 
     // Speed line
-    ctx.strokeStyle = "rgba(100, 100, 250, 0.8)";
+    ctx.strokeStyle = 'rgba(100, 100, 250, 0.8)';
     ctx.lineWidth = 1.5;
     var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
     var startPos = [Math.cos(ship.heading), Math.sin(ship.heading)];
@@ -235,7 +236,7 @@ TANK.registerComponent("Player")
     }
 
     // Draw weapon buttons
-    ctx.fillStyle = "rgba(255, 80, 80, 0.5)";
+    ctx.fillStyle = 'rgba(255, 80, 80, 0.5)';
     for (var i = 0; i < this.fireButtons.length; ++i)
     {
       drawGun(this.fireButtons[i]);
