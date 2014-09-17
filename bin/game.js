@@ -341,7 +341,7 @@ TANK.registerComponent('Clouds')
   this.fieldSize = [8750, 8750];
   this.cloudColor = [255, 255, 255];
   this.cloudSize = 512;
-  this.cloudScale = 3;
+  this.cloudScale = 6;
   this.noiseFreq = 0.008 + Math.random() * 0.004;
   this.noiseAmplitude = 0.5 + Math.random() * 0.3;
   this.noisePersistence = 0.7 + Math.random() * 0.29;
@@ -418,7 +418,7 @@ TANK.registerComponent('Clouds')
   this.forEachPixel(function(i, j)
   {
     var dist = TANK.Math2D.pointDistancePoint([i, j], [this.cloudSize / 2, this.cloudSize / 2]);
-    this.heightMap[i][j] *= 1 - (dist / (this.cloudSize / 2 + 2));
+    this.heightMap[i][j] *= -Math.pow((dist / (this.cloudSize / 2 + 2)) - 1, 3);
   });
 
   // Set pixels based on height
