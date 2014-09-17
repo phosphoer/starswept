@@ -71,6 +71,10 @@ TANK.registerComponent('Game')
   resources.add('ship-rhino-normals', 'res/img/ship-rhino-normals.png');
   resources.add('ship-rhino', null, ['ship-rhino-diffuse', 'ship-rhino-normals'], loadLighting);
 
+  resources.add('ship-enforcer-diffuse', 'res/img/ship-enforcer-diffuse.png');
+  resources.add('ship-enforcer-normals', 'res/img/ship-enforcer-normals.png');
+  resources.add('ship-enforcer', null, ['ship-enforcer-diffuse', 'ship-enforcer-normals'], loadLighting);
+
   resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
   resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);

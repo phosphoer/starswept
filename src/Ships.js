@@ -250,6 +250,42 @@ Ships.rhino = function()
   ];
 };
 
+Ships.enforcer = function()
+{
+  this.name = 'Enforcer';
+  this.resource = 'ship-enforcer';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.45;
+  this.maxSpeed = 175;
+  this.accel = 18;
+  this.turnAccel = 1.4;
+  this.health = 0.25;
+  this.shield = 1;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 20;
+  this.maxFuel = 6;
+  this.optimalAngle = 0;
+  this.engineSize = [32, 16];
+  this.engineColor = [100, 255, 255];
+  this.guns =
+  {
+    front:
+    [
+      {type: 'mediumRocket', x: 97, y: 67},
+      {type: 'smallRail', x: 116, y: 64},
+      {type: 'smallRail', x: 46, y: 114},
+    ],
+  };
+  this.engines =
+  [
+    {x: 32, y: 11},
+    {x: 17, y: 45},
+    {x: 5, y: 78},
+  ];
+};
+
 // Ships.alien = function()
 // {
 //   this.name = 'Alien';

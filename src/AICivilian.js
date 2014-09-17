@@ -8,7 +8,7 @@ TANK.registerComponent('AICivilian')
   ship.heading = targetDir;
   ship.setSpeedPercent(0.5);
 
-  this.listenTo(this._entity, 'damaged', function(amount, direction, position, owner)
+  this.listenTo(this._entity, 'aggro', function(owner)
   {
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = owner;

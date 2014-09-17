@@ -15,6 +15,8 @@ TANK.registerComponent('Weapons')
   this.height = 10;
   this.width = 5;
   this.maxRange = 0;
+
+  this.pendingFires = [];
 })
 
 .initialize(function()
@@ -107,11 +109,16 @@ TANK.registerComponent('Weapons')
       TANK.main.dispatch('camerashake', gun.screenShake / (dist * 5));
   };
 
+  this.fireGunDelayed = function(gunIndex, gunSide, delay)
+  {
+    this.pendingFires.push({gunIndex: gunIndex, gunSide: gunSide, delay: delay});
+  };
+
   this.fireGuns = function(gunSide)
   {
     var guns = this.guns[gunSide];
     for (var i = 0; i < guns.length; ++i)
-      this.fireGun(i, gunSide);
+      this.fireGunDelayed(i, gunSide, (i * 0.15) * (1 + Math.random() * 0.25));
   };
 
   this.update = function(dt)
@@ -140,6 +147,19 @@ TANK.registerComponent('Weapons')
         this.maxRange = Math.max(this.maxRange, guns[j].range);
       }
     }
+
+    // Fire queued shots
+    for (var i = 0; i < this.pendingFires.length; ++i)
+    {
+      var pending = this.pendingFires[i];
+      pending.delay -= dt;
+      if (pending.delay <= 0)
+      {
+        this.fireGun(pending.gunIndex, pending.gunSide);
+      }
+    }
+
+    this.pendingFires = this.pendingFires.filter(function(val) {return val.delay > 0;});
   };
 
   this.draw = function(ctx, camera)

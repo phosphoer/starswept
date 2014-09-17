@@ -28,7 +28,8 @@ TANK.registerComponent('Shield')
   this.disable = function(time)
   {
     this.disabled = true;
-    this.disabledTimer = time;
+    if (time > this.disabledTimer)
+      this.disabledTimer = time;
   };
 
   this.listenTo(this._entity, 'collide', function(obj)
@@ -47,6 +48,7 @@ TANK.registerComponent('Shield')
         this.recovering = true;
       }
 
+      this._entity.dispatch('shielddamaged', obj.Bullet.owner);
       t.rotation = Math.atan2(obj.Pos2D.y - t.y, obj.Pos2D.x - t.x);
     }
   });

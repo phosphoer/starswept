@@ -162,6 +162,14 @@ TANK.registerComponent('Ship')
   });
 
   //
+  // Shield damage response
+  //
+  this.listenTo(this.shieldObj, 'shielddamaged', function(from)
+  {
+    this._entity.dispatch('aggro', from);
+  });
+
+  //
   // Collision response
   //
   this.listenTo(this._entity, 'collide', function(obj, pixelPos)
@@ -196,10 +204,11 @@ TANK.registerComponent('Ship')
     // Affect trajectory
     v.x += dir[0] * damage * 0.1;
     v.y += dir[1] * damage * 0.1;
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
-    v.r += dir * damage;
+    var leftOrRight = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
+    v.r += leftOrRight * damage;
 
     this.health -= damage;
+    this._entity.dispatch('aggro', owner);
   });
 
   //

@@ -116,7 +116,7 @@ TANK.registerComponent('AICivilian')
   ship.heading = targetDir;
   ship.setSpeedPercent(0.5);
 
-  this.listenTo(this._entity, 'damaged', function(amount, direction, position, owner)
+  this.listenTo(this._entity, 'aggro', function(owner)
   {
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = owner;
@@ -818,6 +818,10 @@ TANK.registerComponent('Game')
   resources.add('ship-rhino-diffuse', 'res/img/ship-rhino-diffuse.png');
   resources.add('ship-rhino-normals', 'res/img/ship-rhino-normals.png');
   resources.add('ship-rhino', null, ['ship-rhino-diffuse', 'ship-rhino-normals'], loadLighting);
+
+  resources.add('ship-enforcer-diffuse', 'res/img/ship-enforcer-diffuse.png');
+  resources.add('ship-enforcer-normals', 'res/img/ship-enforcer-normals.png');
+  resources.add('ship-enforcer', null, ['ship-enforcer-diffuse', 'ship-enforcer-normals'], loadLighting);
 
   resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
@@ -3153,7 +3157,8 @@ TANK.registerComponent('Shield')
   this.disable = function(time)
   {
     this.disabled = true;
-    this.disabledTimer = time;
+    if (time > this.disabledTimer)
+      this.disabledTimer = time;
   };
 
   this.listenTo(this._entity, 'collide', function(obj)
@@ -3172,6 +3177,7 @@ TANK.registerComponent('Shield')
         this.recovering = true;
       }
 
+      this._entity.dispatch('shielddamaged', obj.Bullet.owner);
       t.rotation = Math.atan2(obj.Pos2D.y - t.y, obj.Pos2D.x - t.x);
     }
   });
@@ -3396,6 +3402,14 @@ TANK.registerComponent('Ship')
   });
 
   //
+  // Shield damage response
+  //
+  this.listenTo(this.shieldObj, 'shielddamaged', function(from)
+  {
+    this._entity.dispatch('aggro', from);
+  });
+
+  //
   // Collision response
   //
   this.listenTo(this._entity, 'collide', function(obj, pixelPos)
@@ -3430,10 +3444,11 @@ TANK.registerComponent('Ship')
     // Affect trajectory
     v.x += dir[0] * damage * 0.1;
     v.y += dir[1] * damage * 0.1;
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
-    v.r += dir * damage;
+    var leftOrRight = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
+    v.r += leftOrRight * damage;
 
     this.health -= damage;
+    this._entity.dispatch('aggro', owner);
   });
 
   //
@@ -3908,6 +3923,42 @@ Ships.rhino = function()
   ];
 };
 
+Ships.enforcer = function()
+{
+  this.name = 'Enforcer';
+  this.resource = 'ship-enforcer';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.45;
+  this.maxSpeed = 175;
+  this.accel = 18;
+  this.turnAccel = 1.4;
+  this.health = 0.25;
+  this.shield = 1;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 20;
+  this.maxFuel = 6;
+  this.optimalAngle = 0;
+  this.engineSize = [32, 16];
+  this.engineColor = [100, 255, 255];
+  this.guns =
+  {
+    front:
+    [
+      {type: 'mediumRocket', x: 97, y: 67},
+      {type: 'smallRail', x: 116, y: 64},
+      {type: 'smallRail', x: 46, y: 114},
+    ],
+  };
+  this.engines =
+  [
+    {x: 32, y: 11},
+    {x: 17, y: 45},
+    {x: 5, y: 78},
+  ];
+};
+
 // Ships.alien = function()
 // {
 //   this.name = 'Alien';
@@ -4177,6 +4228,8 @@ TANK.registerComponent('Weapons')
   this.height = 10;
   this.width = 5;
   this.maxRange = 0;
+
+  this.pendingFires = [];
 })
 
 .initialize(function()
@@ -4269,11 +4322,16 @@ TANK.registerComponent('Weapons')
       TANK.main.dispatch('camerashake', gun.screenShake / (dist * 5));
   };
 
+  this.fireGunDelayed = function(gunIndex, gunSide, delay)
+  {
+    this.pendingFires.push({gunIndex: gunIndex, gunSide: gunSide, delay: delay});
+  };
+
   this.fireGuns = function(gunSide)
   {
     var guns = this.guns[gunSide];
     for (var i = 0; i < guns.length; ++i)
-      this.fireGun(i, gunSide);
+      this.fireGunDelayed(i, gunSide, (i * 0.15) * (1 + Math.random() * 0.25));
   };
 
   this.update = function(dt)
@@ -4302,6 +4360,19 @@ TANK.registerComponent('Weapons')
         this.maxRange = Math.max(this.maxRange, guns[j].range);
       }
     }
+
+    // Fire queued shots
+    for (var i = 0; i < this.pendingFires.length; ++i)
+    {
+      var pending = this.pendingFires[i];
+      pending.delay -= dt;
+      if (pending.delay <= 0)
+      {
+        this.fireGun(pending.gunIndex, pending.gunSide);
+      }
+    }
+
+    this.pendingFires = this.pendingFires.filter(function(val) {return val.delay > 0;});
   };
 
   this.draw = function(ctx, camera)
