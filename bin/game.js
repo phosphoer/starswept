@@ -124,6 +124,8 @@ TANK.registerComponent('AICivilian')
 
     Flags.attackedCivilian = true;
     Flags.wanted = true;
+
+    TANK.main.Game.addStory('You attacked a peaceful ship.');
   });
 });
 TANK.registerComponent('AIDerelict')
@@ -132,6 +134,7 @@ TANK.registerComponent('AIDerelict')
 {
   this.listenTo(TANK.main, 'derelictleave', function()
   {
+    this._entity.removeComponent('AIDerelict');
     this._entity.addComponent('AICivilian');
   });
 });
@@ -168,6 +171,7 @@ TANK.registerComponent('AIPolice')
   this.attack = function()
   {
     TANK.main.Game.addEventLog('<Police>: Prepare to die, criminal!');
+    TANK.main.Game.addStory('You got into a tangle with the police.');
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = this.target;
     this._entity.removeComponent('AIPolice');
@@ -713,7 +717,7 @@ TANK.registerComponent('EndScreen')
 
   // Fill out summary
   this.container.querySelector('.end-score').innerHTML = 'Final score - ' + this.score;
-  this.container.querySelector('.end-summary').innerHTML = 'A summary how the game went.';
+  this.container.querySelector('.end-summary').innerHTML = TANK.main.Game.getStoryText();
 
   //
   // Handle interactions
@@ -808,6 +812,14 @@ Events.empty =
 };
 
 //
+// Begin event
+//
+Events.start =
+{
+  story: {eventText: 'You began your journey.'}
+};
+
+//
 // Civilian ship event
 //
 Events.civilian =
@@ -834,7 +846,7 @@ Events.police =
 };
 
 //
-// Derelcit event
+// Derelict event
 //
 Events.derelict =
 {
@@ -844,7 +856,8 @@ Events.derelict =
 
 Events.derelict_1a =
 {
-  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.'
+  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.',
+  story: {eventText: 'You came across an abandoned ship with no crew left alive.'}
 };
 
 Events.derelict_1b =
@@ -854,10 +867,12 @@ Events.derelict_1b =
   [
     {
       text: 'Decline, you need all the fuel you\'ve got.',
-      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.'
+      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.',
+      story: {eventText: 'You came across a disabled ship but refused to help them out.'}
     },
     {
       text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
+      story: {eventText: 'You came across a disabled ship and helped them out with some fuel.'},
       events:
       [
         {probability: 0.5, name: 'derelict_2a'},
@@ -907,6 +922,7 @@ TANK.registerComponent('Game')
 
   // Event log
   this.eventLogs = [];
+  this.story = [];
 
   // Mouse positions
   this.mousePosWorld = [0, 0];
@@ -1141,6 +1157,29 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Story log
+  //
+  this.addStory = function(eventText)
+  {
+    this.story.push(
+    {
+      eventText: eventText
+    });
+  };
+
+  this.getStoryText = function()
+  {
+    var storyText = '';
+    for (var i = 0; i < this.story.length; ++i)
+    {
+      var story = this.story[i];
+      storyText += story.eventText + '\n';
+    }
+
+    return storyText;
+  };
+
+  //
   // Show location options
   //
   this.showLocationOptions = function()
@@ -1266,6 +1305,12 @@ TANK.registerComponent('Game')
 
     // Show event text
     this.addEventLog(event.text);
+
+    // Add event story
+    if (event.story)
+    {
+      this.addStory(event.story.eventText);
+    }
 
     // Spawn event entities
     for (var i = 0; i < event.spawns.length; ++i)
@@ -1396,6 +1441,10 @@ TANK.registerComponent('Game')
           var chosenOption = this.eventAwaitingInput.options[choice];
           if (chosenOption.responseText)
             this.addEventLog(chosenOption.responseText);
+
+          // Add story
+          if (chosenOption.story)
+            this.addStory(chosenOption.story.eventText);
 
           // Trigger an event, if any
           if (chosenOption.events)
@@ -1845,7 +1894,10 @@ var Locations = {};
 Locations.start =
 {
   text: 'Here you are, at the edge of civilized space. Your destination lies deep in the heart of the galaxy, where anarchy reigns.',
-  events: [],
+  events:
+  [
+    {probability: 1, name: 'start'}
+  ],
   bgColor: [0, 0, 20, 1],
   lightColor: [0.7, 0.7, 1],
   lightDir: Math.PI * 2 * 0.8,
@@ -2996,6 +3048,7 @@ TANK.registerComponent('Player')
 
   this.listenTo(this._entity, 'explode', function()
   {
+    TANK.main.Game.addStory('You exploded.');
     TANK.main.dispatchTimed(3, 'gamelose');
   });
 
@@ -4219,7 +4272,7 @@ Spawns.derelict = function()
   e = TANK.createEntity('TriggerRadius');
   e.TriggerRadius.radius = 1000;
   e.TriggerRadius.events = [{probability: 0.25, name: 'derelict_1a'}, {probability: 0.75, name: 'derelict_1b'}];
-  e.Pos2D.x = 4000;
+  e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
   TANK.main.addChild(e);
 };

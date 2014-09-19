@@ -16,5 +16,7 @@ TANK.registerComponent('AICivilian')
 
     Flags.attackedCivilian = true;
     Flags.wanted = true;
+
+    TANK.main.Game.addStory('You attacked a peaceful ship.');
   });
 });

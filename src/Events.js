@@ -9,6 +9,14 @@ Events.empty =
 };
 
 //
+// Begin event
+//
+Events.start =
+{
+  story: {eventText: 'You began your journey.'}
+};
+
+//
 // Civilian ship event
 //
 Events.civilian =
@@ -35,7 +43,7 @@ Events.police =
 };
 
 //
-// Derelcit event
+// Derelict event
 //
 Events.derelict =
 {
@@ -45,7 +53,8 @@ Events.derelict =
 
 Events.derelict_1a =
 {
-  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.'
+  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.',
+  story: {eventText: 'You came across an abandoned ship with no crew left alive.'}
 };
 
 Events.derelict_1b =
@@ -55,10 +64,12 @@ Events.derelict_1b =
   [
     {
       text: 'Decline, you need all the fuel you\'ve got.',
-      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.'
+      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.',
+      story: {eventText: 'You came across a disabled ship but refused to help them out.'}
     },
     {
       text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
+      story: {eventText: 'You came across a disabled ship and helped them out with some fuel.'},
       events:
       [
         {probability: 0.5, name: 'derelict_2a'},

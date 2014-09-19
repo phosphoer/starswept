@@ -3,7 +3,10 @@ var Locations = {};
 Locations.start =
 {
   text: 'Here you are, at the edge of civilized space. Your destination lies deep in the heart of the galaxy, where anarchy reigns.',
-  events: [],
+  events:
+  [
+    {probability: 1, name: 'start'}
+  ],
   bgColor: [0, 0, 20, 1],
   lightColor: [0.7, 0.7, 1],
   lightDir: Math.PI * 2 * 0.8,

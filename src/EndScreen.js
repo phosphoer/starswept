@@ -38,7 +38,7 @@ TANK.registerComponent('EndScreen')
 
   // Fill out summary
   this.container.querySelector('.end-score').innerHTML = 'Final score - ' + this.score;
-  this.container.querySelector('.end-summary').innerHTML = 'A summary how the game went.';
+  this.container.querySelector('.end-summary').innerHTML = TANK.main.Game.getStoryText();
 
   //
   // Handle interactions

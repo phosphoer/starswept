@@ -31,6 +31,7 @@ TANK.registerComponent('AIPolice')
   this.attack = function()
   {
     TANK.main.Game.addEventLog('<Police>: Prepare to die, criminal!');
+    TANK.main.Game.addStory('You got into a tangle with the police.');
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = this.target;
     this._entity.removeComponent('AIPolice');

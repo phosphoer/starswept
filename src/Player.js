@@ -88,6 +88,7 @@ TANK.registerComponent('Player')
 
   this.listenTo(this._entity, 'explode', function()
   {
+    TANK.main.Game.addStory('You exploded.');
     TANK.main.dispatchTimed(3, 'gamelose');
   });
 

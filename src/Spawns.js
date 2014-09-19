@@ -38,7 +38,7 @@ Spawns.derelict = function()
   e = TANK.createEntity('TriggerRadius');
   e.TriggerRadius.radius = 1000;
   e.TriggerRadius.events = [{probability: 0.25, name: 'derelict_1a'}, {probability: 0.75, name: 'derelict_1b'}];
-  e.Pos2D.x = 4000;
+  e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
   TANK.main.addChild(e);
 };

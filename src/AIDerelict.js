@@ -4,6 +4,7 @@ TANK.registerComponent('AIDerelict')
 {
   this.listenTo(TANK.main, 'derelictleave', function()
   {
+    this._entity.removeComponent('AIDerelict');
     this._entity.addComponent('AICivilian');
   });
 });

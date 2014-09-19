@@ -11,6 +11,7 @@ TANK.registerComponent('Game')
 
   // Event log
   this.eventLogs = [];
+  this.story = [];
 
   // Mouse positions
   this.mousePosWorld = [0, 0];
@@ -245,6 +246,29 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Story log
+  //
+  this.addStory = function(eventText)
+  {
+    this.story.push(
+    {
+      eventText: eventText
+    });
+  };
+
+  this.getStoryText = function()
+  {
+    var storyText = '';
+    for (var i = 0; i < this.story.length; ++i)
+    {
+      var story = this.story[i];
+      storyText += story.eventText + '\n';
+    }
+
+    return storyText;
+  };
+
+  //
   // Show location options
   //
   this.showLocationOptions = function()
@@ -370,6 +394,12 @@ TANK.registerComponent('Game')
 
     // Show event text
     this.addEventLog(event.text);
+
+    // Add event story
+    if (event.story)
+    {
+      this.addStory(event.story.eventText);
+    }
 
     // Spawn event entities
     for (var i = 0; i < event.spawns.length; ++i)
@@ -500,6 +530,10 @@ TANK.registerComponent('Game')
           var chosenOption = this.eventAwaitingInput.options[choice];
           if (chosenOption.responseText)
             this.addEventLog(chosenOption.responseText);
+
+          // Add story
+          if (chosenOption.story)
+            this.addStory(chosenOption.story.eventText);
 
           // Trigger an event, if any
           if (chosenOption.events)
