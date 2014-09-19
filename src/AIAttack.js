@@ -61,8 +61,8 @@ TANK.registerComponent('AIAttack')
 
     // Get direction to target
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
-    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
     targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
     var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 

@@ -22,6 +22,7 @@ Locations.abandonedOutpost =
     {probability: 2.5, name: 'pirate'},
     {probability: 2, name: 'derelict'},
     {probability: 1, name: 'civilian'},
+    {probability: 0.5, name: 'police'},
   ],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
@@ -41,7 +42,8 @@ Locations.researchStation =
   [
     {probability: 1.2, name: 'pirate'},
     {probability: 1, name: 'derelict'},
-    {probability: 1.2, name: 'civilian'}
+    {probability: 1.2, name: 'civilian'},
+    {probability: 0.5, name: 'police'},
   ],
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
@@ -80,7 +82,8 @@ Locations.oldBattlefield =
   [
     {probability: 1, name: 'pirate'},
     {probability: 2, name: 'civilian'},
-    {probability: 1, name: 'empty'}
+    {probability: 1, name: 'empty'},
+    {probability: 0.2, name: 'empty'},
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -98,7 +101,8 @@ Locations.deepSpace =
   events:
   [
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'}
+    {probability: 3, name: 'empty'},
+    {probability: 0.6, name: 'police'},
   ],
   bgColor: [0, 0, 0, 1],
   lightColor: [0.9, 0.9, 1],
@@ -113,7 +117,8 @@ Locations.redDwarf =
   events:
   [
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'}
+    {probability: 3, name: 'empty'},
+    {probability: 0.6, name: 'police'},
   ],
   bgColor: [10, 0, 0, 1],
   lightColor: [1, 0.8, 0.8],
@@ -128,7 +133,8 @@ Locations.asteroidField =
   events:
   [
     {probability: 1, name: 'pirate'},
-    {probability: 1.2, name: 'derelict'}
+    {probability: 1.2, name: 'derelict'},
+    {probability: 0.3, name: 'police'},
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],

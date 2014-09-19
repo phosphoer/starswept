@@ -4,7 +4,7 @@ TANK.registerComponent('Player')
 
 .construct(function()
 {
-  this.zdepth = 5;
+  this.zdepth = 100;
   this.shakeTime = 0;
 
   this.headingPos = [0, 0];

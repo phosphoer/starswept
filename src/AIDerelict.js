@@ -1,4 +1,5 @@
-TANK.registerComponent('Derelict')
+TANK.registerComponent('AIDerelict')
+.includes('Ship')
 .initialize(function()
 {
   this.listenTo(TANK.main, 'derelictleave', function()

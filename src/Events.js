@@ -27,6 +27,14 @@ Events.pirate =
 };
 
 //
+// Police ship event
+//
+Events.police =
+{
+  spawns: ['police']
+};
+
+//
 // Derelcit event
 //
 Events.derelict =

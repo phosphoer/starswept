@@ -61,8 +61,8 @@ TANK.registerComponent('AIAttack')
 
     // Get direction to target
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
-    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
     targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
     var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 
@@ -122,6 +122,131 @@ TANK.registerComponent('AICivilian')
     this._entity.AIAttack.target = owner;
     this._entity.removeComponent('AICivilian');
   });
+});
+TANK.registerComponent('AIDerelict')
+.includes('Ship')
+.initialize(function()
+{
+  this.listenTo(TANK.main, 'derelictleave', function()
+  {
+    this._entity.addComponent('AICivilian');
+  });
+});
+TANK.registerComponent('AIPolice')
+.includes(['Ship', 'RemoveOnLevelChange'])
+.construct(function()
+{
+  this.target = null;
+  this.scanDistance = 1000;
+  this.patienceTime = 10;
+  this.patienceTimer = 0;
+  this.scanTime = 5;
+  this.scanTimer = 0;
+
+  this.gaveFirstWarning = false;
+  this.gaveSecondWarning = false;
+  this.waitingForStop = false;
+  this.waitingForScan = false;
+  this.done = false;
+})
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ship = this._entity.Ship;
+
+  this.listenTo(this._entity, 'aggro', function(owner)
+  {
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = owner;
+    this._entity.removeComponent('AIPolice');
+  });
+
+  this.update = function(dt)
+  {
+    this.target = TANK.main.getChildrenWithComponent('Player');
+    if (!this.target)
+      return;
+    this.target = this.target[Object.keys(this.target)[0]];
+
+    // Get direction to target
+    var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
+    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
+    targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
+    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
+
+    // Finish scanning
+    if (this.done)
+    {
+      ship.setSpeedPercent(0.5);
+      return;
+    }
+
+    // Aim at target
+    ship.heading = targetDir;
+
+    // Move towards target if not close enough
+    if (targetDist < this.scanDistance)
+      ship.setSpeedPercent(0);
+    else if (targetDist < this.scanDistance * 2)
+      ship.setSpeedPercent(0.5);
+    else if (targetDist >= this.scanDistance * 2)
+      ship.setSpeedPercent(1);
+
+    // Send warnings to target
+    if (targetDist < this.scanDistance * 2)
+    {
+      if (!this.gaveFirstWarning)
+      {
+        TANK.main.Game.addEventLog('<Police>: Pilot, please stop your ship now for a random scan.');
+        this.gaveFirstWarning = true;
+        this.waitingForStop = true;
+        this.patienceTimer = 0;
+        this.scanTimer = 0;
+      }
+    }
+
+    // Count down timer while waiting for player to stop
+    if (this.waitingForStop)
+    {
+      this.patienceTimer += dt;
+
+      // Check if player has stopped
+      if (this.target.Ship.desiredSpeed < 0.01 && targetDist < this.scanDistance)
+      {
+        this.waitingForScan = true;
+        this.scanTimer += dt;
+
+        if (this.scanTimer >= this.scanTime)
+        {
+          TANK.main.Game.addEventLog('<Police>: Alright, you\'re free to go.');
+          this.waitingForScan = false;
+          this.waitingForStop = false;
+          this.done = true;
+        }
+      }
+
+      // If we run out of patience
+      if (this.patienceTimer >= this.patienceTime && !this.waitingForScan)
+      {
+        // Give a second warning
+        if (this.gaveFirstWarning && !this.gaveSecondWarning)
+        {
+          TANK.main.Game.addEventLog('<Police>: This is your last warning, cut your engines now.');
+          this.gaveSecondWarning = true;
+          this.patienceTimer = 0;
+        }
+        // After second warning, attack
+        else if (this.gaveFirstWarning && this.gaveSecondWarning)
+        {
+          TANK.main.Game.addEventLog('<Police>: Prepare to die!');
+          this._entity.addComponent('AIAttack');
+          this._entity.AIAttack.target = this.target;
+          this._entity.removeComponent('AIPolice');
+        }
+      }
+    }
+  };
 });
 TANK.registerComponent('Asteroid')
 
@@ -477,14 +602,6 @@ TANK.registerComponent('Clouds')
 .uninitialize(function()
 {
 });
-TANK.registerComponent('Derelict')
-.initialize(function()
-{
-  this.listenTo(TANK.main, 'derelictleave', function()
-  {
-    this._entity.addComponent('AICivilian');
-  });
-});
 TANK.registerComponent("DustField")
 
 .construct(function()
@@ -686,6 +803,14 @@ Events.pirate =
 {
   text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
   spawns: ['pirate']
+};
+
+//
+// Police ship event
+//
+Events.police =
+{
+  spawns: ['police']
 };
 
 //
@@ -1716,6 +1841,7 @@ Locations.abandonedOutpost =
     {probability: 2.5, name: 'pirate'},
     {probability: 2, name: 'derelict'},
     {probability: 1, name: 'civilian'},
+    {probability: 0.5, name: 'police'},
   ],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
@@ -1735,7 +1861,8 @@ Locations.researchStation =
   [
     {probability: 1.2, name: 'pirate'},
     {probability: 1, name: 'derelict'},
-    {probability: 1.2, name: 'civilian'}
+    {probability: 1.2, name: 'civilian'},
+    {probability: 0.5, name: 'police'},
   ],
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
@@ -1774,7 +1901,8 @@ Locations.oldBattlefield =
   [
     {probability: 1, name: 'pirate'},
     {probability: 2, name: 'civilian'},
-    {probability: 1, name: 'empty'}
+    {probability: 1, name: 'empty'},
+    {probability: 0.2, name: 'empty'},
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -1792,7 +1920,8 @@ Locations.deepSpace =
   events:
   [
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'}
+    {probability: 3, name: 'empty'},
+    {probability: 0.6, name: 'police'},
   ],
   bgColor: [0, 0, 0, 1],
   lightColor: [0.9, 0.9, 1],
@@ -1807,7 +1936,8 @@ Locations.redDwarf =
   events:
   [
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'}
+    {probability: 3, name: 'empty'},
+    {probability: 0.6, name: 'police'},
   ],
   bgColor: [10, 0, 0, 1],
   lightColor: [1, 0.8, 0.8],
@@ -1822,7 +1952,8 @@ Locations.asteroidField =
   events:
   [
     {probability: 1, name: 'pirate'},
-    {probability: 1.2, name: 'derelict'}
+    {probability: 1.2, name: 'derelict'},
+    {probability: 0.3, name: 'police'},
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
@@ -2301,7 +2432,7 @@ ParticleLibrary.damageMedium = function(x, y, angle)
   emitter.spawnAngleMax = angle + 0.3;
   emitter.spawnScaleMin = 1;
   emitter.spawnScaleMax = 2;
-  emitter.spawnPerSecond = 700;
+  emitter.spawnPerSecond = 500;
   emitter.spawnDuration = 0.1;
   emitter.particleLifeMin = 3;
   emitter.particleLifeMax = 5;
@@ -2758,7 +2889,7 @@ TANK.registerComponent('Player')
 
 .construct(function()
 {
-  this.zdepth = 5;
+  this.zdepth = 100;
   this.shakeTime = 0;
 
   this.headingPos = [0, 0];
@@ -4045,9 +4176,18 @@ Spawns.pirate = function()
   TANK.main.addChild(e);
 };
 
+Spawns.police = function()
+{
+  var e = TANK.createEntity('AIPolice');
+  e.Ship.shipData = new Ships.enforcer();
+  e.Pos2D.x = -2000 + Math.random() * 4000;
+  e.Pos2D.y = -2000 + Math.random() * 4000;
+  TANK.main.addChild(e);
+};
+
 Spawns.derelict = function()
 {
-  var e = TANK.createEntity(['Ship', 'Derelict']);
+  var e = TANK.createEntity('AIDerelict');
   e.Ship.shipData = new Ships.frigate();
   e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
