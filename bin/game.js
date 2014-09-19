@@ -121,6 +121,9 @@ TANK.registerComponent('AICivilian')
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = owner;
     this._entity.removeComponent('AICivilian');
+
+    Flags.attackedCivilian = true;
+    Flags.wanted = true;
   });
 });
 TANK.registerComponent('AIDerelict')
@@ -156,10 +159,19 @@ TANK.registerComponent('AIPolice')
 
   this.listenTo(this._entity, 'aggro', function(owner)
   {
+    TANK.main.Game.addEventLog('<Police>: Prepare to die, criminal!');
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = owner;
     this._entity.removeComponent('AIPolice');
   });
+
+  this.attack = function()
+  {
+    TANK.main.Game.addEventLog('<Police>: Prepare to die, criminal!');
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = this.target;
+    this._entity.removeComponent('AIPolice');
+  };
 
   this.update = function(dt)
   {
@@ -219,10 +231,20 @@ TANK.registerComponent('AIPolice')
 
         if (this.scanTimer >= this.scanTime)
         {
-          TANK.main.Game.addEventLog('<Police>: Alright, you\'re free to go.');
-          this.waitingForScan = false;
-          this.waitingForStop = false;
-          this.done = true;
+          if (Flags.wanted)
+          {
+            this.waitingForScan = false;
+            this.waitingForStop = false;
+            this.done = true;
+            this.attack();
+          }
+          else
+          {
+            TANK.main.Game.addEventLog('<Police>: Alright, you\'re free to go.');
+            this.waitingForScan = false;
+            this.waitingForStop = false;
+            this.done = true;
+          }
         }
       }
 
@@ -239,10 +261,8 @@ TANK.registerComponent('AIPolice')
         // After second warning, attack
         else if (this.gaveFirstWarning && this.gaveSecondWarning)
         {
-          TANK.main.Game.addEventLog('<Police>: Prepare to die!');
-          this._entity.addComponent('AIAttack');
-          this._entity.AIAttack.target = this.target;
-          this._entity.removeComponent('AIPolice');
+          TANK.main.Game.addEventLog('<Police>: Time\'s up.');
+          this.attack();
         }
       }
     }
@@ -871,6 +891,9 @@ Events.test =
 {
   text: 'A test event'
 };
+var Flags = {};
+
+
 TANK.registerComponent('Game')
 
 .construct(function()

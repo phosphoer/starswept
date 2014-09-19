@@ -13,5 +13,8 @@ TANK.registerComponent('AICivilian')
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = owner;
     this._entity.removeComponent('AICivilian');
+
+    Flags.attackedCivilian = true;
+    Flags.wanted = true;
   });
 });
