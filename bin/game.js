@@ -857,7 +857,7 @@ Events.derelict =
 Events.derelict_1a =
 {
   text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.',
-  story: {eventText: 'You came across an abandoned ship with no crew left alive.'}
+  story: {eventText: 'You came across a disabled ship with no crew left alive at {{location}}'}
 };
 
 Events.derelict_1b =
@@ -868,11 +868,10 @@ Events.derelict_1b =
     {
       text: 'Decline, you need all the fuel you\'ve got.',
       responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.',
-      story: {eventText: 'You came across a disabled ship but refused to help them out.'}
+      story: {eventText: 'You came across a disabled ship at {{location}} but refused to help them out.'}
     },
     {
       text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
-      story: {eventText: 'You came across a disabled ship and helped them out with some fuel.'},
       events:
       [
         {probability: 0.5, name: 'derelict_2a'},
@@ -885,12 +884,14 @@ Events.derelict_1b =
 Events.derelict_2a =
 {
   text: 'The captain thanks you profusely and speeds off.',
+  story: {eventText: 'You came across a disabled ship at {{location}} and helped them out with some fuel.'},
   dispatchEvent: 'derelictleave'
 };
 
 Events.derelict_2b =
 {
   text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  story: {eventText: 'You came across a disabled ship at {{location}} and were ambushed by pirates.'},
   dispatchEvent: 'killplayershields',
   spawns:
   [
@@ -1161,9 +1162,15 @@ TANK.registerComponent('Game')
   //
   this.addStory = function(eventText)
   {
+    var expandMacros = function(str)
+    {
+      str = str.replace(/\{\{location\}\}/g, this.currentLocation.name);
+      return str;
+    }.bind(this);
+
     this.story.push(
     {
-      eventText: eventText
+      eventText: expandMacros(eventText)
     });
   };
 
@@ -1894,6 +1901,7 @@ var Locations = {};
 Locations.start =
 {
   text: 'Here you are, at the edge of civilized space. Your destination lies deep in the heart of the galaxy, where anarchy reigns.',
+  name: 'the start',
   events:
   [
     {probability: 1, name: 'start'}

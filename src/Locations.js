@@ -3,6 +3,7 @@ var Locations = {};
 Locations.start =
 {
   text: 'Here you are, at the edge of civilized space. Your destination lies deep in the heart of the galaxy, where anarchy reigns.',
+  name: 'the start',
   events:
   [
     {probability: 1, name: 'start'}

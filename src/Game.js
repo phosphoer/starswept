@@ -250,9 +250,15 @@ TANK.registerComponent('Game')
   //
   this.addStory = function(eventText)
   {
+    var expandMacros = function(str)
+    {
+      str = str.replace(/\{\{location\}\}/g, this.currentLocation.name);
+      return str;
+    }.bind(this);
+
     this.story.push(
     {
-      eventText: eventText
+      eventText: expandMacros(eventText)
     });
   };
 
