@@ -32,7 +32,7 @@ TANK.registerComponent('TriggerRadius')
       TANK.main.Game.triggerEvent(chosenEvent.name);
 
       if (this.removeOnTrigger)
-        this._entity._parent.removeChild(this._entity);
+        this._entity.removeComponent(this._name);
     }
   };
 });

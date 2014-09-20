@@ -18,8 +18,14 @@ TANK.registerComponent('Ship')
   this.dead = false;
 
   this.iff = 0;
+  this.shipType = '';
   this.shipData = null;
   this.deadTimer = 0;
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'shipType', '');
 })
 
 .initialize(function()
@@ -30,6 +36,8 @@ TANK.registerComponent('Ship')
   TANK.main.Renderer2D.add(this);
 
   // Get some data from ship
+  if (!this.shipData && this.shipType)
+    this.shipData = new Ships[this.shipType]();
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
   this.fuel = this.shipData.maxFuel;

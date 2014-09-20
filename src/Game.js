@@ -407,6 +407,17 @@ TANK.registerComponent('Game')
       this.addStory(event.story.eventText);
     }
 
+    // Call event script
+    if (event.script)
+      event.script();
+
+    // Set any event flags
+    if (event.setFlags)
+    {
+      for (var i = 0; i < event.setFlags.length; ++i)
+        Flags[event.setFlags[i]] = true;
+    }
+
     // Spawn event entities
     for (var i = 0; i < event.spawns.length; ++i)
     {
@@ -438,6 +449,19 @@ TANK.registerComponent('Game')
       for (var i = 0; i < event.options.length; ++i)
         this.addEventLog((i + 1) + '. ' + event.options[i].text);
     }
+  };
+
+  //
+  // Give player fuel
+  //
+  this.givePlayerFuel = function(amount)
+  {
+    if (amount > 1)
+      this.addEventLog('You receive ' + amount + ' fuel cells.');
+    else
+      this.addEventLog('You receive ' + amount + ' fuel cell.');
+
+    this.player.Ship.fuel += amount;
   };
 
   //

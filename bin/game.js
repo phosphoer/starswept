@@ -885,6 +885,7 @@ Events.derelict_2a =
 {
   text: 'The captain thanks you profusely and speeds off.',
   story: {eventText: 'You came across a disabled ship at {{location}} and helped them out with some fuel.'},
+  setFlags: ['rescuedDerelict'],
   dispatchEvent: 'derelictleave'
 };
 
@@ -898,6 +899,35 @@ Events.derelict_2b =
     'pirate',
     'pirate'
   ]
+};
+
+Events.derelictReturn =
+{
+  text: 'Just ahead you see the same ship that you rescued earlier. The captain says they have since filled up and would be happy to transfer you some fuel as thanks if you approach closer.',
+  requireFlags: ['rescuedDerelict'],
+  spawns:
+  [
+    {
+      components:
+      {
+        Pos2D: {x: 1000, y: 0},
+        Ship: {shipType: 'frigate'},
+        AIDerelict: {},
+        TriggerRadius: {radius: 500, events: [{probability: 1, name: 'derelictGiveFuel'}]}
+      }
+    }
+  ]
+};
+
+Events.derelictGiveFuel =
+{
+  story: {eventText: 'You ran into the ship you previously rescued and they gave you some fuel.'},
+  dispatchEvent: 'derelictleave',
+  script: function()
+  {
+    var amount = Math.floor(1 + Math.random() * 3);
+    TANK.main.Game.givePlayerFuel(amount);
+  }
 };
 
 //
@@ -1319,6 +1349,17 @@ TANK.registerComponent('Game')
       this.addStory(event.story.eventText);
     }
 
+    // Call event script
+    if (event.script)
+      event.script();
+
+    // Set any event flags
+    if (event.setFlags)
+    {
+      for (var i = 0; i < event.setFlags.length; ++i)
+        Flags[event.setFlags[i]] = true;
+    }
+
     // Spawn event entities
     for (var i = 0; i < event.spawns.length; ++i)
     {
@@ -1350,6 +1391,19 @@ TANK.registerComponent('Game')
       for (var i = 0; i < event.options.length; ++i)
         this.addEventLog((i + 1) + '. ' + event.options[i].text);
     }
+  };
+
+  //
+  // Give player fuel
+  //
+  this.givePlayerFuel = function(amount)
+  {
+    if (amount > 1)
+      this.addEventLog('You receive ' + amount + ' fuel cells.');
+    else
+      this.addEventLog('You receive ' + amount + ' fuel cell.');
+
+    this.player.Ship.fuel += amount;
   };
 
   //
@@ -3473,8 +3527,14 @@ TANK.registerComponent('Ship')
   this.dead = false;
 
   this.iff = 0;
+  this.shipType = '';
   this.shipData = null;
   this.deadTimer = 0;
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'shipType', '');
 })
 
 .initialize(function()
@@ -3485,6 +3545,8 @@ TANK.registerComponent('Ship')
   TANK.main.Renderer2D.add(this);
 
   // Get some data from ship
+  if (!this.shipData && this.shipType)
+    this.shipData = new Ships[this.shipType]();
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
   this.fuel = this.shipData.maxFuel;
@@ -4374,7 +4436,7 @@ TANK.registerComponent('TriggerRadius')
       TANK.main.Game.triggerEvent(chosenEvent.name);
 
       if (this.removeOnTrigger)
-        this._entity._parent.removeChild(this._entity);
+        this._entity.removeComponent(this._name);
     }
   };
 });

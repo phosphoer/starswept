@@ -82,6 +82,7 @@ Events.derelict_2a =
 {
   text: 'The captain thanks you profusely and speeds off.',
   story: {eventText: 'You came across a disabled ship at {{location}} and helped them out with some fuel.'},
+  setFlags: ['rescuedDerelict'],
   dispatchEvent: 'derelictleave'
 };
 
@@ -95,6 +96,35 @@ Events.derelict_2b =
     'pirate',
     'pirate'
   ]
+};
+
+Events.derelictReturn =
+{
+  text: 'Just ahead you see the same ship that you rescued earlier. The captain says they have since filled up and would be happy to transfer you some fuel as thanks if you approach closer.',
+  requireFlags: ['rescuedDerelict'],
+  spawns:
+  [
+    {
+      components:
+      {
+        Pos2D: {x: 1000, y: 0},
+        Ship: {shipType: 'frigate'},
+        AIDerelict: {},
+        TriggerRadius: {radius: 500, events: [{probability: 1, name: 'derelictGiveFuel'}]}
+      }
+    }
+  ]
+};
+
+Events.derelictGiveFuel =
+{
+  story: {eventText: 'You ran into the ship you previously rescued and they gave you some fuel.'},
+  dispatchEvent: 'derelictleave',
+  script: function()
+  {
+    var amount = Math.floor(1 + Math.random() * 3);
+    TANK.main.Game.givePlayerFuel(amount);
+  }
 };
 
 //
