@@ -373,7 +373,26 @@ TANK.registerComponent('Game')
     // Trigger location event
     if (location.events && location.events.length > 0)
     {
-      var weights = location.events.map(function(ev) {return ev.probability;});
+      // Map the event probabilities
+      var weights = location.events.map(function(ev)
+      {
+        // If the event requires any flags that aren't set, modify
+        // probability to 0
+        if (Events[ev.name].requireFlags)
+        {
+          var requireFlags = Events[ev.name].requireFlags;
+          for (var i = 0; i < requireFlags.length; ++i)
+          {
+            if (!Flags[requireFlags[i]])
+              return 0;
+          }
+        }
+
+        // Otherwise, return regular probability
+        return ev.probability;
+      });
+
+      // Pick a random event
       var chosenIndex = this.randomWeighted(weights);
       var chosenEvent = location.events[chosenIndex];
       this.triggerEvent(chosenEvent.name);
