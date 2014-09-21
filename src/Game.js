@@ -20,7 +20,15 @@ TANK.registerComponent('Game')
   // Global light direction
   this.lightDir = 0;
 
+  // Current ship selection
   this.playerShipSelection = 'frigate';
+
+  // Unlocked ships
+  this.unlockedShips =
+  {
+    'frigate': true,
+    'albatross': true
+  };
 })
 
 .initialize(function()
@@ -103,7 +111,9 @@ TANK.registerComponent('Game')
   //
   this.save = function(slot)
   {
-    var save = {};
+    if (!slot)
+      slot = 'main';
+    var save = {unlockedShips: this.unlockedShips};
     localStorage['save-' + slot] = JSON.stringify(save);
   };
 
@@ -112,7 +122,14 @@ TANK.registerComponent('Game')
   //
   this.load = function(slot)
   {
-    var save = JSON.parse(localStorage['save-' + slot]);
+    if (!slot)
+      slot = 'main';
+    var saveData = localStorage['save-' + slot];
+    if (saveData)
+    {
+      var save = JSON.parse(saveData);
+      this.unlockedShips = save.unlockedShips;
+    }
   };
 
   //
@@ -170,6 +187,7 @@ TANK.registerComponent('Game')
   this.goToShipSelection = function()
   {
     // Build menu
+    this.load();
     this.shipSelection = TANK.createEntity('ShipSelection');
     TANK.main.addChild(this.shipSelection);
 
@@ -504,6 +522,20 @@ TANK.registerComponent('Game')
 
     this.player.Ship.fuel -= amount;
   };
+
+  //
+  // Unlock methods
+  //
+  this.unlockShip = function(name)
+  {
+    this.unlockedShips[name] = true;
+    this.save();
+  };
+
+  this.shipUnlocked = function(name)
+  {
+    return this.unlockedShips[name];
+  }
 
   //
   // Resource load handler

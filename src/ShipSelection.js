@@ -52,7 +52,7 @@ TANK.registerComponent('ShipSelection')
   for (var i in Ships)
   {
     var ship = new Ships[i]();
-    if (!ship.playable)
+    if (!ship.playable || !TANK.main.Game.shipUnlocked(i))
       continue;
 
     var e = TANK.createEntity('Ship');
