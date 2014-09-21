@@ -9,6 +9,14 @@ Events.empty =
 };
 
 //
+// Begin event
+//
+Events.start =
+{
+  story: {eventText: 'You began your journey.'}
+};
+
+//
 // Civilian ship event
 //
 Events.civilian =
@@ -27,7 +35,15 @@ Events.pirate =
 };
 
 //
-// Derelcit event
+// Police ship event
+//
+Events.police =
+{
+  spawns: ['police']
+};
+
+//
+// Derelict event
 //
 Events.derelict =
 {
@@ -37,7 +53,8 @@ Events.derelict =
 
 Events.derelict_1a =
 {
-  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.'
+  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.',
+  story: {eventText: 'You came across a disabled ship with no crew left alive at {{location}}'}
 };
 
 Events.derelict_1b =
@@ -47,7 +64,8 @@ Events.derelict_1b =
   [
     {
       text: 'Decline, you need all the fuel you\'ve got.',
-      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.'
+      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.',
+      story: {eventText: 'You came across a disabled ship at {{location}} but refused to help them out.'}
     },
     {
       text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
@@ -63,18 +81,64 @@ Events.derelict_1b =
 Events.derelict_2a =
 {
   text: 'The captain thanks you profusely and speeds off.',
-  dispatchEvent: 'derelictleave'
+  story: {eventText: 'You came across a disabled ship at {{location}} and helped them out with some fuel.'},
+  setFlags: ['rescuedDerelict'],
+  dispatchEvent: 'derelictleave',
+  script: function()
+  {
+    TANK.main.Game.takePlayerFuel(3);
+  }
 };
 
 Events.derelict_2b =
 {
   text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  story: {eventText: 'You came across a disabled ship at {{location}} and were ambushed by pirates.'},
   dispatchEvent: 'killplayershields',
   spawns:
   [
     'pirate',
     'pirate'
   ]
+};
+
+Events.derelictReturn =
+{
+  text: 'Just ahead you see the same ship that you rescued earlier. The captain says they have since filled up and would be happy to transfer you some fuel as thanks if you approach closer.',
+  requireFlags: ['rescuedDerelict'],
+  unsetFlags: ['rescuedDerelict'],
+  spawns:
+  [
+    {
+      components:
+      {
+        Pos2D: {x: 1000, y: 0},
+        Ship: {shipType: 'frigate'},
+        AIDerelict: {},
+        TriggerRadius: {radius: 500, events: [{probability: 1, name: 'derelictGiveFuel'}]}
+      }
+    }
+  ]
+};
+
+Events.derelictGiveFuel =
+{
+  story: {eventText: 'You ran into the ship you previously rescued and they gave you some fuel.'},
+  dispatchEvent: 'derelictleave',
+  script: function()
+  {
+    var amount = Math.floor(1 + Math.random() * 3);
+    var derelict = TANK.main.getChildrenWithComponent('AIDerelict');
+    derelict = derelict[Object.keys(derelict)[0]];
+
+    for (var i = 0; i < amount; ++i)
+    {
+      var e = TANK.createEntity('FuelCell');
+      e.Pos2D.x = derelict.Pos2D.x;
+      e.Pos2D.y = derelict.Pos2D.y;
+      TANK.main.addChild(e);
+    }
+  }
 };
 
 //

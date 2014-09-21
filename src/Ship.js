@@ -18,8 +18,14 @@ TANK.registerComponent('Ship')
   this.dead = false;
 
   this.iff = 0;
+  this.shipType = '';
   this.shipData = null;
   this.deadTimer = 0;
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'shipType', '');
 })
 
 .initialize(function()
@@ -30,6 +36,8 @@ TANK.registerComponent('Ship')
   TANK.main.Renderer2D.add(this);
 
   // Get some data from ship
+  if (!this.shipData && this.shipType)
+    this.shipData = new Ships[this.shipType]();
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
   this.fuel = this.shipData.maxFuel;
@@ -48,7 +56,7 @@ TANK.registerComponent('Ship')
 
   // Set up collision
   this._entity.PixelCollider.collisionLayer = 'ships';
-  this._entity.PixelCollider.collidesWith = ['bullets'];
+  this._entity.PixelCollider.collidesWith = ['bullets', 'pickups'];
   this._entity.PixelCollider.setImage(this.resource.diffuse);
 
   // Set up lighting
@@ -146,6 +154,16 @@ TANK.registerComponent('Ship')
     ParticleLibrary.explosionMedium(t.x, t.y);
     this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
+    // Create some fuel spawns
+    var numFuelCells = Math.round(Math.random() * 3);
+    for (var i = 0; i < numFuelCells; ++i)
+    {
+      var e = TANK.createEntity('FuelCell');
+      e.Pos2D.x = t.x;
+      e.Pos2D.y = t.y;
+      TANK.main.addChild(e);
+    }
+
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
@@ -159,6 +177,14 @@ TANK.registerComponent('Ship')
   this.listenTo(this._entity, 'gunfired', function(gun)
   {
     this.shieldObj.Shield.disable(gun.shieldDisableTime);
+  });
+
+  //
+  // Shield damage response
+  //
+  this.listenTo(this.shieldObj, 'shielddamaged', function(from)
+  {
+    this._entity.dispatch('aggro', from);
   });
 
   //
@@ -196,10 +222,11 @@ TANK.registerComponent('Ship')
     // Affect trajectory
     v.x += dir[0] * damage * 0.1;
     v.y += dir[1] * damage * 0.1;
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
-    v.r += dir * damage;
+    var leftOrRight = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
+    v.r += leftOrRight * damage;
 
     this.health -= damage;
+    this._entity.dispatch('aggro', owner);
   });
 
   //

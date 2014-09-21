@@ -4,7 +4,7 @@ TANK.registerComponent('Player')
 
 .construct(function()
 {
-  this.zdepth = 5;
+  this.zdepth = 100;
   this.shakeTime = 0;
 
   this.headingPos = [0, 0];
@@ -88,6 +88,7 @@ TANK.registerComponent('Player')
 
   this.listenTo(this._entity, 'explode', function()
   {
+    TANK.main.Game.addStory('You exploded.');
     TANK.main.dispatchTimed(3, 'gamelose');
   });
 
@@ -95,6 +96,11 @@ TANK.registerComponent('Player')
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
       this.shakeCamera(0.1);
+    if (obj.FuelCell)
+    {
+      TANK.main.Game.givePlayerFuel(1);
+      obj._parent.removeChild(obj);
+    }
   });
 
   this.listenTo(TANK.main, 'killplayershields', function()

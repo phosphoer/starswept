@@ -61,8 +61,8 @@ TANK.registerComponent('AIAttack')
 
     // Get direction to target
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
-    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
     targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
     var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
 
@@ -116,12 +116,161 @@ TANK.registerComponent('AICivilian')
   ship.heading = targetDir;
   ship.setSpeedPercent(0.5);
 
-  this.listenTo(this._entity, 'damaged', function(amount, direction, position, owner)
+  this.listenTo(this._entity, 'aggro', function(owner)
   {
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = owner;
     this._entity.removeComponent('AICivilian');
+
+    Flags.attackedCivilian = true;
+    Flags.wanted = true;
+
+    TANK.main.Game.addStory('You attacked a peaceful ship.');
   });
+});
+TANK.registerComponent('AIDerelict')
+.includes('Ship')
+.initialize(function()
+{
+  this.listenTo(TANK.main, 'derelictleave', function()
+  {
+    this._entity.removeComponent('AIDerelict');
+    this._entity.addComponent('AICivilian');
+  });
+});
+TANK.registerComponent('AIPolice')
+.includes(['Ship', 'RemoveOnLevelChange'])
+.construct(function()
+{
+  this.target = null;
+  this.scanDistance = 1000;
+  this.patienceTime = 10;
+  this.patienceTimer = 0;
+  this.scanTime = 5;
+  this.scanTimer = 0;
+
+  this.gaveFirstWarning = false;
+  this.gaveSecondWarning = false;
+  this.waitingForStop = false;
+  this.waitingForScan = false;
+  this.done = false;
+})
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ship = this._entity.Ship;
+
+  this.listenTo(this._entity, 'aggro', function(owner)
+  {
+    TANK.main.Game.addEventLog('<Police>: Prepare to die, criminal!');
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = owner;
+    this._entity.removeComponent('AIPolice');
+  });
+
+  this.attack = function()
+  {
+    TANK.main.Game.addEventLog('<Police>: Prepare to die, criminal!');
+    TANK.main.Game.addStory('You got into a tangle with the police.');
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = this.target;
+    this._entity.removeComponent('AIPolice');
+  };
+
+  this.update = function(dt)
+  {
+    this.target = TANK.main.getChildrenWithComponent('Player');
+    if (!this.target)
+      return;
+    this.target = this.target[Object.keys(this.target)[0]];
+
+    // Get direction to target
+    var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
+    var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);
+    var targetVelocity = [this.target.Velocity.x, this.target.Velocity.y];
+    targetPos = TANK.Math2D.add(targetPos, TANK.Math2D.scale(targetVelocity, 1));
+    var targetDir = Math.atan2(targetPos[1] - t.y, targetPos[0] - t.x);
+
+    // Finish scanning
+    if (this.done)
+    {
+      ship.setSpeedPercent(0.5);
+      return;
+    }
+
+    // Aim at target
+    ship.heading = targetDir;
+
+    // Move towards target if not close enough
+    if (targetDist < this.scanDistance)
+      ship.setSpeedPercent(0);
+    else if (targetDist < this.scanDistance * 2)
+      ship.setSpeedPercent(0.5);
+    else if (targetDist >= this.scanDistance * 2)
+      ship.setSpeedPercent(1);
+
+    // Send warnings to target
+    if (targetDist < this.scanDistance * 2)
+    {
+      if (!this.gaveFirstWarning)
+      {
+        TANK.main.Game.addEventLog('<Police>: Pilot, please stop your ship now for a random scan.');
+        this.gaveFirstWarning = true;
+        this.waitingForStop = true;
+        this.patienceTimer = 0;
+        this.scanTimer = 0;
+      }
+    }
+
+    // Count down timer while waiting for player to stop
+    if (this.waitingForStop)
+    {
+      this.patienceTimer += dt;
+
+      // Check if player has stopped
+      if (this.target.Ship.desiredSpeed < 0.01 && targetDist < this.scanDistance)
+      {
+        this.waitingForScan = true;
+        this.scanTimer += dt;
+
+        if (this.scanTimer >= this.scanTime)
+        {
+          if (Flags.wanted)
+          {
+            this.waitingForScan = false;
+            this.waitingForStop = false;
+            this.done = true;
+            this.attack();
+          }
+          else
+          {
+            TANK.main.Game.addEventLog('<Police>: Alright, you\'re free to go.');
+            this.waitingForScan = false;
+            this.waitingForStop = false;
+            this.done = true;
+          }
+        }
+      }
+
+      // If we run out of patience
+      if (this.patienceTimer >= this.patienceTime && !this.waitingForScan)
+      {
+        // Give a second warning
+        if (this.gaveFirstWarning && !this.gaveSecondWarning)
+        {
+          TANK.main.Game.addEventLog('<Police>: This is your last warning, cut your engines now.');
+          this.gaveSecondWarning = true;
+          this.patienceTimer = 0;
+        }
+        // After second warning, attack
+        else if (this.gaveFirstWarning && this.gaveSecondWarning)
+        {
+          TANK.main.Game.addEventLog('<Police>: Time\'s up.');
+          this.attack();
+        }
+      }
+    }
+  };
 });
 TANK.registerComponent('Asteroid')
 
@@ -152,7 +301,7 @@ TANK.registerComponent('Asteroid')
   v.x = (Math.random() - 0.5) * 16;
   v.y = (Math.random() - 0.5) * 16;
   v.r = (Math.random() - 0.5) * 0.5;
-  t.r = Math.random() * Math.PI * 2;
+  t.rotation = Math.random() * Math.PI * 2;
 
   //
   // Collision response
@@ -341,7 +490,7 @@ TANK.registerComponent('Clouds')
   this.fieldSize = [8750, 8750];
   this.cloudColor = [255, 255, 255];
   this.cloudSize = 512;
-  this.cloudScale = 3;
+  this.cloudScale = 6;
   this.noiseFreq = 0.008 + Math.random() * 0.004;
   this.noiseAmplitude = 0.5 + Math.random() * 0.3;
   this.noisePersistence = 0.7 + Math.random() * 0.29;
@@ -418,7 +567,7 @@ TANK.registerComponent('Clouds')
   this.forEachPixel(function(i, j)
   {
     var dist = TANK.Math2D.pointDistancePoint([i, j], [this.cloudSize / 2, this.cloudSize / 2]);
-    this.heightMap[i][j] *= 1 - (dist / (this.cloudSize / 2 + 2));
+    this.heightMap[i][j] *= -Math.pow((dist / (this.cloudSize / 2 + 2)) - 1, 3);
   });
 
   // Set pixels based on height
@@ -476,14 +625,6 @@ TANK.registerComponent('Clouds')
 
 .uninitialize(function()
 {
-});
-TANK.registerComponent('Derelict')
-.initialize(function()
-{
-  this.listenTo(TANK.main, 'derelictleave', function()
-  {
-    this._entity.addComponent('AICivilian');
-  });
 });
 TANK.registerComponent("DustField")
 
@@ -576,7 +717,7 @@ TANK.registerComponent('EndScreen')
 
   // Fill out summary
   this.container.querySelector('.end-score').innerHTML = 'Final score - ' + this.score;
-  this.container.querySelector('.end-summary').innerHTML = 'A summary how the game went.';
+  this.container.querySelector('.end-summary').innerHTML = TANK.main.Game.getStoryText();
 
   //
   // Handle interactions
@@ -671,6 +812,14 @@ Events.empty =
 };
 
 //
+// Begin event
+//
+Events.start =
+{
+  story: {eventText: 'You began your journey.'}
+};
+
+//
 // Civilian ship event
 //
 Events.civilian =
@@ -689,7 +838,15 @@ Events.pirate =
 };
 
 //
-// Derelcit event
+// Police ship event
+//
+Events.police =
+{
+  spawns: ['police']
+};
+
+//
+// Derelict event
 //
 Events.derelict =
 {
@@ -699,7 +856,8 @@ Events.derelict =
 
 Events.derelict_1a =
 {
-  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.'
+  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.',
+  story: {eventText: 'You came across a disabled ship with no crew left alive at {{location}}'}
 };
 
 Events.derelict_1b =
@@ -709,7 +867,8 @@ Events.derelict_1b =
   [
     {
       text: 'Decline, you need all the fuel you\'ve got.',
-      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.'
+      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.',
+      story: {eventText: 'You came across a disabled ship at {{location}} but refused to help them out.'}
     },
     {
       text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
@@ -725,18 +884,64 @@ Events.derelict_1b =
 Events.derelict_2a =
 {
   text: 'The captain thanks you profusely and speeds off.',
-  dispatchEvent: 'derelictleave'
+  story: {eventText: 'You came across a disabled ship at {{location}} and helped them out with some fuel.'},
+  setFlags: ['rescuedDerelict'],
+  dispatchEvent: 'derelictleave',
+  script: function()
+  {
+    TANK.main.Game.takePlayerFuel(3);
+  }
 };
 
 Events.derelict_2b =
 {
   text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
+  story: {eventText: 'You came across a disabled ship at {{location}} and were ambushed by pirates.'},
   dispatchEvent: 'killplayershields',
   spawns:
   [
     'pirate',
     'pirate'
   ]
+};
+
+Events.derelictReturn =
+{
+  text: 'Just ahead you see the same ship that you rescued earlier. The captain says they have since filled up and would be happy to transfer you some fuel as thanks if you approach closer.',
+  requireFlags: ['rescuedDerelict'],
+  unsetFlags: ['rescuedDerelict'],
+  spawns:
+  [
+    {
+      components:
+      {
+        Pos2D: {x: 1000, y: 0},
+        Ship: {shipType: 'frigate'},
+        AIDerelict: {},
+        TriggerRadius: {radius: 500, events: [{probability: 1, name: 'derelictGiveFuel'}]}
+      }
+    }
+  ]
+};
+
+Events.derelictGiveFuel =
+{
+  story: {eventText: 'You ran into the ship you previously rescued and they gave you some fuel.'},
+  dispatchEvent: 'derelictleave',
+  script: function()
+  {
+    var amount = Math.floor(1 + Math.random() * 3);
+    var derelict = TANK.main.getChildrenWithComponent('AIDerelict');
+    derelict = derelict[Object.keys(derelict)[0]];
+
+    for (var i = 0; i < amount; ++i)
+    {
+      var e = TANK.createEntity('FuelCell');
+      e.Pos2D.x = derelict.Pos2D.x;
+      e.Pos2D.y = derelict.Pos2D.y;
+      TANK.main.addChild(e);
+    }
+  }
 };
 
 //
@@ -746,6 +951,58 @@ Events.test =
 {
   text: 'A test event'
 };
+var Flags = {};
+
+
+TANK.registerComponent('FuelCell')
+
+.includes(['LightingAndDamage', 'Velocity', 'Collider2D', 'RemoveOnLevelChange'])
+
+.construct(function()
+{
+  this.zdepth = 1;
+  this.resourceName = 'fuel-cell';
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var v = this._entity.Velocity;
+
+  TANK.main.Renderer2D.add(this);
+
+  // Set up lighting
+  this.resource = TANK.main.Resources.get(this.resourceName);
+  this._entity.LightingAndDamage.setResource(this.resource);
+
+  // Set up collision
+  this._entity.Collider2D.collisionLayer = 'pickups';
+
+  // Initial velocity / rotation
+  v.x = (Math.random() - 0.5) * 16;
+  v.y = (Math.random() - 0.5) * 16;
+  v.r = (Math.random() - 0.5) * 0.5;
+  t.rotation = Math.random() * Math.PI * 2;
+
+  //
+  // Draw code
+  //
+  this.draw = function(ctx, camera)
+  {
+    // Set up transform
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+    ctx.rotate(t.rotation);
+    ctx.translate(this.resource.diffuse.width / -2, this.resource.diffuse.height / -2);
+
+    // Draw the main buffer
+    this._entity.LightingAndDamage.redraw();
+    ctx.drawImage(this._entity.LightingAndDamage.mainBuffer.canvas, 0, 0);
+
+    ctx.restore();
+  };
+});
 TANK.registerComponent('Game')
 
 .construct(function()
@@ -759,6 +1016,7 @@ TANK.registerComponent('Game')
 
   // Event log
   this.eventLogs = [];
+  this.story = [];
 
   // Mouse positions
   this.mousePosWorld = [0, 0];
@@ -767,7 +1025,15 @@ TANK.registerComponent('Game')
   // Global light direction
   this.lightDir = 0;
 
+  // Current ship selection
   this.playerShipSelection = 'frigate';
+
+  // Unlocked ships
+  this.unlockedShips =
+  {
+    'frigate': true,
+    'albatross': true
+  };
 })
 
 .initialize(function()
@@ -819,9 +1085,17 @@ TANK.registerComponent('Game')
   resources.add('ship-rhino-normals', 'res/img/ship-rhino-normals.png');
   resources.add('ship-rhino', null, ['ship-rhino-diffuse', 'ship-rhino-normals'], loadLighting);
 
+  resources.add('ship-enforcer-diffuse', 'res/img/ship-enforcer-diffuse.png');
+  resources.add('ship-enforcer-normals', 'res/img/ship-enforcer-normals.png');
+  resources.add('ship-enforcer', null, ['ship-enforcer-diffuse', 'ship-enforcer-normals'], loadLighting);
+
   resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
   resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);
+
+  resources.add('fuel-cell-diffuse', 'res/img/fuel-cell-diffuse.png');
+  resources.add('fuel-cell-normals', 'res/img/fuel-cell-normals.png');
+  resources.add('fuel-cell', null, ['fuel-cell-diffuse', 'fuel-cell-normals'], loadLighting);
 
   //
   // Rebuild lighting
@@ -842,7 +1116,9 @@ TANK.registerComponent('Game')
   //
   this.save = function(slot)
   {
-    var save = {};
+    if (!slot)
+      slot = 'main';
+    var save = {unlockedShips: this.unlockedShips};
     localStorage['save-' + slot] = JSON.stringify(save);
   };
 
@@ -851,7 +1127,14 @@ TANK.registerComponent('Game')
   //
   this.load = function(slot)
   {
-    var save = JSON.parse(localStorage['save-' + slot]);
+    if (!slot)
+      slot = 'main';
+    var saveData = localStorage['save-' + slot];
+    if (saveData)
+    {
+      var save = JSON.parse(saveData);
+      this.unlockedShips = save.unlockedShips;
+    }
   };
 
   //
@@ -909,6 +1192,7 @@ TANK.registerComponent('Game')
   this.goToShipSelection = function()
   {
     // Build menu
+    this.load();
     this.shipSelection = TANK.createEntity('ShipSelection');
     TANK.main.addChild(this.shipSelection);
 
@@ -955,6 +1239,7 @@ TANK.registerComponent('Game')
   //
   this.randomWeighted = function(weights)
   {
+    weights = weights.filter(function(val) {return val > 0;});
     var minValue = Math.min.apply(null, weights);
     var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
     var weightArray = [];
@@ -986,6 +1271,35 @@ TANK.registerComponent('Game')
   {
     while (this.eventLogs.length)
       this.eventLogs.pop();
+  };
+
+  //
+  // Story log
+  //
+  this.addStory = function(eventText)
+  {
+    var expandMacros = function(str)
+    {
+      str = str.replace(/\{\{location\}\}/g, this.currentLocation.name);
+      return str;
+    }.bind(this);
+
+    this.story.push(
+    {
+      eventText: expandMacros(eventText)
+    });
+  };
+
+  this.getStoryText = function()
+  {
+    var storyText = '';
+    for (var i = 0; i < this.story.length; ++i)
+    {
+      var story = this.story[i];
+      storyText += story.eventText + '\n';
+    }
+
+    return storyText;
   };
 
   //
@@ -1087,7 +1401,26 @@ TANK.registerComponent('Game')
     // Trigger location event
     if (location.events && location.events.length > 0)
     {
-      var weights = location.events.map(function(ev) {return ev.probability;});
+      // Map the event probabilities
+      var weights = location.events.map(function(ev)
+      {
+        // If the event requires any flags that aren't set, modify
+        // probability to 0
+        if (Events[ev.name].requireFlags)
+        {
+          var requireFlags = Events[ev.name].requireFlags;
+          for (var i = 0; i < requireFlags.length; ++i)
+          {
+            if (!Flags[requireFlags[i]])
+              return 0;
+          }
+        }
+
+        // Otherwise, return regular probability
+        return ev.probability;
+      });
+
+      // Pick a random event
       var chosenIndex = this.randomWeighted(weights);
       var chosenEvent = location.events[chosenIndex];
       this.triggerEvent(chosenEvent.name);
@@ -1114,6 +1447,30 @@ TANK.registerComponent('Game')
 
     // Show event text
     this.addEventLog(event.text);
+
+    // Add event story
+    if (event.story)
+    {
+      this.addStory(event.story.eventText);
+    }
+
+    // Call event script
+    if (event.script)
+      event.script();
+
+    // Set any event flags
+    if (event.setFlags)
+    {
+      for (var i = 0; i < event.setFlags.length; ++i)
+        Flags[event.setFlags[i]] = true;
+    }
+
+    // Unset any event flags
+    if (event.unsetFlags)
+    {
+      for (var i = 0; i < event.unsetFlags.length; ++i)
+        Flags[event.unsetFlags[i]] = false;
+    }
 
     // Spawn event entities
     for (var i = 0; i < event.spawns.length; ++i)
@@ -1147,6 +1504,43 @@ TANK.registerComponent('Game')
         this.addEventLog((i + 1) + '. ' + event.options[i].text);
     }
   };
+
+  //
+  // Give player fuel
+  //
+  this.givePlayerFuel = function(amount)
+  {
+    if (amount > 1)
+      this.addEventLog('You receive ' + amount + ' fuel cells.');
+    else
+      this.addEventLog('You receive ' + amount + ' fuel cell.');
+
+    this.player.Ship.fuel += amount;
+  };
+
+  this.takePlayerFuel = function(amount)
+  {
+    if (amount > 1)
+      this.addEventLog('You lose ' + amount + ' fuel cells.');
+    else
+      this.addEventLog('You lose ' + amount + ' fuel cell.');
+
+    this.player.Ship.fuel -= amount;
+  };
+
+  //
+  // Unlock methods
+  //
+  this.unlockShip = function(name)
+  {
+    this.unlockedShips[name] = true;
+    this.save();
+  };
+
+  this.shipUnlocked = function(name)
+  {
+    return this.unlockedShips[name];
+  }
 
   //
   // Resource load handler
@@ -1244,6 +1638,10 @@ TANK.registerComponent('Game')
           var chosenOption = this.eventAwaitingInput.options[choice];
           if (chosenOption.responseText)
             this.addEventLog(chosenOption.responseText);
+
+          // Add story
+          if (chosenOption.story)
+            this.addStory(chosenOption.story.eventText);
 
           // Trigger an event, if any
           if (chosenOption.events)
@@ -1410,7 +1808,7 @@ Guns.mediumRocket = function()
   this.trailEffect = 'mediumRailTrail';
   this.damageEffect = 'damageMedium';
   this.screenShake = 0.5;
-  this.reloadTime = 3;
+  this.reloadTime = 6;
   this.reloadTimer = 0;
   this.range = 800;
   this.damage = 0.2;
@@ -1693,7 +2091,11 @@ var Locations = {};
 Locations.start =
 {
   text: 'Here you are, at the edge of civilized space. Your destination lies deep in the heart of the galaxy, where anarchy reigns.',
-  events: [],
+  name: 'the start',
+  events:
+  [
+    {probability: 1, name: 'start'}
+  ],
   bgColor: [0, 0, 20, 1],
   lightColor: [0.7, 0.7, 1],
   lightDir: Math.PI * 2 * 0.8,
@@ -1712,6 +2114,7 @@ Locations.abandonedOutpost =
     {probability: 2.5, name: 'pirate'},
     {probability: 2, name: 'derelict'},
     {probability: 1, name: 'civilian'},
+    {probability: 0.5, name: 'police'},
   ],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
@@ -1731,7 +2134,9 @@ Locations.researchStation =
   [
     {probability: 1.2, name: 'pirate'},
     {probability: 1, name: 'derelict'},
-    {probability: 1.2, name: 'civilian'}
+    {probability: 1.2, name: 'civilian'},
+    {probability: 0.5, name: 'derelictReturn'},
+    {probability: 0.5, name: 'police'},
   ],
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
@@ -1770,7 +2175,9 @@ Locations.oldBattlefield =
   [
     {probability: 1, name: 'pirate'},
     {probability: 2, name: 'civilian'},
-    {probability: 1, name: 'empty'}
+    {probability: 1, name: 'empty'},
+    {probability: 0.5, name: 'derelictReturn'},
+    {probability: 0.2, name: 'police'},
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -1788,7 +2195,9 @@ Locations.deepSpace =
   events:
   [
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'}
+    {probability: 3, name: 'empty'},
+    {probability: 0.5, name: 'derelictReturn'},
+    {probability: 0.6, name: 'police'},
   ],
   bgColor: [0, 0, 0, 1],
   lightColor: [0.9, 0.9, 1],
@@ -1803,7 +2212,9 @@ Locations.redDwarf =
   events:
   [
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'}
+    {probability: 3, name: 'empty'},
+    {probability: 0.5, name: 'derelictReturn'},
+    {probability: 0.6, name: 'police'},
   ],
   bgColor: [10, 0, 0, 1],
   lightColor: [1, 0.8, 0.8],
@@ -1818,7 +2229,8 @@ Locations.asteroidField =
   events:
   [
     {probability: 1, name: 'pirate'},
-    {probability: 1.2, name: 'derelict'}
+    {probability: 1.2, name: 'derelict'},
+    {probability: 0.3, name: 'police'},
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
@@ -2297,7 +2709,7 @@ ParticleLibrary.damageMedium = function(x, y, angle)
   emitter.spawnAngleMax = angle + 0.3;
   emitter.spawnScaleMin = 1;
   emitter.spawnScaleMax = 2;
-  emitter.spawnPerSecond = 700;
+  emitter.spawnPerSecond = 500;
   emitter.spawnDuration = 0.1;
   emitter.particleLifeMin = 3;
   emitter.particleLifeMax = 5;
@@ -2754,7 +3166,7 @@ TANK.registerComponent('Player')
 
 .construct(function()
 {
-  this.zdepth = 5;
+  this.zdepth = 100;
   this.shakeTime = 0;
 
   this.headingPos = [0, 0];
@@ -2838,6 +3250,7 @@ TANK.registerComponent('Player')
 
   this.listenTo(this._entity, 'explode', function()
   {
+    TANK.main.Game.addStory('You exploded.');
     TANK.main.dispatchTimed(3, 'gamelose');
   });
 
@@ -2845,6 +3258,11 @@ TANK.registerComponent('Player')
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
       this.shakeCamera(0.1);
+    if (obj.FuelCell)
+    {
+      TANK.main.Game.givePlayerFuel(1);
+      obj._parent.removeChild(obj);
+    }
   });
 
   this.listenTo(TANK.main, 'killplayershields', function()
@@ -3153,7 +3571,8 @@ TANK.registerComponent('Shield')
   this.disable = function(time)
   {
     this.disabled = true;
-    this.disabledTimer = time;
+    if (time > this.disabledTimer)
+      this.disabledTimer = time;
   };
 
   this.listenTo(this._entity, 'collide', function(obj)
@@ -3172,6 +3591,7 @@ TANK.registerComponent('Shield')
         this.recovering = true;
       }
 
+      this._entity.dispatch('shielddamaged', obj.Bullet.owner);
       t.rotation = Math.atan2(obj.Pos2D.y - t.y, obj.Pos2D.x - t.x);
     }
   });
@@ -3252,8 +3672,14 @@ TANK.registerComponent('Ship')
   this.dead = false;
 
   this.iff = 0;
+  this.shipType = '';
   this.shipData = null;
   this.deadTimer = 0;
+})
+
+.serialize(function(serializer)
+{
+  serializer.property(this, 'shipType', '');
 })
 
 .initialize(function()
@@ -3264,6 +3690,8 @@ TANK.registerComponent('Ship')
   TANK.main.Renderer2D.add(this);
 
   // Get some data from ship
+  if (!this.shipData && this.shipType)
+    this.shipData = new Ships[this.shipType]();
   this.resource = TANK.main.Resources.get(this.shipData.resource);
   this.health = this.shipData.health;
   this.fuel = this.shipData.maxFuel;
@@ -3282,7 +3710,7 @@ TANK.registerComponent('Ship')
 
   // Set up collision
   this._entity.PixelCollider.collisionLayer = 'ships';
-  this._entity.PixelCollider.collidesWith = ['bullets'];
+  this._entity.PixelCollider.collidesWith = ['bullets', 'pickups'];
   this._entity.PixelCollider.setImage(this.resource.diffuse);
 
   // Set up lighting
@@ -3380,6 +3808,16 @@ TANK.registerComponent('Ship')
     ParticleLibrary.explosionMedium(t.x, t.y);
     this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
+    // Create some fuel spawns
+    var numFuelCells = Math.round(Math.random() * 3);
+    for (var i = 0; i < numFuelCells; ++i)
+    {
+      var e = TANK.createEntity('FuelCell');
+      e.Pos2D.x = t.x;
+      e.Pos2D.y = t.y;
+      TANK.main.addChild(e);
+    }
+
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
     var dist = TANK.Math2D.pointDistancePoint([t.x, t.y], [camera.x, camera.y]);
@@ -3393,6 +3831,14 @@ TANK.registerComponent('Ship')
   this.listenTo(this._entity, 'gunfired', function(gun)
   {
     this.shieldObj.Shield.disable(gun.shieldDisableTime);
+  });
+
+  //
+  // Shield damage response
+  //
+  this.listenTo(this.shieldObj, 'shielddamaged', function(from)
+  {
+    this._entity.dispatch('aggro', from);
   });
 
   //
@@ -3430,10 +3876,11 @@ TANK.registerComponent('Ship')
     // Affect trajectory
     v.x += dir[0] * damage * 0.1;
     v.y += dir[1] * damage * 0.1;
-    var dir = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
-    v.r += dir * damage;
+    var leftOrRight = TANK.Math2D.getDirectionToPoint([t.x, t.y], t.rotation, [t.x + dir[0], t.y + dir[1]]);
+    v.r += leftOrRight * damage;
 
     this.health -= damage;
+    this._entity.dispatch('aggro', owner);
   });
 
   //
@@ -3611,7 +4058,7 @@ TANK.registerComponent('ShipSelection')
   for (var i in Ships)
   {
     var ship = new Ships[i]();
-    if (!ship.playable)
+    if (!ship.playable || !TANK.main.Game.shipUnlocked(i))
       continue;
 
     var e = TANK.createEntity('Ship');
@@ -3908,6 +4355,42 @@ Ships.rhino = function()
   ];
 };
 
+Ships.enforcer = function()
+{
+  this.name = 'Enforcer';
+  this.resource = 'ship-enforcer';
+  this.playable = true;
+  this.explodeSound = 'explode-01';
+  this.maxTurnSpeed = 0.45;
+  this.maxSpeed = 175;
+  this.accel = 18;
+  this.turnAccel = 1.4;
+  this.health = 0.25;
+  this.shield = 1;
+  this.shieldGen = 0.01;
+  this.shieldRadius = 80;
+  this.warpChargeTime = 20;
+  this.maxFuel = 6;
+  this.optimalAngle = 0;
+  this.engineSize = [32, 16];
+  this.engineColor = [100, 255, 255];
+  this.guns =
+  {
+    front:
+    [
+      {type: 'mediumRocket', x: 97, y: 67},
+      {type: 'smallRail', x: 116, y: 64},
+      {type: 'smallRail', x: 46, y: 114},
+    ],
+  };
+  this.engines =
+  [
+    {x: 32, y: 11},
+    {x: 17, y: 45},
+    {x: 5, y: 78},
+  ];
+};
+
 // Ships.alien = function()
 // {
 //   this.name = 'Alien';
@@ -3994,9 +4477,18 @@ Spawns.pirate = function()
   TANK.main.addChild(e);
 };
 
+Spawns.police = function()
+{
+  var e = TANK.createEntity('AIPolice');
+  e.Ship.shipData = new Ships.enforcer();
+  e.Pos2D.x = -2000 + Math.random() * 4000;
+  e.Pos2D.y = -2000 + Math.random() * 4000;
+  TANK.main.addChild(e);
+};
+
 Spawns.derelict = function()
 {
-  var e = TANK.createEntity(['Ship', 'Derelict']);
+  var e = TANK.createEntity('AIDerelict');
   e.Ship.shipData = new Ships.frigate();
   e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
@@ -4005,7 +4497,7 @@ Spawns.derelict = function()
   e = TANK.createEntity('TriggerRadius');
   e.TriggerRadius.radius = 1000;
   e.TriggerRadius.events = [{probability: 0.25, name: 'derelict_1a'}, {probability: 0.75, name: 'derelict_1b'}];
-  e.Pos2D.x = 4000;
+  e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
   TANK.main.addChild(e);
 };
@@ -4099,7 +4591,7 @@ TANK.registerComponent('TriggerRadius')
       TANK.main.Game.triggerEvent(chosenEvent.name);
 
       if (this.removeOnTrigger)
-        this._entity._parent.removeChild(this._entity);
+        this._entity.removeComponent(this._name);
     }
   };
 });
@@ -4177,6 +4669,8 @@ TANK.registerComponent('Weapons')
   this.height = 10;
   this.width = 5;
   this.maxRange = 0;
+
+  this.pendingFires = [];
 })
 
 .initialize(function()
@@ -4269,11 +4763,16 @@ TANK.registerComponent('Weapons')
       TANK.main.dispatch('camerashake', gun.screenShake / (dist * 5));
   };
 
+  this.fireGunDelayed = function(gunIndex, gunSide, delay)
+  {
+    this.pendingFires.push({gunIndex: gunIndex, gunSide: gunSide, delay: delay});
+  };
+
   this.fireGuns = function(gunSide)
   {
     var guns = this.guns[gunSide];
     for (var i = 0; i < guns.length; ++i)
-      this.fireGun(i, gunSide);
+      this.fireGunDelayed(i, gunSide, (i * 0.15) * (1 + Math.random() * 0.25));
   };
 
   this.update = function(dt)
@@ -4302,6 +4801,19 @@ TANK.registerComponent('Weapons')
         this.maxRange = Math.max(this.maxRange, guns[j].range);
       }
     }
+
+    // Fire queued shots
+    for (var i = 0; i < this.pendingFires.length; ++i)
+    {
+      var pending = this.pendingFires[i];
+      pending.delay -= dt;
+      if (pending.delay <= 0)
+      {
+        this.fireGun(pending.gunIndex, pending.gunSide);
+      }
+    }
+
+    this.pendingFires = this.pendingFires.filter(function(val) {return val.delay > 0;});
   };
 
   this.draw = function(ctx, camera)

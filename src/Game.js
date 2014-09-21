@@ -11,6 +11,7 @@ TANK.registerComponent('Game')
 
   // Event log
   this.eventLogs = [];
+  this.story = [];
 
   // Mouse positions
   this.mousePosWorld = [0, 0];
@@ -19,7 +20,15 @@ TANK.registerComponent('Game')
   // Global light direction
   this.lightDir = 0;
 
+  // Current ship selection
   this.playerShipSelection = 'frigate';
+
+  // Unlocked ships
+  this.unlockedShips =
+  {
+    'frigate': true,
+    'albatross': true
+  };
 })
 
 .initialize(function()
@@ -71,9 +80,17 @@ TANK.registerComponent('Game')
   resources.add('ship-rhino-normals', 'res/img/ship-rhino-normals.png');
   resources.add('ship-rhino', null, ['ship-rhino-diffuse', 'ship-rhino-normals'], loadLighting);
 
+  resources.add('ship-enforcer-diffuse', 'res/img/ship-enforcer-diffuse.png');
+  resources.add('ship-enforcer-normals', 'res/img/ship-enforcer-normals.png');
+  resources.add('ship-enforcer', null, ['ship-enforcer-diffuse', 'ship-enforcer-normals'], loadLighting);
+
   resources.add('station-01-diffuse', 'res/img/station-01-diffuse.png');
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
   resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);
+
+  resources.add('fuel-cell-diffuse', 'res/img/fuel-cell-diffuse.png');
+  resources.add('fuel-cell-normals', 'res/img/fuel-cell-normals.png');
+  resources.add('fuel-cell', null, ['fuel-cell-diffuse', 'fuel-cell-normals'], loadLighting);
 
   //
   // Rebuild lighting
@@ -94,7 +111,9 @@ TANK.registerComponent('Game')
   //
   this.save = function(slot)
   {
-    var save = {};
+    if (!slot)
+      slot = 'main';
+    var save = {unlockedShips: this.unlockedShips};
     localStorage['save-' + slot] = JSON.stringify(save);
   };
 
@@ -103,7 +122,14 @@ TANK.registerComponent('Game')
   //
   this.load = function(slot)
   {
-    var save = JSON.parse(localStorage['save-' + slot]);
+    if (!slot)
+      slot = 'main';
+    var saveData = localStorage['save-' + slot];
+    if (saveData)
+    {
+      var save = JSON.parse(saveData);
+      this.unlockedShips = save.unlockedShips;
+    }
   };
 
   //
@@ -161,6 +187,7 @@ TANK.registerComponent('Game')
   this.goToShipSelection = function()
   {
     // Build menu
+    this.load();
     this.shipSelection = TANK.createEntity('ShipSelection');
     TANK.main.addChild(this.shipSelection);
 
@@ -207,6 +234,7 @@ TANK.registerComponent('Game')
   //
   this.randomWeighted = function(weights)
   {
+    weights = weights.filter(function(val) {return val > 0;});
     var minValue = Math.min.apply(null, weights);
     var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
     var weightArray = [];
@@ -238,6 +266,35 @@ TANK.registerComponent('Game')
   {
     while (this.eventLogs.length)
       this.eventLogs.pop();
+  };
+
+  //
+  // Story log
+  //
+  this.addStory = function(eventText)
+  {
+    var expandMacros = function(str)
+    {
+      str = str.replace(/\{\{location\}\}/g, this.currentLocation.name);
+      return str;
+    }.bind(this);
+
+    this.story.push(
+    {
+      eventText: expandMacros(eventText)
+    });
+  };
+
+  this.getStoryText = function()
+  {
+    var storyText = '';
+    for (var i = 0; i < this.story.length; ++i)
+    {
+      var story = this.story[i];
+      storyText += story.eventText + '\n';
+    }
+
+    return storyText;
   };
 
   //
@@ -339,7 +396,26 @@ TANK.registerComponent('Game')
     // Trigger location event
     if (location.events && location.events.length > 0)
     {
-      var weights = location.events.map(function(ev) {return ev.probability;});
+      // Map the event probabilities
+      var weights = location.events.map(function(ev)
+      {
+        // If the event requires any flags that aren't set, modify
+        // probability to 0
+        if (Events[ev.name].requireFlags)
+        {
+          var requireFlags = Events[ev.name].requireFlags;
+          for (var i = 0; i < requireFlags.length; ++i)
+          {
+            if (!Flags[requireFlags[i]])
+              return 0;
+          }
+        }
+
+        // Otherwise, return regular probability
+        return ev.probability;
+      });
+
+      // Pick a random event
       var chosenIndex = this.randomWeighted(weights);
       var chosenEvent = location.events[chosenIndex];
       this.triggerEvent(chosenEvent.name);
@@ -366,6 +442,30 @@ TANK.registerComponent('Game')
 
     // Show event text
     this.addEventLog(event.text);
+
+    // Add event story
+    if (event.story)
+    {
+      this.addStory(event.story.eventText);
+    }
+
+    // Call event script
+    if (event.script)
+      event.script();
+
+    // Set any event flags
+    if (event.setFlags)
+    {
+      for (var i = 0; i < event.setFlags.length; ++i)
+        Flags[event.setFlags[i]] = true;
+    }
+
+    // Unset any event flags
+    if (event.unsetFlags)
+    {
+      for (var i = 0; i < event.unsetFlags.length; ++i)
+        Flags[event.unsetFlags[i]] = false;
+    }
 
     // Spawn event entities
     for (var i = 0; i < event.spawns.length; ++i)
@@ -399,6 +499,43 @@ TANK.registerComponent('Game')
         this.addEventLog((i + 1) + '. ' + event.options[i].text);
     }
   };
+
+  //
+  // Give player fuel
+  //
+  this.givePlayerFuel = function(amount)
+  {
+    if (amount > 1)
+      this.addEventLog('You receive ' + amount + ' fuel cells.');
+    else
+      this.addEventLog('You receive ' + amount + ' fuel cell.');
+
+    this.player.Ship.fuel += amount;
+  };
+
+  this.takePlayerFuel = function(amount)
+  {
+    if (amount > 1)
+      this.addEventLog('You lose ' + amount + ' fuel cells.');
+    else
+      this.addEventLog('You lose ' + amount + ' fuel cell.');
+
+    this.player.Ship.fuel -= amount;
+  };
+
+  //
+  // Unlock methods
+  //
+  this.unlockShip = function(name)
+  {
+    this.unlockedShips[name] = true;
+    this.save();
+  };
+
+  this.shipUnlocked = function(name)
+  {
+    return this.unlockedShips[name];
+  }
 
   //
   // Resource load handler
@@ -496,6 +633,10 @@ TANK.registerComponent('Game')
           var chosenOption = this.eventAwaitingInput.options[choice];
           if (chosenOption.responseText)
             this.addEventLog(chosenOption.responseText);
+
+          // Add story
+          if (chosenOption.story)
+            this.addStory(chosenOption.story.eventText);
 
           // Trigger an event, if any
           if (chosenOption.events)
