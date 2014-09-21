@@ -442,6 +442,13 @@ TANK.registerComponent('Game')
         Flags[event.setFlags[i]] = true;
     }
 
+    // Unset any event flags
+    if (event.unsetFlags)
+    {
+      for (var i = 0; i < event.unsetFlags.length; ++i)
+        Flags[event.unsetFlags[i]] = false;
+    }
+
     // Spawn event entities
     for (var i = 0; i < event.spawns.length; ++i)
     {

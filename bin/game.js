@@ -909,6 +909,7 @@ Events.derelictReturn =
 {
   text: 'Just ahead you see the same ship that you rescued earlier. The captain says they have since filled up and would be happy to transfer you some fuel as thanks if you approach closer.',
   requireFlags: ['rescuedDerelict'],
+  unsetFlags: ['rescuedDerelict'],
   spawns:
   [
     {
@@ -1444,6 +1445,13 @@ TANK.registerComponent('Game')
     {
       for (var i = 0; i < event.setFlags.length; ++i)
         Flags[event.setFlags[i]] = true;
+    }
+
+    // Unset any event flags
+    if (event.unsetFlags)
+    {
+      for (var i = 0; i < event.unsetFlags.length; ++i)
+        Flags[event.unsetFlags[i]] = false;
     }
 
     // Spawn event entities

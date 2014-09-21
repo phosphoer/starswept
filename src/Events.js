@@ -106,6 +106,7 @@ Events.derelictReturn =
 {
   text: 'Just ahead you see the same ship that you rescued earlier. The captain says they have since filled up and would be happy to transfer you some fuel as thanks if you approach closer.',
   requireFlags: ['rescuedDerelict'],
+  unsetFlags: ['rescuedDerelict'],
   spawns:
   [
     {
