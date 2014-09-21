@@ -47,6 +47,7 @@ Locations.researchStation =
     {probability: 1.2, name: 'pirate'},
     {probability: 1, name: 'derelict'},
     {probability: 1.2, name: 'civilian'},
+    {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.5, name: 'police'},
   ],
   bgColor: [20, 20, 0, 1],
@@ -87,7 +88,8 @@ Locations.oldBattlefield =
     {probability: 1, name: 'pirate'},
     {probability: 2, name: 'civilian'},
     {probability: 1, name: 'empty'},
-    {probability: 0.2, name: 'empty'},
+    {probability: 0.5, name: 'derelictReturn'},
+    {probability: 0.2, name: 'police'},
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
@@ -106,6 +108,7 @@ Locations.deepSpace =
   [
     {probability: 1, name: 'civilian'},
     {probability: 3, name: 'empty'},
+    {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.6, name: 'police'},
   ],
   bgColor: [0, 0, 0, 1],
@@ -122,6 +125,7 @@ Locations.redDwarf =
   [
     {probability: 1, name: 'civilian'},
     {probability: 3, name: 'empty'},
+    {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.6, name: 'police'},
   ],
   bgColor: [10, 0, 0, 1],
