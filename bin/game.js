@@ -886,7 +886,11 @@ Events.derelict_2a =
   text: 'The captain thanks you profusely and speeds off.',
   story: {eventText: 'You came across a disabled ship at {{location}} and helped them out with some fuel.'},
   setFlags: ['rescuedDerelict'],
-  dispatchEvent: 'derelictleave'
+  dispatchEvent: 'derelictleave',
+  script: function()
+  {
+    TANK.main.Game.takePlayerFuel(3);
+  }
 };
 
 Events.derelict_2b =
@@ -926,7 +930,16 @@ Events.derelictGiveFuel =
   script: function()
   {
     var amount = Math.floor(1 + Math.random() * 3);
-    TANK.main.Game.givePlayerFuel(amount);
+    var derelict = TANK.main.getChildrenWithComponent('AIDerelict');
+    derelict = derelict[Object.keys(derelict)[0]];
+
+    for (var i = 0; i < amount; ++i)
+    {
+      var e = TANK.createEntity('FuelCell');
+      e.Pos2D.x = derelict.Pos2D.x;
+      e.Pos2D.y = derelict.Pos2D.y;
+      TANK.main.addChild(e);
+    }
   }
 };
 
@@ -1477,6 +1490,16 @@ TANK.registerComponent('Game')
       this.addEventLog('You receive ' + amount + ' fuel cell.');
 
     this.player.Ship.fuel += amount;
+  };
+
+  this.takePlayerFuel = function(amount)
+  {
+    if (amount > 1)
+      this.addEventLog('You lose ' + amount + ' fuel cells.');
+    else
+      this.addEventLog('You lose ' + amount + ' fuel cell.');
+
+    this.player.Ship.fuel -= amount;
   };
 
   //

@@ -488,6 +488,16 @@ TANK.registerComponent('Game')
     this.player.Ship.fuel += amount;
   };
 
+  this.takePlayerFuel = function(amount)
+  {
+    if (amount > 1)
+      this.addEventLog('You lose ' + amount + ' fuel cells.');
+    else
+      this.addEventLog('You lose ' + amount + ' fuel cell.');
+
+    this.player.Ship.fuel -= amount;
+  };
+
   //
   // Resource load handler
   //
