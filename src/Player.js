@@ -96,6 +96,11 @@ TANK.registerComponent('Player')
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
       this.shakeCamera(0.1);
+    if (obj.FuelCell)
+    {
+      TANK.main.Game.givePlayerFuel(1);
+      obj._parent.removeChild(obj);
+    }
   });
 
   this.listenTo(TANK.main, 'killplayershields', function()

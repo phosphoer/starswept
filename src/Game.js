@@ -80,6 +80,10 @@ TANK.registerComponent('Game')
   resources.add('station-01-normals', 'res/img/station-01-normals.png');
   resources.add('station-01', null, ['station-01-diffuse', 'station-01-normals'], loadLighting);
 
+  resources.add('fuel-cell-diffuse', 'res/img/fuel-cell-diffuse.png');
+  resources.add('fuel-cell-normals', 'res/img/fuel-cell-normals.png');
+  resources.add('fuel-cell', null, ['fuel-cell-diffuse', 'fuel-cell-normals'], loadLighting);
+
   //
   // Rebuild lighting
   //
@@ -212,6 +216,7 @@ TANK.registerComponent('Game')
   //
   this.randomWeighted = function(weights)
   {
+    weights = weights.filter(function(val) {return val > 0;});
     var minValue = Math.min.apply(null, weights);
     var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
     var weightArray = [];

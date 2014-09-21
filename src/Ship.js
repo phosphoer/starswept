@@ -56,7 +56,7 @@ TANK.registerComponent('Ship')
 
   // Set up collision
   this._entity.PixelCollider.collisionLayer = 'ships';
-  this._entity.PixelCollider.collidesWith = ['bullets'];
+  this._entity.PixelCollider.collidesWith = ['bullets', 'pickups'];
   this._entity.PixelCollider.setImage(this.resource.diffuse);
 
   // Set up lighting
@@ -153,6 +153,16 @@ TANK.registerComponent('Ship')
     // Create explosion effect
     ParticleLibrary.explosionMedium(t.x, t.y);
     this._entity.SoundEmitter.play(this.shipData.explodeSound);
+
+    // Create some fuel spawns
+    var numFuelCells = Math.round(Math.random() * 3);
+    for (var i = 0; i < numFuelCells; ++i)
+    {
+      var e = TANK.createEntity('FuelCell');
+      e.Pos2D.x = t.x;
+      e.Pos2D.y = t.y;
+      TANK.main.addChild(e);
+    }
 
     // Shake screen if on camera
     var camera = TANK.main.Renderer2D.camera;
