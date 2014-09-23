@@ -306,7 +306,7 @@ TANK.registerComponent('Game')
     {
       var node = this.currentNode.paths[i];
       var location = Locations[node.locationName];
-      var desc = (node.depth < 1) ? 'Indirect route' : 'Direct route';
+      var desc = (node.depth % 1 === 0) ? 'Direct route' : 'Indirect route';
       this.addEventLog((i + 1) + '. ' + location.name + ' (' + desc + ')');
     }
 
