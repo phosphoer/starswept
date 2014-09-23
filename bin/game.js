@@ -4721,7 +4721,7 @@ TANK.registerComponent('Weapons')
   this.fireGun = function(gunIndex, gunSide)
   {
     var gun = this.guns[gunSide][gunIndex];
-    if (gun.reloadTimer > 0)
+    if (!gun || gun.reloadTimer > 0)
       return;
     gun.reloadTimer = gun.reloadTime;
     this._entity.dispatch('gunfired', gun);
