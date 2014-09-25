@@ -55,9 +55,9 @@ TANK.registerComponent('ShipSelection')
     if (!ship.playable || !TANK.main.Game.shipUnlocked(i))
       continue;
 
-    var e = TANK.createEntity('Ship');
+    var e = TANK.createEntity(['Ship', 'ShipStats']);
     e.Pos2D.x = x;
-    e.Pos2D.y = 0;
+    e.Pos2D.y = -100;
     e.Ship.shipData = ship;
     e.shipType = i;
     TANK.main.addChild(e);
