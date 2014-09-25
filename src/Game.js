@@ -528,6 +528,8 @@ TANK.registerComponent('Game')
   //
   this.unlockShip = function(name)
   {
+    var shipData = new Ships[name]();
+    this.addEventLog('You can now choose the ' + shipData.name + ' when beginning a new game.');
     this.unlockedShips[name] = true;
     this.save();
   };

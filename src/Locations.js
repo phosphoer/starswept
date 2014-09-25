@@ -24,6 +24,7 @@ Locations.abandonedOutpost =
   [
     {probability: 2.5, name: 'pirate'},
     {probability: 2, name: 'derelict'},
+    {probability: 1.5, name: 'returnStolenEnforcer'},
     {probability: 1, name: 'civilian'},
     {probability: 0.5, name: 'police'},
   ],
@@ -117,6 +118,7 @@ Locations.redDwarf =
   name: 'A red dwarf star',
   events:
   [
+    {probability: 100, name: 'returnStolenEnforcerBattle'},
     {probability: 1, name: 'civilian'},
     {probability: 1.5, name: 'empty'},
     {probability: 0.5, name: 'derelictReturn'},
@@ -134,6 +136,7 @@ Locations.asteroidField =
   events:
   [
     {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'returnStolenEnforcer'},
     {probability: 1.2, name: 'derelict'},
     {probability: 0.4, name: 'empty'},
   ],

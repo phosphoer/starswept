@@ -129,7 +129,7 @@ TANK.registerComponent('AICivilian')
   });
 });
 TANK.registerComponent('AIDerelict')
-.includes('Ship')
+.includes(['Ship', 'RemoveOnLevelChange'])
 .initialize(function()
 {
   this.listenTo(TANK.main, 'derelictleave', function()
@@ -271,6 +271,28 @@ TANK.registerComponent('AIPolice')
       }
     }
   };
+});
+TANK.registerComponent('AIStolenEnforcer')
+.includes(['Ship', 'RemoveOnLevelChange'])
+.initialize(function()
+{
+  this.listenTo(this._entity, 'damaged', function()
+  {
+    if (this._entity.Ship.health <= 0.2 && this._entity.Ship.health >= 0.0)
+    {
+      this._entity.removeComponent('AIAttack');
+      TANK.main.Game.addEventLog('Puffs of oxygen exit the ship as the pirates take to the escape pods. Looks like your work is done.');
+      if (Flags['wanted'])
+      {
+        Flags['wanted'] = false;
+        TANK.main.Game.addEventLog('Wanted status cleared.');
+      }
+      else
+      {
+        TANK.main.Game.unlockShip('enforcer');
+      }
+    }
+  });
 });
 TANK.registerComponent('Asteroid')
 
@@ -843,6 +865,61 @@ Events.pirate =
 Events.police =
 {
   spawns: ['police']
+};
+
+//
+// Return stolen police ship
+//
+Events.returnStolenEnforcer =
+{
+  text: 'A police ship hails you and requests that you approach within comms distance.',
+  spawns:
+  [
+    {
+      components:
+      {
+        Pos2D: {x: 2000, y: 0},
+        Ship: {shipType: 'enforcer'},
+        RemoveOnLevelChange: {},
+        TriggerRadius: {radius: 1000, events: [{probability: 1, name: 'returnStolenEnforcer_start'}]}
+      }
+    }
+  ]
+};
+
+Events.returnStolenEnforcer_start =
+{
+  text: '"Greetings pilot, I\'m in a bit of trouble here. I was out on patrol with my buddy when we were ambushed by pirates! They disabled my ship and captured his. If I don\'t get that ship back I\'ll be in big trouble. They were heading towards a red dwarf star when I last saw them."',
+  setFlags: ['returnStolenEnforcer'],
+  script: function()
+  {
+    if (Flags['wanted'])
+    {
+      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that your wanted status is cleared".');
+    }
+    else
+    {
+      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that you are rewarded well."');
+    }
+  }
+};
+
+Events.returnStolenEnforcerBattle =
+{
+  text: 'Just ahead you see the stolen police cruiser. Looks like they aren\'t prepared to chat.',
+  requireFlags: ['returnStolenEnforcer'],
+  spawns:
+  [
+    {
+      components:
+      {
+        Pos2D: {x: 3000, y: -2000},
+        Ship: {shipType: 'enforcer'},
+        AIAttackPlayer: {},
+        AIStolenEnforcer: {}
+      }
+    }
+  ]
 };
 
 //
@@ -1533,6 +1610,8 @@ TANK.registerComponent('Game')
   //
   this.unlockShip = function(name)
   {
+    var shipData = new Ships[name]();
+    this.addEventLog('You can now choose the ' + shipData.name + ' when beginning a new game.');
     this.unlockedShips[name] = true;
     this.save();
   };
@@ -2112,6 +2191,7 @@ Locations.abandonedOutpost =
   [
     {probability: 2.5, name: 'pirate'},
     {probability: 2, name: 'derelict'},
+    {probability: 1.5, name: 'returnStolenEnforcer'},
     {probability: 1, name: 'civilian'},
     {probability: 0.5, name: 'police'},
   ],
@@ -2205,6 +2285,7 @@ Locations.redDwarf =
   name: 'A red dwarf star',
   events:
   [
+    {probability: 100, name: 'returnStolenEnforcerBattle'},
     {probability: 1, name: 'civilian'},
     {probability: 1.5, name: 'empty'},
     {probability: 0.5, name: 'derelictReturn'},
@@ -2222,6 +2303,7 @@ Locations.asteroidField =
   events:
   [
     {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'returnStolenEnforcer'},
     {probability: 1.2, name: 'derelict'},
     {probability: 0.4, name: 'empty'},
   ],
@@ -4420,9 +4502,9 @@ Ships.enforcer = function()
   this.maxSpeed = 175;
   this.accel = 18;
   this.turnAccel = 1.4;
-  this.health = 0.25;
-  this.shield = 1;
-  this.shieldGen = 0.01;
+  this.health = 0.3;
+  this.shield = 1.5;
+  this.shieldGen = 0.012;
   this.shieldRadius = 80;
   this.warpChargeTime = 20;
   this.maxFuel = 6;

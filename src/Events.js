@@ -43,6 +43,61 @@ Events.police =
 };
 
 //
+// Return stolen police ship
+//
+Events.returnStolenEnforcer =
+{
+  text: 'A police ship hails you and requests that you approach within comms distance.',
+  spawns:
+  [
+    {
+      components:
+      {
+        Pos2D: {x: 2000, y: 0},
+        Ship: {shipType: 'enforcer'},
+        RemoveOnLevelChange: {},
+        TriggerRadius: {radius: 1000, events: [{probability: 1, name: 'returnStolenEnforcer_start'}]}
+      }
+    }
+  ]
+};
+
+Events.returnStolenEnforcer_start =
+{
+  text: '"Greetings pilot, I\'m in a bit of trouble here. I was out on patrol with my buddy when we were ambushed by pirates! They disabled my ship and captured his. If I don\'t get that ship back I\'ll be in big trouble. They were heading towards a red dwarf star when I last saw them."',
+  setFlags: ['returnStolenEnforcer'],
+  script: function()
+  {
+    if (Flags['wanted'])
+    {
+      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that your wanted status is cleared".');
+    }
+    else
+    {
+      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that you are rewarded well."');
+    }
+  }
+};
+
+Events.returnStolenEnforcerBattle =
+{
+  text: 'Just ahead you see the stolen police cruiser. Looks like they aren\'t prepared to chat.',
+  requireFlags: ['returnStolenEnforcer'],
+  spawns:
+  [
+    {
+      components:
+      {
+        Pos2D: {x: 3000, y: -2000},
+        Ship: {shipType: 'enforcer'},
+        AIAttackPlayer: {},
+        AIStolenEnforcer: {}
+      }
+    }
+  ]
+};
+
+//
 // Derelict event
 //
 Events.derelict =
