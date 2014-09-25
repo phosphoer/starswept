@@ -4525,8 +4525,18 @@ Spawns.civilian = function()
 
 Spawns.pirate = function()
 {
+  var ships =
+  [
+    'bomber',
+    'frigate',
+    'blade',
+    'albatross',
+    'rhino'
+  ];
+  var ship = ships[Math.floor(Math.random() * ships.length)];
+
   var e = TANK.createEntity('AIAttackPlayer');
-  e.Ship.shipData = new Ships.frigate();
+  e.Ship.shipData = new Ships[ship]();
   e.Pos2D.x = -2000 + Math.random() * 4000;
   e.Pos2D.y = -2000 + Math.random() * 4000;
   TANK.main.addChild(e);
