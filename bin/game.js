@@ -1348,7 +1348,7 @@ TANK.registerComponent('Game')
     // Set location attributes
     TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
     Lightr.lightDiffuse = location.lightColor;
-    this.lightDir = location.lightDir;
+    this.lightDir = Math.random() * Math.PI * 2;
     this.rebuildLighting();
 
     // Create player entity if it doesn't exist
@@ -2098,7 +2098,6 @@ Locations.start =
   ],
   bgColor: [0, 0, 20, 1],
   lightColor: [0.7, 0.7, 1],
-  lightDir: Math.PI * 2 * 0.8,
   spawns:
   [
     {components: {Pos2D: {x: 0, y: 0}, Planet: {}}}
@@ -2118,7 +2117,6 @@ Locations.abandonedOutpost =
   ],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
-  lightDir: Math.PI * 2 * 0.5,
   spawns:
   [
     {components: {Clouds: {cloudColor: [180, 255, 180]}}},
@@ -2140,7 +2138,6 @@ Locations.researchStation =
   ],
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
-  lightDir: Math.PI * 2 * 0.2,
   spawns:
   [
     {components: {Clouds: {numClouds: 50, cloudColor: [255, 255, 180]}}},
@@ -2160,7 +2157,6 @@ Locations.pirateBase =
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
-  lightDir: Math.PI * 2 * 0.9,
   spawns:
   [
     {components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}
@@ -2181,7 +2177,6 @@ Locations.oldBattlefield =
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
-  lightDir: Math.PI * 2 * 0.9,
   spawns:
   [
     {components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}
@@ -2201,44 +2196,59 @@ Locations.deepSpace =
   ],
   bgColor: [0, 0, 0, 1],
   lightColor: [0.9, 0.9, 1],
-  lightDir: Math.PI * 2 * 0.2,
   spawns: []
 };
 
 Locations.redDwarf =
 {
-  text: 'A red dwarf in this system bathes the scenery in a faintly rose-colored light.',
-  name: 'Red dwarf star',
+  text: 'The red dwarf star in this system bathes the scenery in a faintly rose-colored light.',
+  name: 'A red dwarf star',
   events:
   [
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'},
+    {probability: 1.5, name: 'empty'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.6, name: 'police'},
   ],
   bgColor: [10, 0, 0, 1],
   lightColor: [1, 0.8, 0.8],
-  lightDir: Math.PI * 2 * 0.7,
   spawns: []
 };
 
 Locations.asteroidField =
 {
   text: 'Here in the depths of an asteroid field, anything can happen. Watch your back.',
-  name: 'Asteroid field',
+  name: 'An asteroid field',
   events:
   [
     {probability: 1, name: 'pirate'},
     {probability: 1.2, name: 'derelict'},
-    {probability: 0.3, name: 'police'},
+    {probability: 0.4, name: 'empty'},
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
-  lightDir: Math.PI * 2 * 0.2,
   spawns:
   [
     {components: {Clouds: {numClouds: 75, cloudColor: [220, 180, 180]}}},
     {components: {AsteroidField: {numAsteroids: 40}}}
+  ]
+};
+
+Locations.policeOutpost =
+{
+  text: 'This close to the galaxy\'s center, a police station is a rare haven for law-abiding pilots.',
+  name: 'A police station',
+  events:
+  [
+    {probability: 4, name: 'police'},
+    {probability: 2, name: 'empty'},
+    {probability: 1, name: 'civilian'},
+  ],
+  bgColor: [0, 0, 20, 1],
+  lightColor: [0.8, 0.8, 1],
+  spawns:
+  [
+    {components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}
   ]
 };
 TANK.registerComponent('MainMenu')
@@ -2313,12 +2323,13 @@ TANK.registerComponent('MapGeneration')
   this.map = {};
   var rng = new RNG();
 
-  this.generateNode = function(depth)
+  this.generateNode = function(depth, possibleLocations)
   {
     var node = {};
 
     // Pick a location for this node to represent
-    var possibleLocations = Object.keys(Locations);
+    if (!possibleLocations)
+      possibleLocations = Object.keys(Locations);
     possibleLocations.splice(possibleLocations.indexOf('start'), 1);
     var index = Math.floor(Math.random() * possibleLocations.length);
     node.locationName = possibleLocations[index];
@@ -2340,7 +2351,8 @@ TANK.registerComponent('MapGeneration')
       if (i === 1)
         childDepth = 1;
 
-      var childNode = this.generateNode(node.depth + childDepth);
+      var possibleLocations = Object.keys(Locations).filter(function(val) {return node.paths.indexOf(val) === -1;});
+      var childNode = this.generateNode(node.depth + childDepth, possibleLocations);
       if (childNode)
         node.paths.push(childNode);
     }
@@ -3552,7 +3564,7 @@ TANK.registerComponent('Shield')
   this.regenRate = 0.1;
   this.radius = 5;
   this.burstTimer = 0;
-  this.burstTime = 5;
+  this.burstTime = 15;
   this.disabledTimer = 0;
   this.bubbleOpacity = 0;
   this.disabled = false;
@@ -3809,7 +3821,7 @@ TANK.registerComponent('Ship')
     this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
     // Create some fuel spawns
-    var numFuelCells = Math.round(Math.random() * 3);
+    var numFuelCells = Math.round(Math.random() * 2);
     for (var i = 0; i < numFuelCells; ++i)
     {
       var e = TANK.createEntity('FuelCell');
@@ -4061,9 +4073,9 @@ TANK.registerComponent('ShipSelection')
     if (!ship.playable || !TANK.main.Game.shipUnlocked(i))
       continue;
 
-    var e = TANK.createEntity('Ship');
+    var e = TANK.createEntity(['Ship', 'ShipStats']);
     e.Pos2D.x = x;
-    e.Pos2D.y = 0;
+    e.Pos2D.y = -100;
     e.Ship.shipData = ship;
     e.shipType = i;
     TANK.main.addChild(e);
@@ -4102,6 +4114,49 @@ TANK.registerComponent('ShipSelection')
   for (var i = 0; i < this.ships.length; ++i)
     TANK.main.removeChild(this.ships[i]);
   this.ship = [];
+});
+TANK.registerComponent('ShipStats')
+
+.construct(function()
+{
+  this.zdepth = 10;
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ship = this._entity.Ship;
+
+  TANK.main.Renderer2D.add(this);
+
+  var stats =
+  [
+    {name: 'Name', property: 'name'},
+    {name: 'Starting fuel', property: 'maxFuel'},
+    {name: 'Warp charge time', property: 'warpChargeTime'},
+    {name: 'Max speed', property: 'maxSpeed'},
+    {name: 'Armor', property: 'health'},
+    {name: 'Shield', property: 'shield'},
+    {name: 'Shield regen', property: 'shieldGen'},
+  ];
+
+  this.draw = function(ctx, camera)
+  {
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+
+    ctx.fillStyle = '#ddd';
+    ctx.font = '10px space-frigate';
+
+    // Draw stats
+    for (var i = 0; i < stats.length; ++i)
+    {
+      ctx.fillText(stats[i].name + ' - ' + ship.shipData[stats[i].property], ship.width / -2, ship.height / 2 + i * 12 - 5);
+    };
+
+    ctx.restore();
+  };
 });
 var Ships = {};
 

@@ -155,7 +155,7 @@ TANK.registerComponent('Ship')
     this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
     // Create some fuel spawns
-    var numFuelCells = Math.round(Math.random() * 3);
+    var numFuelCells = Math.round(Math.random() * 2);
     for (var i = 0; i < numFuelCells; ++i)
     {
       var e = TANK.createEntity('FuelCell');

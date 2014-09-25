@@ -343,7 +343,7 @@ TANK.registerComponent('Game')
     // Set location attributes
     TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
     Lightr.lightDiffuse = location.lightColor;
-    this.lightDir = location.lightDir;
+    this.lightDir = Math.random() * Math.PI * 2;
     this.rebuildLighting();
 
     // Create player entity if it doesn't exist
