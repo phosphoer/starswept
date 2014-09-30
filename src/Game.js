@@ -11,6 +11,7 @@ TANK.registerComponent('Game')
 
   // Event log
   this.eventLogs = [];
+  this.eventLogsTimed = [];
   this.story = [];
 
   // Mouse positions
@@ -259,6 +260,11 @@ TANK.registerComponent('Game')
     logContainer.scrollTop = logContainer.scrollHeight;
   };
 
+  this.addEventLogTimed = function(logText, time)
+  {
+    this.eventLogsTimed.push({text: logText, time: time});
+  };
+
   //
   // Clear event log
   //
@@ -501,7 +507,7 @@ TANK.registerComponent('Game')
   };
 
   //
-  // Give player fuel
+  // Player manipulation
   //
   this.givePlayerFuel = function(amount)
   {
@@ -521,6 +527,20 @@ TANK.registerComponent('Game')
       this.addEventLog('You lose ' + amount + ' fuel cell.');
 
     this.player.Ship.fuel -= amount;
+  };
+
+  this.resetPlayerWarp = function()
+  {
+    this.player.Ship.warpCharge = 0;
+    this.addEventLog('Your warp drive was jammed and the charge lost.');
+  };
+
+  this.killPlayerShields = function()
+  {
+    this.player.Ship.shieldObj.Shield.health = 0;
+    this.player.Ship.shieldObj.Shield.burstTimer = this.player.Ship.shieldObj.Shield.burstTime;
+    this.player.Ship.shieldObj.Shield.recovering = true;
+    this.addEventLog('Your shields have been disabled.');
   };
 
   //
@@ -640,6 +660,20 @@ TANK.registerComponent('Game')
           if (chosenOption.story)
             this.addStory(chosenOption.story.eventText);
 
+          // Set any event flags
+          if (chosenOption.setFlags)
+          {
+            for (var i = 0; i < chosenOption.setFlags.length; ++i)
+              Flags[chosenOption.setFlags[i]] = true;
+          }
+
+          // Unset any event flags
+          if (chosenOption.unsetFlags)
+          {
+            for (var i = 0; i < chosenOption.unsetFlags.length; ++i)
+              Flags[chosenOption.unsetFlags[i]] = false;
+          }
+
           // Trigger an event, if any
           if (chosenOption.events)
           {
@@ -669,6 +703,16 @@ TANK.registerComponent('Game')
         this.warpReady = true;
       }
     }
+
+    // Handle timed event logs
+    for (var i = 0; i < this.eventLogsTimed.length; ++i)
+    {
+      var log = this.eventLogsTimed[i];
+      log.time -= dt;
+      if (log.time <= 0)
+        this.addEventLog(log.text);
+    }
+    this.eventLogsTimed = this.eventLogsTimed.filter(function(val) {return val.time > 0;});
 
     // Handle warp logic
     if (this.warpTimer > 0)

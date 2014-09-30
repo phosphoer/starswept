@@ -103,11 +103,6 @@ TANK.registerComponent('Player')
     }
   });
 
-  this.listenTo(TANK.main, 'killplayershields', function()
-  {
-    this._entity.Ship.shieldObj.Shield.disable(15);
-  });
-
   this.listenTo(TANK.main, 'camerashake', function(duration)
   {
     this.shakeCamera(duration);

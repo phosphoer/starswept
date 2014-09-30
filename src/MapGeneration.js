@@ -35,7 +35,8 @@ TANK.registerComponent('MapGeneration')
       if (i === 1)
         childDepth = 1;
 
-      var possibleLocations = Object.keys(Locations).filter(function(val) {return node.paths.indexOf(val) === -1;});
+      var currentLocations = node.paths.map(function(val) {return val.locationName;});
+      var possibleLocations = Object.keys(Locations).filter(function(val) {return currentLocations.indexOf(val) === -1;});
       var childNode = this.generateNode(node.depth + childDepth, possibleLocations);
       if (childNode)
         node.paths.push(childNode);

@@ -856,7 +856,11 @@ Events.civilian =
 Events.pirate =
 {
   text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
-  spawns: ['pirate']
+  spawns: ['pirate'],
+  script: function()
+  {
+    TANK.main.Game.resetPlayerWarp();
+  }
 };
 
 //
@@ -864,11 +868,15 @@ Events.pirate =
 //
 Events.police =
 {
-  spawns: ['police']
+  spawns: ['police'],
+  script: function()
+  {
+    TANK.main.Game.resetPlayerWarp();
+  }
 };
 
 //
-// Return stolen police ship
+// Unlock Enforcer event
 //
 Events.returnStolenEnforcer =
 {
@@ -908,18 +916,129 @@ Events.returnStolenEnforcerBattle =
 {
   text: 'Just ahead you see the stolen police cruiser. Looks like they aren\'t prepared to chat.',
   requireFlags: ['returnStolenEnforcer'],
-  spawns:
+  script: function()
+  {
+    var rng = new RNG();
+    var spawnPos = [rng.random(-3000, 3000), rng.random(-3000, 3000)];
+
+    var e = TANK.createEntity(['AIStolenEnforcer', 'AIAttackPlayer']);
+    e.Pos2D.x = spawnPos[0];
+    e.Pos2D.y = spawnPos[1];
+    e.Ship.shipType = 'enforcer';
+    TANK.main.addChild(e);
+
+    var numEscorts = rng.random(1, 2);
+    e = TANK.createEntity(['AIAttackPlayer']);
+    e.Pos2D.x = spawnPos[0] + rng.random(-1000, 1000);
+    e.Pos2D.y = spawnPos[1] + rng.random(-1000, 1000);
+    e.Ship.shipType = 'fighter';
+    TANK.main.addChild(e);
+
+    TANK.main.Game.resetPlayerWarp();
+  }
+};
+
+//
+// Unlock Blade event
+//
+Events.investigatePrototypeShip =
+{
+  text: 'The research station up ahead seems to actually be inhabited by someone.',
+  script: function()
+  {
+    var entities = TANK.main.getChildrenWithComponent('LevelProp');
+    var station;
+    for (var i in entities)
+      if (entities[i].LevelProp.resourceName === 'station-01')
+        station = entities[i];
+
+    var e = TANK.createEntity('TriggerRadius');
+    e.TriggerRadius.radius = 1000;
+    e.TriggerRadius.events = [{probability: 1, name: 'investigatePrototypeShip_start'}];
+    e.Pos2D.x = station.Pos2D.x;
+    e.Pos2D.y = station.Pos2D.y;
+    TANK.main.addChild(e);
+  }
+};
+
+Events.investigatePrototypeShip_start =
+{
+  script: function()
+  {
+    TANK.main.Game.addEventLog('As you approach the research station you are contacted by someone inside.');
+    TANK.main.Game.addEventLog('"Hi there! I don\'t suppose you\'d be interested in giving me a lift? I\'m a space scientist you see, and there is some important science to be done at the old battlefield near here."');
+  },
+  options:
   [
     {
-      components:
-      {
-        Pos2D: {x: 3000, y: -2000},
-        Ship: {shipType: 'enforcer'},
-        AIAttackPlayer: {},
-        AIStolenEnforcer: {}
-      }
+      text: 'Sure thing, come on in!',
+      responseText: '"Thanks partner!"',
+      setFlags: ['investigatePrototypeShip']
+    },
+    {
+      text: 'Sorry, no room for scientists aboard.',
+      responseText: '"Dang."'
     }
   ]
+};
+
+Events.investigatePrototypeShipEncounter =
+{
+  text: '"Ah ha! See that ship up ahead? That\'s what I\'m looking for. Can you get me a bit closer?"',
+  requireFlags: ['investigatePrototypeShip'],
+  script: function()
+  {
+    var rng = new RNG();
+    var spawnPos = [rng.random(-3000, 3000), rng.random(-3000, 3000)];
+
+    var e = TANK.createEntity(['Ship', 'TriggerRadius']);
+    e.Pos2D.x = spawnPos[0];
+    e.Pos2D.y = spawnPos[1];
+    e.Ship.shipType = 'blade';
+    e.TriggerRadius.radius = 700;
+    e.TriggerRadius.events = [{probability: 1, name: 'investigatePrototypeShip_approach'}];
+    TANK.main.addChild(e, 'PrototypeShip');
+  }
+};
+
+Events.investigatePrototypeShip_approach =
+{
+  text: 'The scientist throws on a space suit and hops out to investigate the prototype ship.',
+  script: function()
+  {
+    TANK.main.Game.addEventLog('"Oh jeeze! This ship is crawling with rogue bomb bots! There\'s no way I can get inside with these guys around..."');
+  },
+  options:
+  [
+    {
+      text: 'Try to clear the bots by shooting at them.',
+      events: [{probability: 1, name: 'investigatePrototypeShip_explode'}]
+    },
+    {
+      text: 'Try scraping the bots off with the hull of your ship.',
+      events: [{probability: 1, name: 'investigatePrototypeShip_successA'}]
+    }
+  ]
+};
+
+Events.investigatePrototypeShip_explode =
+{
+  text: 'Despite your best efforts to single out bots not near others, a chain reaction begins and the flames engulf both your ship and the mysterious prototype ship. Your ship survives with serious damage, but the prototype ship is lost.',
+  script: function()
+  {
+    TANK.main.Game.player.Ship.health /= 2;
+    var e = TANK.main.getChild('PrototypeShip');
+    TANK.main.removeChild(e);
+  }
+};
+
+Events.investigatePrototypeShip_successA =
+{
+  text: 'A couple bots explode as they are nudged into open space, causing minor damage to your hull, but on the whole your plan works out ok.',
+  script: function()
+  {
+    TANK.main.Game.player.Ship.health -= TANK.main.Game.player.Ship.health / 4;
+  }
 };
 
 //
@@ -974,12 +1093,16 @@ Events.derelict_2b =
 {
   text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
   story: {eventText: 'You came across a disabled ship at {{location}} and were ambushed by pirates.'},
-  dispatchEvent: 'killplayershields',
   spawns:
   [
     'pirate',
     'pirate'
-  ]
+  ],
+  script: function()
+  {
+    TANK.main.Game.killPlayerShields();
+    TANK.main.Game.resetPlayerWarp();
+  };
 };
 
 Events.derelictReturn =
@@ -1093,6 +1216,7 @@ TANK.registerComponent('Game')
 
   // Event log
   this.eventLogs = [];
+  this.eventLogsTimed = [];
   this.story = [];
 
   // Mouse positions
@@ -1341,6 +1465,11 @@ TANK.registerComponent('Game')
     logContainer.scrollTop = logContainer.scrollHeight;
   };
 
+  this.addEventLogTimed = function(logText, time)
+  {
+    this.eventLogsTimed.push({text: logText, time: time});
+  };
+
   //
   // Clear event log
   //
@@ -1583,7 +1712,7 @@ TANK.registerComponent('Game')
   };
 
   //
-  // Give player fuel
+  // Player manipulation
   //
   this.givePlayerFuel = function(amount)
   {
@@ -1603,6 +1732,20 @@ TANK.registerComponent('Game')
       this.addEventLog('You lose ' + amount + ' fuel cell.');
 
     this.player.Ship.fuel -= amount;
+  };
+
+  this.resetPlayerWarp = function()
+  {
+    this.player.Ship.warpCharge = 0;
+    this.addEventLog('Your warp drive was jammed and the charge lost.');
+  };
+
+  this.killPlayerShields = function()
+  {
+    this.player.Ship.shieldObj.Shield.health = 0;
+    this.player.Ship.shieldObj.Shield.burstTimer = this.player.Ship.shieldObj.Shield.burstTime;
+    this.player.Ship.shieldObj.Shield.recovering = true;
+    this.addEventLog('Your shields have been disabled.');
   };
 
   //
@@ -1722,6 +1865,20 @@ TANK.registerComponent('Game')
           if (chosenOption.story)
             this.addStory(chosenOption.story.eventText);
 
+          // Set any event flags
+          if (chosenOption.setFlags)
+          {
+            for (var i = 0; i < chosenOption.setFlags.length; ++i)
+              Flags[chosenOption.setFlags[i]] = true;
+          }
+
+          // Unset any event flags
+          if (chosenOption.unsetFlags)
+          {
+            for (var i = 0; i < chosenOption.unsetFlags.length; ++i)
+              Flags[chosenOption.unsetFlags[i]] = false;
+          }
+
           // Trigger an event, if any
           if (chosenOption.events)
           {
@@ -1751,6 +1908,16 @@ TANK.registerComponent('Game')
         this.warpReady = true;
       }
     }
+
+    // Handle timed event logs
+    for (var i = 0; i < this.eventLogsTimed.length; ++i)
+    {
+      var log = this.eventLogsTimed[i];
+      log.time -= dt;
+      if (log.time <= 0)
+        this.addEventLog(log.text);
+    }
+    this.eventLogsTimed = this.eventLogsTimed.filter(function(val) {return val.time > 0;});
 
     // Handle warp logic
     if (this.warpTimer > 0)
@@ -2213,6 +2380,7 @@ Locations.researchStation =
     {probability: 1.2, name: 'pirate'},
     {probability: 1, name: 'derelict'},
     {probability: 1.2, name: 'civilian'},
+    {probability: 0.7, name: 'investigatePrototypeShip'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.5, name: 'police'},
   ],
@@ -2249,6 +2417,7 @@ Locations.oldBattlefield =
   name: 'An old battlefield',
   events:
   [
+    {probability: 100, name: 'investigatePrototypeShipEncounter'},
     {probability: 1, name: 'pirate'},
     {probability: 2, name: 'civilian'},
     {probability: 1, name: 'empty'},
@@ -2433,7 +2602,8 @@ TANK.registerComponent('MapGeneration')
       if (i === 1)
         childDepth = 1;
 
-      var possibleLocations = Object.keys(Locations).filter(function(val) {return node.paths.indexOf(val) === -1;});
+      var currentLocations = node.paths.map(function(val) {return val.locationName;});
+      var possibleLocations = Object.keys(Locations).filter(function(val) {return currentLocations.indexOf(val) === -1;});
       var childNode = this.generateNode(node.depth + childDepth, possibleLocations);
       if (childNode)
         node.paths.push(childNode);
@@ -3357,11 +3527,6 @@ TANK.registerComponent('Player')
       TANK.main.Game.givePlayerFuel(1);
       obj._parent.removeChild(obj);
     }
-  });
-
-  this.listenTo(TANK.main, 'killplayershields', function()
-  {
-    this._entity.Ship.shieldObj.Shield.disable(15);
   });
 
   this.listenTo(TANK.main, 'camerashake', function(duration)
