@@ -11,6 +11,8 @@ TANK.registerComponent('Ship')
   this.heading = 0;
   this.desiredSpeed = 0;
   this.warpCharge = 0;
+  this.warpChargeTime = 5;
+  this.warpJammed = false;
   this.fuel = 0;
   this.shieldTimer = 5;
   this.shieldRecharging = false;

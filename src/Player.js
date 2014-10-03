@@ -138,6 +138,23 @@ TANK.registerComponent('Player')
 
   this.update = function(dt)
   {
+    // Check for warp jammer
+    var warpJammers = TANK.main.getChildrenWithComponent('WarpJammer');
+    if (warpJammers || Object.keys(warpJammers).length)
+    {
+      if (!ship.warpJammed)
+      {
+        ship.warpJammed = true;
+        TANK.main.Game.addEventLog('Warp drive is being jammed!');
+      }
+      ship.warpCharge = 0;
+    }
+    else if (ship.warpJammed)
+    {
+      ship.warpJammed = false;
+      TANK.main.Game.addEventLog('Warp drive is no longer jammed');
+    }
+
     // Calculate HUD size
     this.headingRadius = 50;
     this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;

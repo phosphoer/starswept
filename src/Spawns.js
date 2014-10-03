@@ -9,6 +9,12 @@ Spawns.civilian = function()
   TANK.main.addChild(e);
 };
 
+Spawns.warpJammer = function()
+{
+  var e = TANK.createEntity('WarpJammer');
+  TANK.main.addChild(e);
+};
+
 Spawns.pirate = function()
 {
   var ships =

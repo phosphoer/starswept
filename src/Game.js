@@ -423,8 +423,11 @@ TANK.registerComponent('Game')
 
       // Pick a random event
       var chosenIndex = this.randomWeighted(weights);
-      var chosenEvent = location.events[chosenIndex];
-      this.triggerEvent(chosenEvent.name);
+      if (typeof chosenIndex !== 'undefined')
+      {
+        var chosenEvent = location.events[chosenIndex];
+        this.triggerEvent(chosenEvent.name);
+      }
     }
 
     // Log default tutorial message
@@ -629,8 +632,8 @@ TANK.registerComponent('Game')
 
         if (!this.warpReady)
         {
-          var timeRemaining = this.player.Ship.shipData.warpChargeTime - this.player.Ship.warpCharge;
-          this.addEventLog('Warp drive charged in ' + Math.round(timeRemaining) + ' seconds.');
+          var timeRemaining = this.player.Ship.warpChargeTime - this.player.Ship.warpCharge;
+          this.addEventLog('Warp drive is not fully charged');
           return;
         }
 
@@ -697,7 +700,7 @@ TANK.registerComponent('Game')
     // Check if player is ready to warp
     if (this.player)
     {
-      if (this.player.Ship.warpCharge >= this.player.Ship.shipData.warpChargeTime && !this.warpReady)
+      if (this.player.Ship.warpCharge >= this.player.Ship.warpChargeTime && !this.warpReady)
       {
         this.addEventLog('...Warp drive charged. Press J to warp when ready.');
         this.warpReady = true;

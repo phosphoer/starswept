@@ -856,11 +856,7 @@ Events.civilian =
 Events.pirate =
 {
   text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
-  spawns: ['pirate'],
-  script: function()
-  {
-    TANK.main.Game.resetPlayerWarp();
-  }
+  spawns: ['pirate', 'warpJammer'],
 };
 
 //
@@ -868,11 +864,7 @@ Events.pirate =
 //
 Events.police =
 {
-  spawns: ['police'],
-  script: function()
-  {
-    TANK.main.Game.resetPlayerWarp();
-  }
+  spawns: ['police', 'warpJammer'],
 };
 
 //
@@ -933,8 +925,6 @@ Events.returnStolenEnforcerBattle =
     e.Pos2D.y = spawnPos[1] + rng.random(-1000, 1000);
     e.Ship.shipType = 'fighter';
     TANK.main.addChild(e);
-
-    TANK.main.Game.resetPlayerWarp();
   }
 };
 
@@ -1096,13 +1086,13 @@ Events.derelict_2b =
   spawns:
   [
     'pirate',
-    'pirate'
+    'pirate',
+    'warpJammer'
   ],
   script: function()
   {
     TANK.main.Game.killPlayerShields();
-    TANK.main.Game.resetPlayerWarp();
-  };
+  }
 };
 
 Events.derelictReturn =
@@ -1628,8 +1618,11 @@ TANK.registerComponent('Game')
 
       // Pick a random event
       var chosenIndex = this.randomWeighted(weights);
-      var chosenEvent = location.events[chosenIndex];
-      this.triggerEvent(chosenEvent.name);
+      if (typeof chosenIndex !== 'undefined')
+      {
+        var chosenEvent = location.events[chosenIndex];
+        this.triggerEvent(chosenEvent.name);
+      }
     }
 
     // Log default tutorial message
@@ -1834,8 +1827,8 @@ TANK.registerComponent('Game')
 
         if (!this.warpReady)
         {
-          var timeRemaining = this.player.Ship.shipData.warpChargeTime - this.player.Ship.warpCharge;
-          this.addEventLog('Warp drive charged in ' + Math.round(timeRemaining) + ' seconds.');
+          var timeRemaining = this.player.Ship.warpChargeTime - this.player.Ship.warpCharge;
+          this.addEventLog('Warp drive is not fully charged');
           return;
         }
 
@@ -1902,7 +1895,7 @@ TANK.registerComponent('Game')
     // Check if player is ready to warp
     if (this.player)
     {
-      if (this.player.Ship.warpCharge >= this.player.Ship.shipData.warpChargeTime && !this.warpReady)
+      if (this.player.Ship.warpCharge >= this.player.Ship.warpChargeTime && !this.warpReady)
       {
         this.addEventLog('...Warp drive charged. Press J to warp when ready.');
         this.warpReady = true;
@@ -3564,6 +3557,23 @@ TANK.registerComponent('Player')
 
   this.update = function(dt)
   {
+    // Check for warp jammer
+    var warpJammers = TANK.main.getChildrenWithComponent('WarpJammer');
+    if (warpJammers || Object.keys(warpJammers).length)
+    {
+      if (!ship.warpJammed)
+      {
+        ship.warpJammed = true;
+        TANK.main.Game.addEventLog('Warp drive is being jammed!');
+      }
+      ship.warpCharge = 0;
+    }
+    else if (ship.warpJammed)
+    {
+      ship.warpJammed = false;
+      TANK.main.Game.addEventLog('Warp drive is no longer jammed');
+    }
+
     // Calculate HUD size
     this.headingRadius = 50;
     this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
@@ -3924,6 +3934,8 @@ TANK.registerComponent('Ship')
   this.heading = 0;
   this.desiredSpeed = 0;
   this.warpCharge = 0;
+  this.warpChargeTime = 5;
+  this.warpJammed = false;
   this.fuel = 0;
   this.shieldTimer = 5;
   this.shieldRecharging = false;
@@ -4420,7 +4432,6 @@ Ships.fighter = function()
   this.shield = 0.2;
   this.shieldGen = 0.01;
   this.shieldRadius = 30;
-  this.warpChargeTime = 10;
   this.maxFuel = 5;
   this.optimalAngle = 0;
   this.engineSize = [18, 8];
@@ -4453,7 +4464,6 @@ Ships.bomber = function()
   this.shield = 0.4;
   this.shieldGen = 0.01;
   this.shieldRadius = 50;
-  this.warpChargeTime = 15;
   this.maxFuel = 7;
   this.optimalAngle = 0;
   this.engineSize = [24, 12];
@@ -4487,7 +4497,6 @@ Ships.frigate = function()
   this.shield = 0.5;
   this.shieldGen = 0.01;
   this.shieldRadius = 80;
-  this.warpChargeTime = 60;
   this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [24, 16];
@@ -4534,7 +4543,6 @@ Ships.blade = function()
   this.shield = 0.25;
   this.shieldGen = 0.015;
   this.shieldRadius = 85;
-  this.warpChargeTime = 30;
   this.maxFuel = 7;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [48, 24];
@@ -4578,7 +4586,6 @@ Ships.albatross = function()
   this.shield = 1;
   this.shieldGen = 0.01;
   this.shieldRadius = 80;
-  this.warpChargeTime = 60;
   this.maxFuel = 13;
   this.optimalAngle = 0;
   this.engineSize = [36, 20];
@@ -4627,7 +4634,6 @@ Ships.rhino = function()
   this.shield = 0.5;
   this.shieldGen = 0.01;
   this.shieldRadius = 80;
-  this.warpChargeTime = 60;
   this.maxFuel = 10;
   this.optimalAngle = 0;
   this.engineSize = [36, 16];
@@ -4671,7 +4677,6 @@ Ships.enforcer = function()
   this.shield = 1.5;
   this.shieldGen = 0.012;
   this.shieldRadius = 80;
-  this.warpChargeTime = 20;
   this.maxFuel = 6;
   this.optimalAngle = 0;
   this.engineSize = [32, 16];
@@ -4767,6 +4772,12 @@ Spawns.civilian = function()
   e.Ship.shipData = new Ships.fighter();
   e.Pos2D.x = -2000 + Math.random() * 4000;
   e.Pos2D.y = -2000 + Math.random() * 4000;
+  TANK.main.addChild(e);
+};
+
+Spawns.warpJammer = function()
+{
+  var e = TANK.createEntity('WarpJammer');
   TANK.main.addChild(e);
 };
 
@@ -4963,6 +4974,12 @@ TANK.registerComponent('WarpEffect')
 .uninitialize(function()
 {
   // TANK.main.Renderer2D.clearColor = this.oldClearColor;
+});
+TANK.registerComponent('WarpJammer')
+.includes(['Life', 'RemoveOnLevelChange'])
+.initialize(function()
+{
+  this._entity.Life.life = 60;
 });
 TANK.registerComponent('Weapons')
 

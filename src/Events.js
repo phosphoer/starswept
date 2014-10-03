@@ -31,11 +31,7 @@ Events.civilian =
 Events.pirate =
 {
   text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
-  spawns: ['pirate'],
-  script: function()
-  {
-    TANK.main.Game.resetPlayerWarp();
-  }
+  spawns: ['pirate', 'warpJammer'],
 };
 
 //
@@ -43,11 +39,7 @@ Events.pirate =
 //
 Events.police =
 {
-  spawns: ['police'],
-  script: function()
-  {
-    TANK.main.Game.resetPlayerWarp();
-  }
+  spawns: ['police', 'warpJammer'],
 };
 
 //
@@ -108,8 +100,6 @@ Events.returnStolenEnforcerBattle =
     e.Pos2D.y = spawnPos[1] + rng.random(-1000, 1000);
     e.Ship.shipType = 'fighter';
     TANK.main.addChild(e);
-
-    TANK.main.Game.resetPlayerWarp();
   }
 };
 
@@ -271,13 +261,13 @@ Events.derelict_2b =
   spawns:
   [
     'pirate',
-    'pirate'
+    'pirate',
+    'warpJammer'
   ],
   script: function()
   {
     TANK.main.Game.killPlayerShields();
-    TANK.main.Game.resetPlayerWarp();
-  };
+  }
 };
 
 Events.derelictReturn =
