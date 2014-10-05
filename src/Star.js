@@ -21,6 +21,7 @@ TANK.registerComponent('Star')
     var grad = ctx.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius);
     grad.addColorStop(0.0, 'rgb(' + this.innerColor.join(', ') + ')');
     grad.addColorStop(0.3, 'rgba(' + this.innerColor.join(', ') + ', 0.5)');
+    grad.addColorStop(0.8, 'rgba(' + this.outerColor.join(', ') + ', 0.1)');
     grad.addColorStop(1.0, 'rgba(' + this.outerColor.join(', ') + ', 0.0)');
 
     ctx.globalCompositeOperation = 'lighter';
