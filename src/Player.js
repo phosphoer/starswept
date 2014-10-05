@@ -140,7 +140,7 @@ TANK.registerComponent('Player')
   {
     // Check for warp jammer
     var warpJammers = TANK.main.getChildrenWithComponent('WarpJammer');
-    if (warpJammers || Object.keys(warpJammers).length)
+    if (warpJammers && Object.keys(warpJammers).length)
     {
       if (!ship.warpJammed)
       {

@@ -42,17 +42,31 @@ TANK.registerComponent('LightingAndDamage')
   {
     this.mainBuffer.context.save();
     this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
-    this.mainBuffer.context.drawImage(this.resource.diffuse, 0, 0);
 
     // Draw lighting
-    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    for (var i = 0; i < this.resource.lightBuffers.length; ++i)
-    {
-      var lightDirOffset = (Math.PI * 2 / this.resource.lightBuffers.length) * i - Math.PI / 2;
-      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
-      if (this.mainBuffer.context.globalAlpha > 0)
-        this.mainBuffer.context.drawImage(this.resource.lightBuffers[i], 0, 0);
-    }
+    var lightObj = TANK.main.getChildrenWithComponent('DirectionalLight');
+    if (lightObj)
+      lightObj = lightObj[Object.keys(lightObj)[0]];
+
+    var rotation = t.rotation;
+    while (rotation < 0)
+      rotation += Math.PI * 2;
+    rotation %= Math.PI * 2;
+
+    var numBuffers = this.resource.lightBuffers.length;
+    var angleChunk = Math.PI * 2 / numBuffers;
+    var lightAngle = (Math.atan2(lightObj.Pos2D.y - t.y, t.x - lightObj.Pos2D.x) + rotation + Math.PI) % (Math.PI * 2);
+    var lightDir = [Math.cos(lightAngle), Math.sin(lightAngle)];
+    var indexA = Math.floor(lightAngle / angleChunk) % numBuffers;
+    var indexB = Math.ceil(lightAngle / angleChunk) % numBuffers;
+    var alphaA = 1 - (Math.abs(lightAngle - angleChunk * indexA) / angleChunk);
+    var alphaB = 1 - alphaA;
+
+    this.mainBuffer.context.globalCompositeOperation = 'lighter';
+    this.mainBuffer.context.globalAlpha = alphaA;
+    this.mainBuffer.context.drawImage(this.resource.lightBuffers[indexA], 0, 0);
+    this.mainBuffer.context.globalAlpha = alphaB;
+    this.mainBuffer.context.drawImage(this.resource.lightBuffers[indexB], 0, 0);
 
     // Draw damage buffer
     this.mainBuffer.context.globalAlpha = 1;
@@ -60,6 +74,7 @@ TANK.registerComponent('LightingAndDamage')
     this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
     this.mainBuffer.context.globalCompositeOperation = 'destination-out';
     this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
+
     this.mainBuffer.context.restore();
   };
 });

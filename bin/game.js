@@ -648,6 +648,7 @@ TANK.registerComponent('Clouds')
 .uninitialize(function()
 {
 });
+TANK.registerComponent('DirectionalLight').includes('Pos2D');
 TANK.registerComponent("DustField")
 
 .construct(function()
@@ -1144,6 +1145,16 @@ Events.test =
 var Flags = {};
 
 
+TANK.registerComponent('FollowMouse')
+.includes('Pos2D')
+.initialize(function()
+{
+  this.update = function(dt)
+  {
+    this._entity.Pos2D.x = TANK.main.Game.mousePosWorld[0];
+    this._entity.Pos2D.y = TANK.main.Game.mousePosWorld[1];
+  };
+});
 TANK.registerComponent('FuelCell')
 
 .includes(['LightingAndDamage', 'Velocity', 'Collider2D', 'RemoveOnLevelChange'])
@@ -1288,6 +1299,10 @@ TANK.registerComponent('Game')
   resources.add('fuel-cell-normals', 'res/img/fuel-cell-normals.png');
   resources.add('fuel-cell', null, ['fuel-cell-diffuse', 'fuel-cell-normals'], loadLighting);
 
+  resources.add('ball-diffuse', 'res/img/ball-diffuse.png');
+  resources.add('ball-normals', 'res/img/ball-normals.png');
+  resources.add('ball', null, ['ball-diffuse', 'ball-normals'], loadLighting);
+
   //
   // Rebuild lighting
   //
@@ -1344,6 +1359,26 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Update light source
+  //
+  this.updateLightSource = function()
+  {
+    if (!this.lightSource)
+    {
+      this.lightSource = TANK.createEntity('Star');
+      TANK.main.addChild(this.lightSource);
+    }
+
+    this.lightSource.Pos2D.x = Math.cos(this.lightDir) * 5000;
+    this.lightSource.Pos2D.y = Math.sin(this.lightDir) * 5000;
+
+    if (this.currentLocation)
+    {
+      this.lightSource.Star.outerColor = this.currentLocation.lightColor.map(function(val) {return Math.floor(val * 255);});
+    }
+  };
+
+  //
   // Move to the main menu state
   //
   this.goToMainMenu = function()
@@ -1361,6 +1396,9 @@ TANK.registerComponent('Game')
     this.lightDir = Math.random() * Math.PI * 2;
     this.mainMenu = TANK.createEntity('MainMenu');
     TANK.main.addChild(this.mainMenu);
+
+    // Create light source entity
+    this.updateLightSource();
 
     // Handle main menu interactions
     this.listenTo(this.mainMenu, 'newgame', function()
@@ -1546,6 +1584,7 @@ TANK.registerComponent('Game')
     Lightr.lightDiffuse = location.lightColor;
     this.lightDir = Math.random() * Math.PI * 2;
     this.rebuildLighting();
+    this.updateLightSource();
 
     // Create player entity if it doesn't exist
     if (!this.player)
@@ -2166,17 +2205,31 @@ TANK.registerComponent('LightingAndDamage')
   {
     this.mainBuffer.context.save();
     this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
-    this.mainBuffer.context.drawImage(this.resource.diffuse, 0, 0);
 
     // Draw lighting
-    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    for (var i = 0; i < this.resource.lightBuffers.length; ++i)
-    {
-      var lightDirOffset = (Math.PI * 2 / this.resource.lightBuffers.length) * i - Math.PI / 2;
-      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
-      if (this.mainBuffer.context.globalAlpha > 0)
-        this.mainBuffer.context.drawImage(this.resource.lightBuffers[i], 0, 0);
-    }
+    var lightObj = TANK.main.getChildrenWithComponent('DirectionalLight');
+    if (lightObj)
+      lightObj = lightObj[Object.keys(lightObj)[0]];
+
+    var rotation = t.rotation;
+    while (rotation < 0)
+      rotation += Math.PI * 2;
+    rotation %= Math.PI * 2;
+
+    var numBuffers = this.resource.lightBuffers.length;
+    var angleChunk = Math.PI * 2 / numBuffers;
+    var lightAngle = (Math.atan2(lightObj.Pos2D.y - t.y, t.x - lightObj.Pos2D.x) + rotation + Math.PI) % (Math.PI * 2);
+    var lightDir = [Math.cos(lightAngle), Math.sin(lightAngle)];
+    var indexA = Math.floor(lightAngle / angleChunk) % numBuffers;
+    var indexB = Math.ceil(lightAngle / angleChunk) % numBuffers;
+    var alphaA = 1 - (Math.abs(lightAngle - angleChunk * indexA) / angleChunk);
+    var alphaB = 1 - alphaA;
+
+    this.mainBuffer.context.globalCompositeOperation = 'lighter';
+    this.mainBuffer.context.globalAlpha = alphaA;
+    this.mainBuffer.context.drawImage(this.resource.lightBuffers[indexA], 0, 0);
+    this.mainBuffer.context.globalAlpha = alphaB;
+    this.mainBuffer.context.drawImage(this.resource.lightBuffers[indexB], 0, 0);
 
     // Draw damage buffer
     this.mainBuffer.context.globalAlpha = 1;
@@ -2184,6 +2237,7 @@ TANK.registerComponent('LightingAndDamage')
     this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
     this.mainBuffer.context.globalCompositeOperation = 'destination-out';
     this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
+
     this.mainBuffer.context.restore();
   };
 });
@@ -3559,7 +3613,7 @@ TANK.registerComponent('Player')
   {
     // Check for warp jammer
     var warpJammers = TANK.main.getChildrenWithComponent('WarpJammer');
-    if (warpJammers || Object.keys(warpJammers).length)
+    if (warpJammers && Object.keys(warpJammers).length)
     {
       if (!ship.warpJammed)
       {
@@ -4392,7 +4446,6 @@ TANK.registerComponent('ShipStats')
   [
     {name: 'Name', property: 'name'},
     {name: 'Starting fuel', property: 'maxFuel'},
-    {name: 'Warp charge time', property: 'warpChargeTime'},
     {name: 'Max speed', property: 'maxSpeed'},
     {name: 'Armor', property: 'health'},
     {name: 'Shield', property: 'shield'},
@@ -4824,6 +4877,40 @@ Spawns.derelict = function()
   e.Pos2D.y = 0;
   TANK.main.addChild(e);
 };
+TANK.registerComponent('Star')
+.includes(['Pos2D', 'DirectionalLight'])
+.construct(function()
+{
+  this.zdepth = 10;
+  this.radius = 2000;
+  this.innerColor = [255, 255, 255];
+  this.outerColor = [255, 0, 255];
+})
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  TANK.main.Renderer2D.add(this);
+
+  this.draw = function(ctx, camera, dt)
+  {
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+
+    var grad = ctx.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius);
+    grad.addColorStop(0.0, 'rgb(' + this.innerColor.join(', ') + ')');
+    grad.addColorStop(0.3, 'rgba(' + this.innerColor.join(', ') + ', 0.5)');
+    grad.addColorStop(1.0, 'rgba(' + this.outerColor.join(', ') + ', 0.0)');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  };
+});
 TANK.registerComponent("StarField")
 
 .construct(function()

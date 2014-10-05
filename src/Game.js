@@ -93,6 +93,10 @@ TANK.registerComponent('Game')
   resources.add('fuel-cell-normals', 'res/img/fuel-cell-normals.png');
   resources.add('fuel-cell', null, ['fuel-cell-diffuse', 'fuel-cell-normals'], loadLighting);
 
+  resources.add('ball-diffuse', 'res/img/ball-diffuse.png');
+  resources.add('ball-normals', 'res/img/ball-normals.png');
+  resources.add('ball', null, ['ball-diffuse', 'ball-normals'], loadLighting);
+
   //
   // Rebuild lighting
   //
@@ -149,6 +153,26 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Update light source
+  //
+  this.updateLightSource = function()
+  {
+    if (!this.lightSource)
+    {
+      this.lightSource = TANK.createEntity('Star');
+      TANK.main.addChild(this.lightSource);
+    }
+
+    this.lightSource.Pos2D.x = Math.cos(this.lightDir) * 5000;
+    this.lightSource.Pos2D.y = Math.sin(this.lightDir) * 5000;
+
+    if (this.currentLocation)
+    {
+      this.lightSource.Star.outerColor = this.currentLocation.lightColor.map(function(val) {return Math.floor(val * 255);});
+    }
+  };
+
+  //
   // Move to the main menu state
   //
   this.goToMainMenu = function()
@@ -166,6 +190,9 @@ TANK.registerComponent('Game')
     this.lightDir = Math.random() * Math.PI * 2;
     this.mainMenu = TANK.createEntity('MainMenu');
     TANK.main.addChild(this.mainMenu);
+
+    // Create light source entity
+    this.updateLightSource();
 
     // Handle main menu interactions
     this.listenTo(this.mainMenu, 'newgame', function()
@@ -351,6 +378,7 @@ TANK.registerComponent('Game')
     Lightr.lightDiffuse = location.lightColor;
     this.lightDir = Math.random() * Math.PI * 2;
     this.rebuildLighting();
+    this.updateLightSource();
 
     // Create player entity if it doesn't exist
     if (!this.player)

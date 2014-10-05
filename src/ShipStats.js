@@ -16,7 +16,6 @@ TANK.registerComponent('ShipStats')
   [
     {name: 'Name', property: 'name'},
     {name: 'Starting fuel', property: 'maxFuel'},
-    {name: 'Warp charge time', property: 'warpChargeTime'},
     {name: 'Max speed', property: 'maxSpeed'},
     {name: 'Armor', property: 'health'},
     {name: 'Shield', property: 'shield'},
