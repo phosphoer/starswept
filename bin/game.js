@@ -1468,8 +1468,8 @@ TANK.registerComponent('Game')
   //
   this.randomWeighted = function(weights)
   {
-    weights = weights.filter(function(val) {return val > 0;});
-    var minValue = Math.min.apply(null, weights);
+    var weightsNoZero = weights.filter(function(val) {return val > 0;});
+    var minValue = Math.min.apply(null, weightsNoZero);
     var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
     var weightArray = [];
     for (var i = 0; i < weightsNormalized.length; ++i)
@@ -1478,6 +1478,7 @@ TANK.registerComponent('Game')
         weightArray.push(i);
     }
 
+    console.log('weight array', weightArray);
     var rng = new RNG();
     var index = rng.random(0, weightArray.length);
     return weightArray[index];
@@ -1644,6 +1645,7 @@ TANK.registerComponent('Game')
         if (Events[ev.name].requireFlags)
         {
           var requireFlags = Events[ev.name].requireFlags;
+          console.log(ev.name, 'requires flags', requireFlags);
           for (var i = 0; i < requireFlags.length; ++i)
           {
             if (!Flags[requireFlags[i]])
@@ -1659,6 +1661,9 @@ TANK.registerComponent('Game')
       var chosenIndex = this.randomWeighted(weights);
       if (typeof chosenIndex !== 'undefined')
       {
+        console.log('picking index', chosenIndex);
+        console.log('out of weights', weights);
+        console.log('possible events', location.events);
         var chosenEvent = location.events[chosenIndex];
         this.triggerEvent(chosenEvent.name);
       }
