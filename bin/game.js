@@ -4902,6 +4902,7 @@ TANK.registerComponent('Star')
     grad.addColorStop(0.3, 'rgba(' + this.innerColor.join(', ') + ', 0.5)');
     grad.addColorStop(1.0, 'rgba(' + this.outerColor.join(', ') + ', 0.0)');
 
+    ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(0, 0, this.radius, Math.PI * 2, false);
