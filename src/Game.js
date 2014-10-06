@@ -335,15 +335,42 @@ TANK.registerComponent('Game')
   //
   this.showLocationOptions = function()
   {
+    // Verify jump is possible
+    if (!this.warpReady)
+    {
+      this.addEventLog('Warp drive is not fully charged');
+      return;
+    }
+    if (this.player.Ship.fuel < 1)
+    {
+      this.addEventLog('No fuel.');
+      return;
+    }
+
+    // Build option list
+    var options = [];
     for (var i = 0; i < this.currentNode.paths.length; ++i)
     {
       var node = this.currentNode.paths[i];
       var location = Locations[node.locationName];
-      var desc = (node.depth % 1 === 0) ? 'Direct route' : 'Indirect route';
-      this.addEventLog((i + 1) + '. ' + location.name + ' (' + desc + ')');
+      var desc = (node.depth - this.currentNode.depth === 1) ? 'Direct route' : 'Indirect route';
+      options.push({text: location.name + ' (' + desc + ')'});
     }
 
-    this.waitingForJump = true;
+    // Show option menu
+    this.choiceScreen = TANK.createEntity('ChoiceScreen');
+    this.choiceScreen.ChoiceScreen.title = 'Choose destination';
+    this.choiceScreen.ChoiceScreen.options = options;
+    TANK.main.addChild(this.choiceScreen);
+    TANK.main.pause();
+
+    // Wait for choice
+    this.listenTo(this.choiceScreen, 'choicemade', function(index)
+    {
+      TANK.main.unpause();
+      this.player.Ship.fuel -= 1;
+      this.goToNode(this.currentNode.paths[index]);
+    });
   };
 
   //
@@ -531,9 +558,51 @@ TANK.registerComponent('Game')
     if (event.options.length > 0)
     {
       this.eventAwaitingInput = event;
-      this.waitingForJump = false;
-      for (var i = 0; i < event.options.length; ++i)
-        this.addEventLog((i + 1) + '. ' + event.options[i].text);
+      this.choiceScreen = TANK.createEntity('ChoiceScreen');
+      this.choiceScreen.ChoiceScreen.options = event.options;
+      TANK.main.addChild(this.choiceScreen);
+      this.listenTo(this.choiceScreen, 'choicemade', this.handleOptionChoice);
+      TANK.main.pause();
+    }
+  };
+
+  //
+  // Handle event option choice
+  //
+  this.handleOptionChoice = function(index)
+  {
+    TANK.main.unpause();
+
+    // Show response text
+    var chosenOption = this.eventAwaitingInput.options[index];
+    if (chosenOption.responseText)
+      this.addEventLog(chosenOption.responseText);
+
+    // Add story
+    if (chosenOption.story)
+      this.addStory(chosenOption.story.eventText);
+
+    // Set any event flags
+    if (chosenOption.setFlags)
+    {
+      for (var i = 0; i < chosenOption.setFlags.length; ++i)
+        Flags[chosenOption.setFlags[i]] = true;
+    }
+
+    // Unset any event flags
+    if (chosenOption.unsetFlags)
+    {
+      for (var i = 0; i < chosenOption.unsetFlags.length; ++i)
+        Flags[chosenOption.unsetFlags[i]] = false;
+    }
+
+    // Trigger an event, if any
+    if (chosenOption.events)
+    {
+      var weights = chosenOption.events.map(function(ev) {return ev.probability;});
+      var chosenIndex = this.randomWeighted(weights);
+      var chosenEvent = chosenOption.events[chosenIndex];
+      this.triggerEvent(chosenEvent.name);
     }
   };
 
@@ -653,66 +722,12 @@ TANK.registerComponent('Game')
       // 0 index choice from 1 key
       var choice = e.keyCode - TANK.Key.NUM1;
 
-      // Choose to jump to a location
-      if (this.waitingForJump)
-      {
-        this.waitingForJump = false;
-
-        if (!this.warpReady)
-        {
-          var timeRemaining = this.player.Ship.warpChargeTime - this.player.Ship.warpCharge;
-          this.addEventLog('Warp drive is not fully charged');
-          return;
-        }
-
-        if (this.player.Ship.fuel < 1)
-        {
-          this.addEventLog('No fuel.');
-          return;
-        }
-
-        if (choice < this.currentNode.paths.length)
-        {
-          this.player.Ship.fuel -= 1;
-          this.goToNode(this.currentNode.paths[choice]);
-        }
-      }
       // Choose an answer for an event
-      else if (this.eventAwaitingInput)
+      if (this.eventAwaitingInput)
       {
         if (choice < this.eventAwaitingInput.options.length)
         {
-          // Show response text
-          var chosenOption = this.eventAwaitingInput.options[choice];
-          if (chosenOption.responseText)
-            this.addEventLog(chosenOption.responseText);
 
-          // Add story
-          if (chosenOption.story)
-            this.addStory(chosenOption.story.eventText);
-
-          // Set any event flags
-          if (chosenOption.setFlags)
-          {
-            for (var i = 0; i < chosenOption.setFlags.length; ++i)
-              Flags[chosenOption.setFlags[i]] = true;
-          }
-
-          // Unset any event flags
-          if (chosenOption.unsetFlags)
-          {
-            for (var i = 0; i < chosenOption.unsetFlags.length; ++i)
-              Flags[chosenOption.unsetFlags[i]] = false;
-          }
-
-          // Trigger an event, if any
-          if (chosenOption.events)
-          {
-            var weights = chosenOption.events.map(function(ev) {return ev.probability;});
-            var chosenIndex = this.randomWeighted(weights);
-            var chosenEvent = chosenOption.events[chosenIndex];
-            this.triggerEvent(chosenEvent.name);
-          }
 
           this.eventAwaitingInput = null;
         }

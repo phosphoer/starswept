@@ -141,6 +141,13 @@ TANK.registerComponent('Ship')
     }
   };
 
+  this.addRandomDamage = function(radius)
+  {
+    var x = Math.random() * this.width;
+    var y = Math.random() * this.height;
+    this.addDamage(x, y, radius);
+  };
+
   //
   // Explode the ship
   //

@@ -192,8 +192,10 @@ Events.investigatePrototypeShip_explode =
   script: function()
   {
     TANK.main.Game.player.Ship.health /= 2;
+    for (var i = 0; i < 10; ++i)
+      TANK.main.Game.player.Ship.addRandomDamage(3 + Math.random() * 6);
     var e = TANK.main.getChild('PrototypeShip');
-    TANK.main.removeChild(e);
+    e.Ship.health = -1;
   }
 };
 
@@ -203,6 +205,8 @@ Events.investigatePrototypeShip_successA =
   script: function()
   {
     TANK.main.Game.player.Ship.health -= TANK.main.Game.player.Ship.health / 4;
+    for (var i = 0; i < 5; ++i)
+      TANK.main.Game.player.Ship.addRandomDamage(2 + Math.random() * 3);
   }
 };
 
