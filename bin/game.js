@@ -2157,7 +2157,7 @@ Guns.mediumRail = function()
 Guns.mediumRocket = function()
 {
   this.image = new Image();
-  this.image.src = 'res/img/medium-rail.png';
+  this.image.src = 'res/img/medium-rocket.png';
   this.shootSound = 'medium-rail-01';
   this.shootEffect = 'gunFireMedium';
   this.trailEffect = 'mediumRailTrail';
@@ -2741,10 +2741,10 @@ var ParticleLibrary = {};
 
 ParticleLibrary.slowMediumFire = function()
 {
-  var e = TANK.createEntity("ParticleEmitter");
+  var e = TANK.createEntity('ParticleEmitter');
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-50, -50];
   emitter.spawnOffsetMax = [50, 50];
   emitter.spawnScaleMin = 1;
@@ -2777,13 +2777,13 @@ ParticleLibrary.explosionMedium = function(x, y)
 
 ParticleLibrary.explosionMediumFire = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-40, -40];
   emitter.spawnOffsetMax = [40, 40];
   emitter.spawnSpeedMin = 150;
@@ -2809,13 +2809,13 @@ ParticleLibrary.explosionMediumFire = function(x, y)
 
 ParticleLibrary.explosionMediumFireballs = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 250;
@@ -2839,14 +2839,14 @@ ParticleLibrary.explosionMediumFireballs = function(x, y)
 
 ParticleLibrary.explosionMediumSparks = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 350;
@@ -2870,14 +2870,14 @@ ParticleLibrary.explosionMediumSparks = function(x, y)
 
 ParticleLibrary.explosionMediumSmoke = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-70, -70];
   emitter.spawnOffsetMax = [70, 70];
   emitter.spawnSpeedMin = 50;
@@ -2911,14 +2911,14 @@ ParticleLibrary.gunFireSmall = function(x, y, angle)
 
 ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 8;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-8, -8];
   emitter.spawnOffsetMax = [8, 8];
   emitter.spawnSpeedMin = 100;
@@ -2944,14 +2944,14 @@ ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
 
 ParticleLibrary.gunFireSmallSparks = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -2985,14 +2985,14 @@ ParticleLibrary.gunFireMedium = function(x, y, angle)
 
 ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 8;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-20, -20];
   emitter.spawnOffsetMax = [20, 20];
   emitter.spawnSpeedMin = 100;
@@ -3018,14 +3018,14 @@ ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
 
 ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 350;
@@ -3049,14 +3049,14 @@ ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
 
 ParticleLibrary.damageSmall = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -3081,14 +3081,14 @@ ParticleLibrary.damageSmall = function(x, y, angle)
 
 ParticleLibrary.damageMedium = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -3113,9 +3113,9 @@ ParticleLibrary.damageMedium = function(x, y, angle)
 
 ParticleLibrary.smallRailTrail = function()
 {
-  var e = TANK.createEntity(["ParticleEmitter"]);
+  var e = TANK.createEntity(['ParticleEmitter']);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnPerSecond = 100;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.3;
@@ -3129,9 +3129,9 @@ ParticleLibrary.smallRailTrail = function()
 
 ParticleLibrary.mediumRailTrail = function()
 {
-  var e = TANK.createEntity(["ParticleEmitter"]);
+  var e = TANK.createEntity(['ParticleEmitter']);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnPerSecond = 200;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.4;
@@ -3550,7 +3550,7 @@ var PlanetColors =
 }());
 TANK.registerComponent('Player')
 
-.includes('Ship')
+.includes(['Ship', 'ShipHud'])
 
 .construct(function()
 {
@@ -3562,7 +3562,6 @@ TANK.registerComponent('Player')
   this.headingRight = false;
   this.speedUp = false;
   this.speedDown = false;
-  this.fireButtons = [];
 })
 
 .initialize(function()
@@ -3572,76 +3571,26 @@ TANK.registerComponent('Player')
 
   TANK.main.Renderer2D.add(this);
 
-  this.clearSelection = function()
-  {
-    for (var i = 0; i < this.selectedShips.length; ++i)
-      this.selectedShips[i].Ship.selected = false;
-    this.selectedShips = [];
-  };
-
+  //
+  // Camera shake
+  //
   this.shakeCamera = function(duration)
   {
     this.shakeTime = duration;
   };
 
-  this.mouseDownHandler = function(e)
-  {
-    this.mouseDown = true;
-
-    // Handle tapping a fire button
-    var mousePos = TANK.Math2D.subtract(TANK.main.Game.mousePosScreen, [window.innerWidth / 2, window.innerHeight / 2]);
-    for (var i = 0; i < this.fireButtons.length; ++i)
-    {
-      var pos = TANK.Math2D.scale(this.fireButtons[i].pos, TANK.main.Game.scaleFactor);
-      pos = TANK.Math2D.add(pos, this.headingPos);
-      var dist = TANK.Math2D.pointDistancePoint(pos, mousePos);
-      if (dist < this.fireButtons[i].radius * TANK.main.Game.scaleFactor)
-      {
-        this.fireButtonDown = true;
-        this._entity.Weapons.fireGuns(this.fireButtons[i].side);
-        return;
-      }
-    }
-  };
-
-  this.mouseUpHandler = function(e)
-  {
-    this.mouseDown = false;
-    this.fireButtonDown = false;
-  };
-
-  this.mouseMoveHandler = function(e)
-  {
-    // Handle changing heading
-    if (this.mouseDown && !this.fireButtonDown && !this.selecting && !this.pendingTarget)
-    {
-      var mousePos = TANK.Math2D.subtract(TANK.main.Game.mousePosScreen, [window.innerWidth / 2, window.innerHeight / 2]);
-
-      var dist = TANK.Math2D.pointDistancePoint(this.headingPos, mousePos);
-      if (dist < this.headingRadiusScaled)
-      {
-        // Ignore if we are too close to center
-        if (dist > this.headingRadiusScaled * 0.1)
-        {
-          // Get heading
-          var newHeading = Math.atan2(mousePos[1] - this.headingPos[1], mousePos[0] - this.headingPos[0]);
-          ship.heading = newHeading;
-
-          // Get speed
-          ship.desiredSpeed = (dist / this.headingRadiusScaled) * ship.shipData.maxSpeed;
-        }
-        else
-          ship.desiredSpeed = 0;
-      }
-    }
-  };
-
+  //
+  // Listen for player death
+  //
   this.listenTo(this._entity, 'explode', function()
   {
     TANK.main.Game.addStory('You exploded.');
     TANK.main.dispatchTimed(3, 'gamelose');
   });
 
+  //
+  // Listen for collisions
+  //
   this.listenTo(this._entity, 'collide', function(obj)
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
@@ -3653,15 +3602,17 @@ TANK.registerComponent('Player')
     }
   });
 
+  //
+  // Camera shake message
+  //
   this.listenTo(TANK.main, 'camerashake', function(duration)
   {
     this.shakeCamera(duration);
   });
 
-  this.listenTo(TANK.main, 'mousedown', this.mouseDownHandler);
-  this.listenTo(TANK.main, 'mouseup', this.mouseUpHandler);
-  this.listenTo(TANK.main, 'mousemove', this.mouseMoveHandler);
-
+  //
+  // Key input
+  //
   this.listenTo(TANK.main, 'keydown', function(e)
   {
     if (e.keyCode === TANK.Key.W)
@@ -3686,6 +3637,9 @@ TANK.registerComponent('Player')
       this.headingRight = false;
   });
 
+  //
+  // Update loop
+  //
   this.update = function(dt)
   {
     // Check for warp jammer
@@ -3705,23 +3659,11 @@ TANK.registerComponent('Player')
       TANK.main.Game.addEventLog('Warp drive is no longer jammed');
     }
 
-    // Calculate HUD size
-    this.headingRadius = 50;
-    this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
-    this.headingPos = [window.innerWidth / 2 - this.headingRadiusScaled - 30, window.innerHeight / 2 - this.headingRadiusScaled - 60];
-    this.fireButtons =
-    [
-      {side: 'left', pos: [0, -this.headingRadius * 0.75], radius: 6},
-      {side: 'right', pos: [0, this.headingRadius * 0.75], radius: 6},
-      {side: 'front', pos: [this.headingRadius * 0.75, 0], radius: 6},
-      {side: 'back', pos: [-this.headingRadius * 0.75, 0], radius: 6},
-    ];
-
     // Heading controls
     if (this.headingLeft)
-      ship.heading -= dt * 3;
+      ship.heading = t.rotation - 0.3;
     if (this.headingRight)
-      ship.heading += dt * 3;
+      ship.heading = t.rotation + 0.3;
 
     // Speed controls
     if (this.speedUp)
@@ -3752,65 +3694,12 @@ TANK.registerComponent('Player')
     }
   };
 
+  //
+  // Render
+  //
   this.draw = function(ctx, camera)
   {
-    // Draw player HUD
-    ctx.save();
-    ctx.scale(camera.z, camera.z);
-    ctx.translate(this.headingPos[0], this.headingPos[1]);
-    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
 
-    // Draw compass
-    // Outer circle
-    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.headingRadius, Math.PI * 2, false);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, this.headingRadius * 0.1, Math.PI * 2, false);
-    ctx.closePath();
-    ctx.stroke();
-
-    // Heading line
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(ship.heading) * this.headingRadius, Math.sin(ship.heading) * this.headingRadius);
-    ctx.closePath();
-    ctx.stroke();
-
-    // Speed line
-    ctx.strokeStyle = 'rgba(100, 100, 250, 0.8)';
-    ctx.lineWidth = 1.5;
-    var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
-    var startPos = [Math.cos(ship.heading), Math.sin(ship.heading)];
-    ctx.beginPath();
-    ctx.moveTo(startPos[0], startPos[1]);
-    ctx.lineTo(startPos[0] + Math.cos(ship.heading) * (this.headingRadius) * speedPercent,
-               startPos[1] + Math.sin(ship.heading) * (this.headingRadius) * speedPercent);
-    ctx.closePath();
-    ctx.stroke();
-
-    var that = this;
-    function drawGun(gun)
-    {
-      ctx.beginPath();
-      ctx.moveTo(gun.pos[0], gun.pos[1]);
-      ctx.arc(gun.pos[0], gun.pos[1], gun.radius, that._entity.Weapons.reloadPercent(gun.side) * Math.PI * -2, false);
-      ctx.lineTo(gun.pos[0], gun.pos[1]);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // Draw weapon buttons
-    ctx.fillStyle = 'rgba(255, 80, 80, 0.5)';
-    for (var i = 0; i < this.fireButtons.length; ++i)
-    {
-      drawGun(this.fireButtons[i]);
-    }
-
-    ctx.restore();
   };
 });
 TANK.registerComponent('RemoveOnLevelChange')
@@ -4412,6 +4301,99 @@ TANK.registerComponent('Ship')
 
     ctx.restore();
   };
+});
+TANK.registerComponent('ShipHud')
+
+.construct(function()
+{
+  this.htmlText =
+  [
+    '<div class="console-window ship-hud">',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Speed</div>',
+    ' <div class="ship-hud-value ship-hud-speed"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Armor</div>',
+    ' <div class="ship-hud-value ship-hud-armor"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Shield</div>',
+    ' <div class="ship-hud-value ship-hud-shield"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Fore</div>',
+    ' <div class="ship-hud-value ship-hud-fore"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Starboard</div>',
+    ' <div class="ship-hud-value ship-hud-starboard"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Aft</div>',
+    ' <div class="ship-hud-value ship-hud-aft"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Port</div>',
+    ' <div class="ship-hud-value ship-hud-port"></div>',
+    '</div>',
+    '</div>'
+  ].join('\n');
+
+  this.barSize = 10;
+  this.fillChar = '=';
+  this.emptyChar = '-';
+})
+
+.initialize(function()
+{
+  var ship = this._entity.Ship;
+  var weapons = this._entity.Weapons;
+  var shield = ship.shieldObj.Shield;
+
+  //
+  // Create UI
+  //
+  this.container = document.createElement('div');
+  this.container.innerHTML = this.htmlText;
+  document.body.appendChild(this.container);
+
+  //
+  // Get UI handles
+  //
+  this.speedValue = this.container.querySelector('.ship-hud-speed');
+  this.armorValue = this.container.querySelector('.ship-hud-armor');
+  this.shieldValue = this.container.querySelector('.ship-hud-shield');
+  this.foreValue = this.container.querySelector('.ship-hud-fore');
+  this.starboardValue = this.container.querySelector('.ship-hud-starboard');
+  this.aftValue = this.container.querySelector('.ship-hud-aft');
+  this.portValue = this.container.querySelector('.ship-hud-port');
+
+  this.buildBarText = function(percent)
+  {
+    var chars = [];
+    var fillNum = Math.round(this.barSize * percent);
+    for (var i = 0; i < this.barSize; ++i)
+      chars.push(i < fillNum ? this.fillChar : this.emptyChar);
+    return chars.join('');
+  };
+
+  this.update = function(dt)
+  {
+    this.speedValue.innerHTML = this.buildBarText(ship.desiredSpeed / ship.shipData.maxSpeed);
+    this.armorValue.innerHTML = this.buildBarText(ship.health / ship.shipData.health);
+    this.shieldValue.innerHTML = this.buildBarText(shield.health / ship.shipData.shield);
+
+    this.foreValue.innerHTML = this.buildBarText(weapons.reloadPercent('front'));
+    this.starboardValue.innerHTML = this.buildBarText(weapons.reloadPercent('right'));
+    this.aftValue.innerHTML = this.buildBarText(weapons.reloadPercent('back'));
+    this.portValue.innerHTML = this.buildBarText(weapons.reloadPercent('left'));
+  };
+})
+
+.uninitialize(function()
+{
+  document.body.removeChild(this.container);
 });
 TANK.registerComponent('ShipSelection')
 
