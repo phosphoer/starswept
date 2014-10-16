@@ -9,7 +9,7 @@ TANK.registerComponent('Shield')
   this.regenRate = 0.1;
   this.radius = 5;
   this.burstTimer = 0;
-  this.burstTime = 5;
+  this.burstTime = 15;
   this.disabledTimer = 0;
   this.bubbleOpacity = 0;
   this.disabled = false;

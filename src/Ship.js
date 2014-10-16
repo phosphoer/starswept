@@ -11,6 +11,8 @@ TANK.registerComponent('Ship')
   this.heading = 0;
   this.desiredSpeed = 0;
   this.warpCharge = 0;
+  this.warpChargeTime = 5;
+  this.warpJammed = false;
   this.fuel = 0;
   this.shieldTimer = 5;
   this.shieldRecharging = false;
@@ -139,6 +141,13 @@ TANK.registerComponent('Ship')
     }
   };
 
+  this.addRandomDamage = function(radius)
+  {
+    var x = Math.random() * this.width;
+    var y = Math.random() * this.height;
+    this.addDamage(x, y, radius);
+  };
+
   //
   // Explode the ship
   //
@@ -155,7 +164,7 @@ TANK.registerComponent('Ship')
     this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
     // Create some fuel spawns
-    var numFuelCells = Math.round(Math.random() * 3);
+    var numFuelCells = Math.round(Math.random() * 2);
     for (var i = 0; i < numFuelCells; ++i)
     {
       var e = TANK.createEntity('FuelCell');

@@ -48,19 +48,5 @@
         canvas.height = window.innerHeight;
       };
     </script>
-
-    <!-- Ractive containers -->
-    <div id='eventLogContainer'></div>
-
-    <!-- Log text template -->
-    <script id='eventLogTemplate' type='text/ractive'>
-      <div class='event-log'>
-        {{#logs}}
-          <div class='event-log-item'>{{text}}</div>
-        {{/logs}}
-      </div>
-    </script>
-
-    <script src='lib/ractive.js'></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 TANK.registerComponent('AIDerelict')
-.includes('Ship')
+.includes(['Ship', 'RemoveOnLevelChange'])
 .initialize(function()
 {
   this.listenTo(TANK.main, 'derelictleave', function()

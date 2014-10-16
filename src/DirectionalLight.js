@@ -1,0 +1,1 @@
+TANK.registerComponent('DirectionalLight').includes('Pos2D');

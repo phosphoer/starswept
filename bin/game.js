@@ -129,7 +129,7 @@ TANK.registerComponent('AICivilian')
   });
 });
 TANK.registerComponent('AIDerelict')
-.includes('Ship')
+.includes(['Ship', 'RemoveOnLevelChange'])
 .initialize(function()
 {
   this.listenTo(TANK.main, 'derelictleave', function()
@@ -143,7 +143,7 @@ TANK.registerComponent('AIPolice')
 .construct(function()
 {
   this.target = null;
-  this.scanDistance = 1000;
+  this.scanDistance = 500;
   this.patienceTime = 10;
   this.patienceTimer = 0;
   this.scanTime = 5;
@@ -228,7 +228,7 @@ TANK.registerComponent('AIPolice')
       this.patienceTimer += dt;
 
       // Check if player has stopped
-      if (this.target.Ship.desiredSpeed < 0.01 && targetDist < this.scanDistance)
+      if (targetDist < this.scanDistance)
       {
         this.waitingForScan = true;
         this.scanTimer += dt;
@@ -252,6 +252,15 @@ TANK.registerComponent('AIPolice')
         }
       }
 
+      if (this.target.Ship.desiredSpeed < 0.01)
+      {
+        this.waitingForScan = true;
+      }
+      else
+      {
+        this.waitingForScan = false;
+      }
+
       // If we run out of patience
       if (this.patienceTimer >= this.patienceTime && !this.waitingForScan)
       {
@@ -271,6 +280,59 @@ TANK.registerComponent('AIPolice')
       }
     }
   };
+});
+TANK.registerComponent('AIShop')
+.includes(['Pos2D', 'RemoveOnLevelChange', 'TriggerRadius'])
+.construct(function()
+{
+  this.availableItems = [];
+  this.items = [];
+  this.numItems = 3;
+})
+.initialize(function()
+{
+  this._entity.TriggerRadius = 100;
+
+  //
+  // Chose which items to sell
+  //
+  for (var i = 0; i < this.numItems; ++i)
+  {
+    var weights = this.availableItems.map(function(val) {return val.probability;});
+    var chosenIndex = TANK.main.Game.randomWeighted(weights);
+    var chosenItem = this.availableItems[chosenIndex];
+    this.items.push(chosenItem.name);
+  }
+
+  //
+  // Listen for trigger
+  //
+  this.listenTo(this._entity, 'triggerradius', function()
+  {
+    TANK.main.Game.showShopMenu(this.items);
+  });
+});
+TANK.registerComponent('AIStolenEnforcer')
+.includes(['Ship', 'RemoveOnLevelChange'])
+.initialize(function()
+{
+  this.listenTo(this._entity, 'damaged', function()
+  {
+    if (this._entity.Ship.health <= 0.2 && this._entity.Ship.health >= 0.0)
+    {
+      this._entity.removeComponent('AIAttack');
+      TANK.main.Game.addEventLog('Puffs of oxygen exit the ship as the pirates take to the escape pods. Looks like your work is done.');
+      if (Flags['wanted'])
+      {
+        Flags['wanted'] = false;
+        TANK.main.Game.addEventLog('Wanted status cleared.');
+      }
+      else
+      {
+        TANK.main.Game.unlockShip('enforcer');
+      }
+    }
+  });
 });
 TANK.registerComponent('Asteroid')
 
@@ -626,6 +688,7 @@ TANK.registerComponent('Clouds')
 .uninitialize(function()
 {
 });
+TANK.registerComponent('DirectionalLight').includes('Pos2D');
 TANK.registerComponent("DustField")
 
 .construct(function()
@@ -801,6 +864,93 @@ TANK.registerComponent('Engines')
 
   this.drawEngine();
 });
+TANK.registerComponent('EventLog')
+.construct(function()
+{
+  this.htmlText =
+  [
+    '<div class="console-window event-log">',
+    '</div>'
+  ].join('\n');
+})
+.initialize(function()
+{
+  //
+  // Create UI
+  //
+  this.container = document.createElement('div');
+  this.container.innerHTML = this.htmlText;
+  document.body.appendChild(this.container);
+  this.logContainer = this.container.querySelector('.event-log');
+
+  //
+  // Log functions
+  //
+  this.add = function(text)
+  {
+    var log = document.createElement('div');
+    log.className = 'event-log-item';
+    log.innerText = text;
+    this.logContainer.appendChild(log);
+    this.logContainer.scrollTop = this.logContainer.scrollHeight;
+  };
+
+  this.clear = function()
+  {
+    this.logContainer.innerHTML = '';
+  };
+
+  //
+  // Display options
+  //
+  this.showOptions = function(prompt, options)
+  {
+    this.logContainer.classList.add('event-log-expanded');
+
+    // Create container
+    var optionsContainer = document.createElement('div');
+    optionsContainer.className = 'event-log-options';
+
+    // Create prompt
+    var promptUI = document.createElement('div');
+    promptUI.className = 'event-log-prompt';
+    promptUI.innerText = prompt;
+    optionsContainer.appendChild(promptUI);
+
+    // Add options
+    for (var i = 0; i < options.length; ++i)
+    {
+      var optionUI = document.createElement('div');
+      optionUI.className = 'event-log-option';
+      optionUI.innerText = '> ' + options[i].text;
+      optionUI.setAttribute('data-index', i);
+      optionsContainer.appendChild(optionUI);
+    }
+    this.logContainer.appendChild(optionsContainer);
+
+    // Set up interactions
+    optionsContainer.addEventListener('click', function(e)
+    {
+      if (!e.target.classList.contains('event-log-option'))
+        return;
+
+      var index = e.target.getAttribute('data-index');
+      this._entity.dispatch('choicemade', index);
+      if (options[index].script)
+        options[index].script();
+
+      this.logContainer.removeChild(optionsContainer);
+      this.logContainer.classList.remove('event-log-expanded');
+    }.bind(this));
+
+    // Scroll to bottom
+    this.logContainer.scrollTop = this.logContainer.scrollHeight;
+  };
+})
+.uninitialize(function()
+{
+  document.body.removeChild(this.container);
+});
 var Events = {};
 
 //
@@ -808,7 +958,10 @@ var Events = {};
 //
 Events.empty =
 {
-  text: 'You appear to be alone.'
+  script: function()
+  {
+    TANK.main.Game.addEventLog('You appear to be alone.');
+  }
 };
 
 //
@@ -816,7 +969,10 @@ Events.empty =
 //
 Events.start =
 {
-  story: {eventText: 'You began your journey.'}
+  script: function()
+  {
+    TANK.main.Game.addStory('You began your journey.');
+  }
 };
 
 //
@@ -824,8 +980,11 @@ Events.start =
 //
 Events.civilian =
 {
-  text: 'Your scanners pick up the signature of a small ship nearby.',
-  spawns: ['civilian']
+  script: function()
+  {
+    TANK.main.Game.addEventLog('Your scanners pick up the signature of a small ship nearby.');
+    Spawns.civilian();
+  }
 };
 
 //
@@ -833,8 +992,12 @@ Events.civilian =
 //
 Events.pirate =
 {
-  text: 'Alarms begin sounding as soon as the warp is complete, you are under attack!',
-  spawns: ['pirate']
+  script: function()
+  {
+    TANK.main.Game.addEventLog('Alarms begin sounding as soon as the warp is complete, you are under attack!');
+    Spawns.pirate();
+    Spawns.warpJammer();
+  }
 };
 
 //
@@ -842,7 +1005,204 @@ Events.pirate =
 //
 Events.police =
 {
-  spawns: ['police']
+  script: function()
+  {
+    Spawns.police();
+    Spawns.warpJammer();
+  }
+};
+
+//
+// Unlock Enforcer event
+//
+Events.returnStolenEnforcer =
+{
+  script: function()
+  {
+    TANK.main.Game.addEventLog('A police ship hails you and requests that you approach within comms distance.');
+
+    var spawn =
+    {
+      components:
+      {
+        Pos2D: {x: 2000, y: 0},
+        Ship: {shipType: 'enforcer'},
+        RemoveOnLevelChange: {},
+        TriggerRadius: {radius: 500, events: [{probability: 1, name: 'returnStolenEnforcer_start'}]}
+      }
+    };
+
+    Spawns.custom(spawn);
+  }
+};
+
+Events.returnStolenEnforcer_start =
+{
+  script: function()
+  {
+    TANK.main.Game.addEventLog('"Greetings pilot, I\'m in a bit of trouble here. I was out on patrol with my buddy when we were ambushed by pirates! They disabled my ship and captured his. If I don\'t get that ship back I\'ll be in big trouble. They were heading towards a red dwarf star when I last saw them."');
+
+    Flags['returnStolenEnforcer'] = true;
+
+    if (Flags['wanted'])
+    {
+      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that your wanted status is cleared".');
+    }
+    else
+    {
+      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that you are rewarded well."');
+    }
+  }
+};
+
+Events.returnStolenEnforcerBattle =
+{
+  requireFlags: ['returnStolenEnforcer'],
+  script: function()
+  {
+    TANK.main.Game.addEventLog('Just ahead you see the stolen police cruiser. Looks like they aren\'t prepared to chat.');
+
+    var rng = new RNG();
+    var spawnPos = [rng.random(-3000, 3000), rng.random(-3000, 3000)];
+
+    var e = TANK.createEntity(['AIStolenEnforcer', 'AIAttackPlayer']);
+    e.Pos2D.x = spawnPos[0];
+    e.Pos2D.y = spawnPos[1];
+    e.Ship.shipType = 'enforcer';
+    TANK.main.addChild(e);
+
+    var numEscorts = rng.random(1, 2);
+    e = TANK.createEntity(['AIAttackPlayer']);
+    e.Pos2D.x = spawnPos[0] + rng.random(-1000, 1000);
+    e.Pos2D.y = spawnPos[1] + rng.random(-1000, 1000);
+    e.Ship.shipType = 'fighter';
+    TANK.main.addChild(e);
+  }
+};
+
+//
+// Unlock Blade event
+//
+Events.investigatePrototypeShip =
+{
+  script: function()
+  {
+    TANK.main.Game.addEventLog('The research station up ahead seems to actually be inhabited by someone.');
+
+    var entities = TANK.main.getChildrenWithComponent('LevelProp');
+    var station;
+    for (var i in entities)
+      if (entities[i].LevelProp.resourceName === 'station-01')
+        station = entities[i];
+
+    var e = TANK.createEntity('TriggerRadius');
+    e.TriggerRadius.radius = 500;
+    e.TriggerRadius.events = [{probability: 1, name: 'investigatePrototypeShip_start'}];
+    e.Pos2D.x = station.Pos2D.x;
+    e.Pos2D.y = station.Pos2D.y;
+    TANK.main.addChild(e);
+  }
+};
+
+Events.investigatePrototypeShip_start =
+{
+  script: function()
+  {
+    var options = [];
+    options.push(
+    {
+      text: 'Sure thing, come on in!',
+      script: function()
+      {
+        TANK.main.Game.addEventLog('"Thanks partner!"');
+        Flags['investigatePrototypeShip'] = true;
+      }
+    });
+
+    options.push(
+    {
+      text: 'Sorry, no room for scientists aboard.',
+      script: function()
+      {
+        TANK.main.Game.addEventLog('"Dang."');
+      }
+    });
+
+    TANK.main.Game.addEventLog('As you approach the research station you are contacted by someone inside.');
+    TANK.main.Game.triggerPlayerChoice('"Hi there! I don\'t suppose you\'d be interested in giving me a lift? I\'m a space scientist you see, and there is some important science to be done at the old battlefield near here."', options);
+  }
+};
+
+Events.investigatePrototypeShipEncounter =
+{
+  requireFlags: ['investigatePrototypeShip'],
+  script: function()
+  {
+    TANK.main.Game.addEventLog('"Ah ha! See that ship up ahead? That\'s what I\'m looking for. Can you get me a bit closer?"');
+
+    var rng = new RNG();
+    var spawnPos = [rng.random(-3000, 3000), rng.random(-3000, 3000)];
+
+    var e = TANK.createEntity(['Ship', 'TriggerRadius']);
+    e.Pos2D.x = spawnPos[0];
+    e.Pos2D.y = spawnPos[1];
+    e.Ship.shipType = 'blade';
+    e.TriggerRadius.radius = 700;
+    e.TriggerRadius.events = [{probability: 1, name: 'investigatePrototypeShip_approach'}];
+    TANK.main.addChild(e, 'PrototypeShip');
+  }
+};
+
+Events.investigatePrototypeShip_approach =
+{
+  script: function()
+  {
+    var options = [];
+    options.push(
+    {
+      text: 'Try to clear the bots by shooting at them.',
+      script: function()
+      {
+        TANK.main.Game.triggerEvent('investigatePrototypeShip_explode');
+      }
+    });
+
+    options.push(
+    {
+      text: 'Try scraping the bots off with the hull of your ship.',
+      script: function()
+      {
+        TANK.main.Game.triggerEvent('investigatePrototypeShip_successA');
+      }
+    });
+
+    TANK.main.Game.addEventLog('The scientist throws on a space suit and hops out to investigate the prototype ship.');
+    TANK.main.Game.triggerPlayerChoice('"Oh jeeze! This ship is crawling with rogue bomb bots! There\'s no way I can get inside with these guys around..."', options);
+  }
+};
+
+Events.investigatePrototypeShip_explode =
+{
+  script: function()
+  {
+    TANK.main.Game.addEventLog('Despite your best efforts to single out bots not near others, a chain reaction begins and the flames engulf both your ship and the mysterious prototype ship. Your ship survives with serious damage, but the prototype ship is lost.');
+    TANK.main.Game.player.Ship.health /= 2;
+    for (var i = 0; i < 10; ++i)
+      TANK.main.Game.player.Ship.addRandomDamage(3 + Math.random() * 6);
+    var e = TANK.main.getChild('PrototypeShip');
+    e.Ship.health = -1;
+  }
+};
+
+Events.investigatePrototypeShip_successA =
+{
+  script: function()
+  {
+    TANK.main.Game.addEventLog('A couple bots explode as they are nudged into open space, causing minor damage to your hull, but on the whole your plan works out ok.');
+    TANK.main.Game.player.Ship.health -= TANK.main.Game.player.Ship.health / 4;
+    for (var i = 0; i < 5; ++i)
+      TANK.main.Game.player.Ship.addRandomDamage(2 + Math.random() * 3);
+  }
 };
 
 //
@@ -850,68 +1210,90 @@ Events.police =
 //
 Events.derelict =
 {
-  text: 'Your scanners pick up the signature of a mid sized ship, but the signal is much fainter than you would expect. The signal originates from a short distance ahead.',
-  spawns: ['derelict']
+  script: function()
+  {
+    TANK.main.Game.addEventLog('Your scanners pick up the signature of a mid sized ship, but the signal is much fainter than you would expect. The signal originates from a short distance ahead.');
+    Spawns.derelict();
+  }
 };
 
 Events.derelict_1a =
 {
-  text: 'As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.',
-  story: {eventText: 'You came across a disabled ship with no crew left alive at {{location}}'}
+  script: function()
+  {
+    TANK.main.Game.addEventLog('As you approach, a quick bio scan reveals no lifeforms. Looks like you arrived a bit too late. Or right on time, depending on your outlook.');
+    TANK.main.Game.addStory('You came across a disabled ship with no crew left alive at {{location}}');
+  }
 };
 
 Events.derelict_1b =
 {
-  text: 'Upon approaching, you are contacted by the ship. The captain informs you that they have been stranded for days, and pleads with you to give them 3 fuel cells so they can return home.',
-  options:
-  [
+  script: function()
+  {
+    var options = [];
+    options.push(
     {
       text: 'Decline, you need all the fuel you\'ve got.',
-      responseText: 'The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.',
-      story: {eventText: 'You came across a disabled ship at {{location}} but refused to help them out.'}
-    },
+      script: function()
+      {
+        TANK.main.Game.addEventLog('The tension in the air as you deliver the bad news is palpable. The comms connection disconnects.');
+        TANK.main.Game.addStory('You came across a disabled ship at {{location}} but refused to help them out.');
+      }
+    });
+
+    options.push(
     {
       text: 'Agree to give them some fuel. Your shields must shut off completely to make the transfer.',
-      events:
-      [
-        {probability: 0.5, name: 'derelict_2a'},
-        {probability: 0.5, name: 'derelict_2b'}
-      ]
-    }
-  ]
+      script: function()
+      {
+        var name = TANK.main.Game.pickRandomNamedOption(
+        [
+          {probability: 0.5, name: 'derelict_2a'},
+          {probability: 0.5, name: 'derelict_2b'}
+        ]);
+        TANK.main.Game.triggerEvent(name);
+      }
+    });
+
+    TANK.main.Game.triggerPlayerChoice('Upon approaching, you are contacted by the ship. The captain informs you that they have been stranded for days, and pleads with you to give them 3 fuel cells so they can return home.', options);
+  }
 };
 
 Events.derelict_2a =
 {
-  text: 'The captain thanks you profusely and speeds off.',
-  story: {eventText: 'You came across a disabled ship at {{location}} and helped them out with some fuel.'},
-  setFlags: ['rescuedDerelict'],
-  dispatchEvent: 'derelictleave',
   script: function()
   {
+    TANK.main.Game.addEventLog('The captain thanks you profusely and speeds off.');
+    TANK.main.Game.addStory('You came across a disabled ship at {{location}} and helped them out with some fuel.');
     TANK.main.Game.takePlayerFuel(3);
+    TANK.main.dispatch('derelictleave');
+    Flags['rescuedDerelict'] = true;
   }
 };
 
 Events.derelict_2b =
 {
-  text: 'As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.',
-  story: {eventText: 'You came across a disabled ship at {{location}} and were ambushed by pirates.'},
-  dispatchEvent: 'killplayershields',
-  spawns:
-  [
-    'pirate',
-    'pirate'
-  ]
+  script: function()
+  {
+    Spawns.pirate();
+    Spawns.pirate();
+    Spawns.warpJammer();
+    TANK.main.Game.addEventLog('As soon as you disable your shields, several hostile ship signatures show up on the scanner. Looks like you are about to regret your helpful nature.');
+    TANK.main.Game.addStory('You came across a disabled ship at {{location}} and were ambushed by pirates.');
+    TANK.main.Game.killPlayerShields();
+  }
 };
 
 Events.derelictReturn =
 {
-  text: 'Just ahead you see the same ship that you rescued earlier. The captain says they have since filled up and would be happy to transfer you some fuel as thanks if you approach closer.',
   requireFlags: ['rescuedDerelict'],
-  unsetFlags: ['rescuedDerelict'],
-  spawns:
-  [
+  script: function()
+  {
+    TANK.main.Game.addEventLog('Just ahead you see the same ship that you rescued earlier. The captain says they have since filled up and would be happy to transfer you some fuel as thanks if you approach closer.');
+
+    Flags['rescuedDerelict'] = false;
+
+    var spawn =
     {
       components:
       {
@@ -920,16 +1302,19 @@ Events.derelictReturn =
         AIDerelict: {},
         TriggerRadius: {radius: 500, events: [{probability: 1, name: 'derelictGiveFuel'}]}
       }
-    }
-  ]
+    };
+
+    Spawns.custom(spawn);
+  }
 };
 
 Events.derelictGiveFuel =
 {
-  story: {eventText: 'You ran into the ship you previously rescued and they gave you some fuel.'},
-  dispatchEvent: 'derelictleave',
   script: function()
   {
+    TANK.main.Game.addStory('You ran into the ship you previously rescued and they gave you some fuel.');
+    TANK.main.dispatch('derelictleave');
+
     var amount = Math.floor(1 + Math.random() * 3);
     var derelict = TANK.main.getChildrenWithComponent('AIDerelict');
     derelict = derelict[Object.keys(derelict)[0]];
@@ -945,15 +1330,51 @@ Events.derelictGiveFuel =
 };
 
 //
+// Shop events
+//
+Events.shopA =
+{
+  perks:
+  [
+    {probability: 1, name: 'gunReloadTime'}
+  ],
+  script: function()
+  {
+    TANK.main.Game.addEventLog('A cargo ship here has been modified into a somewhat mobile shop. A grizzled voice hails you over the comms and invites you to check out the selection.');
+
+    var e = TANK.createEntity(['AIShop', 'Ship']);
+    e.AIShop.availableItems = this.perks;
+    e.Pos2D.x = -2000 + Math.random() * 2000;
+    e.Pos2D.y = -2000 + Math.random() * 2000;
+    e.Pos2D.rotation = Math.random() * Math.PI * 2;
+    e.Ship.shipType = 'rhino';
+    TANK.main.addChild(e);
+  }
+};
+
+//
 // Test event
 //
 Events.test =
 {
-  text: 'A test event'
+  script: function()
+  {
+    TANK.main.Game.addEventLog('A test event');
+  }
 };
 var Flags = {};
 
 
+TANK.registerComponent('FollowMouse')
+.includes('Pos2D')
+.initialize(function()
+{
+  this.update = function(dt)
+  {
+    this._entity.Pos2D.x = TANK.main.Game.mousePosWorld[0];
+    this._entity.Pos2D.y = TANK.main.Game.mousePosWorld[1];
+  };
+});
 TANK.registerComponent('FuelCell')
 
 .includes(['LightingAndDamage', 'Velocity', 'Collider2D', 'RemoveOnLevelChange'])
@@ -1015,7 +1436,7 @@ TANK.registerComponent('Game')
   this.menuOptions = [];
 
   // Event log
-  this.eventLogs = [];
+  this.eventLogsTimed = [];
   this.story = [];
 
   // Mouse positions
@@ -1034,6 +1455,9 @@ TANK.registerComponent('Game')
     'frigate': true,
     'albatross': true
   };
+
+  // Active perks
+  this.activePerks = {};
 })
 
 .initialize(function()
@@ -1097,6 +1521,10 @@ TANK.registerComponent('Game')
   resources.add('fuel-cell-normals', 'res/img/fuel-cell-normals.png');
   resources.add('fuel-cell', null, ['fuel-cell-diffuse', 'fuel-cell-normals'], loadLighting);
 
+  resources.add('ball-diffuse', 'res/img/ball-diffuse.png');
+  resources.add('ball-normals', 'res/img/ball-normals.png');
+  resources.add('ball', null, ['ball-diffuse', 'ball-normals'], loadLighting);
+
   //
   // Rebuild lighting
   //
@@ -1153,6 +1581,26 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Update light source
+  //
+  this.updateLightSource = function()
+  {
+    if (!this.lightSource)
+    {
+      this.lightSource = TANK.createEntity('Star');
+      TANK.main.addChild(this.lightSource);
+    }
+
+    this.lightSource.Pos2D.x = Math.cos(this.lightDir) * 5000;
+    this.lightSource.Pos2D.y = Math.sin(this.lightDir) * 5000;
+
+    if (this.currentLocation)
+    {
+      this.lightSource.Star.outerColor = this.currentLocation.lightColor.map(function(val) {return Math.floor(val * 255);});
+    }
+  };
+
+  //
   // Move to the main menu state
   //
   this.goToMainMenu = function()
@@ -1171,6 +1619,9 @@ TANK.registerComponent('Game')
     this.mainMenu = TANK.createEntity('MainMenu');
     TANK.main.addChild(this.mainMenu);
 
+    // Create light source entity
+    this.updateLightSource();
+
     // Handle main menu interactions
     this.listenTo(this.mainMenu, 'newgame', function()
     {
@@ -1179,10 +1630,10 @@ TANK.registerComponent('Game')
     });
 
     // Remove event log
-    if (this.eventLogUI)
+    if (this.eventLog)
     {
-      this.eventLogUI.teardown();
-      this.eventLogUI = null;
+      TANK.main.removeChild(this.eventLog);
+      this.eventLog = null;
     }
   };
 
@@ -1239,8 +1690,8 @@ TANK.registerComponent('Game')
   //
   this.randomWeighted = function(weights)
   {
-    weights = weights.filter(function(val) {return val > 0;});
-    var minValue = Math.min.apply(null, weights);
+    var weightsNoZero = weights.filter(function(val) {return val > 0;});
+    var minValue = Math.min.apply(null, weightsNoZero);
     var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
     var weightArray = [];
     for (var i = 0; i < weightsNormalized.length; ++i)
@@ -1254,14 +1705,24 @@ TANK.registerComponent('Game')
     return weightArray[index];
   };
 
+  this.pickRandomNamedOption = function(options)
+  {
+    var weights = options.map(function(val) {return val.probability;});
+    var chosenIndex = this.randomWeighted(weights);
+    return options[chosenIndex].name;
+  };
+
   //
   // Add an event log
   //
   this.addEventLog = function(logText)
   {
-    this.eventLogs.push({text: logText});
-    var logContainer = document.querySelector('.event-log');
-    logContainer.scrollTop = logContainer.scrollHeight;
+    this.eventLog.EventLog.add(logText);
+  };
+
+  this.addEventLogTimed = function(logText, time)
+  {
+    this.eventLogsTimed.push({text: logText, time: time});
   };
 
   //
@@ -1269,8 +1730,8 @@ TANK.registerComponent('Game')
   //
   this.clearEventLog = function()
   {
-    while (this.eventLogs.length)
-      this.eventLogs.pop();
+    if (this.eventLog)
+      this.eventLog.EventLog.clear();
   };
 
   //
@@ -1303,19 +1764,68 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Show shop menu
+  //
+  this.showShopMenu = function(items)
+  {
+    // Build options
+    var options = [];
+    for (var i = 0; i < items.length; ++i)
+    {
+      var item = Perks[items[i]];
+      options.push({text: item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells'});
+    }
+
+    // Show option menu
+    this.triggerPlayerChoice('Choose item', options);
+
+    // Wait for choice
+    this.listenTo(this.eventLog, 'choicemade', function(index)
+    {
+      var item = Perks[items[index]];
+      this.takePlayerFuel(item.cost);
+      this.activePerks[items[index]] = true;
+    });
+  };
+
+  //
   // Show location options
   //
   this.showLocationOptions = function()
   {
+    // Verify jump is possible
+    if (!this.warpReady)
+    {
+      this.addEventLog('Warp drive is not fully charged');
+      return;
+    }
+    if (this.player.Ship.fuel < 1)
+    {
+      this.addEventLog('No fuel.');
+      return;
+    }
+
+    // Build option list
+    var options = [];
     for (var i = 0; i < this.currentNode.paths.length; ++i)
     {
       var node = this.currentNode.paths[i];
       var location = Locations[node.locationName];
-      var desc = (node.depth < 1) ? 'Indirect route' : 'Direct route';
-      this.addEventLog((i + 1) + '. ' + location.name + ' (' + desc + ')');
+      var desc = (node.depth - this.currentNode.depth === 1) ? 'Direct route' : 'Indirect route';
+      var option = {};
+      option.text = location.name + ' (' + desc + ')';
+      option.node = node;
+      option.script = function()
+      {
+        TANK.main.unpause();
+        TANK.main.Game.takePlayerFuel(1);
+        TANK.main.Game.goToNode(this.node);
+      };
+      options.push(option);
     }
 
-    this.waitingForJump = true;
+    // Show option menu
+    this.triggerPlayerChoice('Choose destination', options);
   };
 
   //
@@ -1348,8 +1858,9 @@ TANK.registerComponent('Game')
     // Set location attributes
     TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
     Lightr.lightDiffuse = location.lightColor;
-    this.lightDir = location.lightDir;
+    this.lightDir = Math.random() * Math.PI * 2;
     this.rebuildLighting();
+    this.updateLightSource();
 
     // Create player entity if it doesn't exist
     if (!this.player)
@@ -1359,15 +1870,11 @@ TANK.registerComponent('Game')
       TANK.main.addChild(this.player);
     }
 
-    // Build event log ractive
-    if (!this.eventLogUI)
+    // Build event log ui
+    if (!this.eventLog)
     {
-      this.eventLogUI = new Ractive(
-      {
-        el: 'eventLogContainer',
-        template: '#eventLogTemplate',
-        data: {logs: this.eventLogs}
-      });
+      this.eventLog = TANK.createEntity('EventLog');
+      TANK.main.addChild(this.eventLog);
     }
 
     // Position player
@@ -1422,8 +1929,11 @@ TANK.registerComponent('Game')
 
       // Pick a random event
       var chosenIndex = this.randomWeighted(weights);
-      var chosenEvent = location.events[chosenIndex];
-      this.triggerEvent(chosenEvent.name);
+      if (typeof chosenIndex !== 'undefined')
+      {
+        var chosenEvent = location.events[chosenIndex];
+        this.triggerEvent(chosenEvent.name);
+      }
     }
 
     // Log default tutorial message
@@ -1442,71 +1952,32 @@ TANK.registerComponent('Game')
   this.triggerEvent = function(eventName)
   {
     var event = Events[eventName];
-    event.spawns = event.spawns || [];
-    event.options = event.options || [];
-
-    // Show event text
-    this.addEventLog(event.text);
-
-    // Add event story
-    if (event.story)
-    {
-      this.addStory(event.story.eventText);
-    }
 
     // Call event script
     if (event.script)
       event.script();
-
-    // Set any event flags
-    if (event.setFlags)
-    {
-      for (var i = 0; i < event.setFlags.length; ++i)
-        Flags[event.setFlags[i]] = true;
-    }
-
-    // Unset any event flags
-    if (event.unsetFlags)
-    {
-      for (var i = 0; i < event.unsetFlags.length; ++i)
-        Flags[event.unsetFlags[i]] = false;
-    }
-
-    // Spawn event entities
-    for (var i = 0; i < event.spawns.length; ++i)
-    {
-      var spawn = event.spawns[i];
-
-      // Using Spawns library
-      if (typeof spawn === 'string')
-      {
-        Spawns[spawn]();
-      }
-      // Or using an object literal as a prototype
-      else
-      {
-        var e = TANK.createEntity();
-        e.load(spawn);
-        TANK.main.addChild(e);
-      }
-    }
-
-    // Dispatch any messages the event has
-    if (event.dispatchEvent)
-      TANK.main.dispatch(event.dispatchEvent);
-
-    // If the event has options, wait for a choice to be made
-    if (event.options.length > 0)
-    {
-      this.eventAwaitingInput = event;
-      this.waitingForJump = false;
-      for (var i = 0; i < event.options.length; ++i)
-        this.addEventLog((i + 1) + '. ' + event.options[i].text);
-    }
   };
 
   //
-  // Give player fuel
+  // Trigger a player choice
+  //
+  this.triggerPlayerChoice = function(prompt, options)
+  {
+    this.eventLog.EventLog.showOptions(prompt, options);
+    this.listenTo(this.eventLog, 'choicemade', this.handleOptionChoice);
+    TANK.main.pause();
+  };
+
+  //
+  // Handle event option choice
+  //
+  this.handleOptionChoice = function(index)
+  {
+    TANK.main.unpause();
+  };
+
+  //
+  // Player manipulation
   //
   this.givePlayerFuel = function(amount)
   {
@@ -1528,11 +1999,27 @@ TANK.registerComponent('Game')
     this.player.Ship.fuel -= amount;
   };
 
+  this.resetPlayerWarp = function()
+  {
+    this.player.Ship.warpCharge = 0;
+    this.addEventLog('Your warp drive was jammed and the charge lost.');
+  };
+
+  this.killPlayerShields = function()
+  {
+    this.player.Ship.shieldObj.Shield.health = 0;
+    this.player.Ship.shieldObj.Shield.burstTimer = this.player.Ship.shieldObj.Shield.burstTime;
+    this.player.Ship.shieldObj.Shield.recovering = true;
+    this.addEventLog('Your shields have been disabled.');
+  };
+
   //
   // Unlock methods
   //
   this.unlockShip = function(name)
   {
+    var shipData = new Ships[name]();
+    this.addEventLog('You can now choose the ' + shipData.name + ' when beginning a new game.');
     this.unlockedShips[name] = true;
     this.save();
   };
@@ -1605,52 +2092,12 @@ TANK.registerComponent('Game')
       // 0 index choice from 1 key
       var choice = e.keyCode - TANK.Key.NUM1;
 
-      // Choose to jump to a location
-      if (this.waitingForJump)
-      {
-        this.waitingForJump = false;
-
-        if (!this.warpReady)
-        {
-          var timeRemaining = this.player.Ship.shipData.warpChargeTime - this.player.Ship.warpCharge;
-          this.addEventLog('Warp drive charged in ' + Math.round(timeRemaining) + ' seconds.');
-          return;
-        }
-
-        if (this.player.Ship.fuel < 1)
-        {
-          this.addEventLog('No fuel.');
-          return;
-        }
-
-        if (choice < this.currentNode.paths.length)
-        {
-          this.player.Ship.fuel -= 1;
-          this.goToNode(this.currentNode.paths[choice]);
-        }
-      }
       // Choose an answer for an event
-      else if (this.eventAwaitingInput)
+      if (this.eventAwaitingInput)
       {
         if (choice < this.eventAwaitingInput.options.length)
         {
-          // Show response text
-          var chosenOption = this.eventAwaitingInput.options[choice];
-          if (chosenOption.responseText)
-            this.addEventLog(chosenOption.responseText);
 
-          // Add story
-          if (chosenOption.story)
-            this.addStory(chosenOption.story.eventText);
-
-          // Trigger an event, if any
-          if (chosenOption.events)
-          {
-            var weights = chosenOption.events.map(function(ev) {return ev.probability;});
-            var chosenIndex = this.randomWeighted(weights);
-            var chosenEvent = chosenOption.events[chosenIndex];
-            this.triggerEvent(chosenEvent.name);
-          }
 
           this.eventAwaitingInput = null;
         }
@@ -1666,12 +2113,22 @@ TANK.registerComponent('Game')
     // Check if player is ready to warp
     if (this.player)
     {
-      if (this.player.Ship.warpCharge >= this.player.Ship.shipData.warpChargeTime && !this.warpReady)
+      if (this.player.Ship.warpCharge >= this.player.Ship.warpChargeTime && !this.warpReady)
       {
         this.addEventLog('...Warp drive charged. Press J to warp when ready.');
         this.warpReady = true;
       }
     }
+
+    // Handle timed event logs
+    for (var i = 0; i < this.eventLogsTimed.length; ++i)
+    {
+      var log = this.eventLogsTimed[i];
+      log.time -= dt;
+      if (log.time <= 0)
+        this.addEventLog(log.text);
+    }
+    this.eventLogsTimed = this.eventLogsTimed.filter(function(val) {return val.time > 0;});
 
     // Handle warp logic
     if (this.warpTimer > 0)
@@ -1688,71 +2145,6 @@ TANK.registerComponent('Game')
   };
 });
 
-TANK.registerComponent("Glow")
-
-.includes(["Pos2D", "Velocity", "Life"])
-
-.construct(function()
-{
-  this.zdepth = 5;
-  this.radius = 3;
-  this.innerRadius = 1;
-  this.alpha = 1;
-  this.colorA = "rgba(255, 255, 255, 0.2)";
-  this.colorB = "rgba(150, 150, 255, 0.05)";
-  this.colorC = "rgba(80, 80, 150, 0.0)";
-  this.alphaDecay = 0;
-  this.friction = 1;
-})
-
-.initialize(function()
-{
-  var t = this._entity.Pos2D;
-  var v = this._entity.Velocity;
-
-  // Make buffer
-  this.pixelBuffer = new PixelBuffer();
-  this.pixelBuffer.createBuffer(this.radius * 2, this.radius * 2);
-
-  TANK.main.Renderer2D.add(this);
-
-  // Draw glow
-  this.redraw = function()
-  {
-    var grad = this.pixelBuffer.context.createRadialGradient(this.radius, this.radius, this.innerRadius, this.radius, this.radius, this.radius);
-    grad.addColorStop(0, this.colorA);
-    grad.addColorStop(0.5, this.colorB);
-    grad.addColorStop(1, this.colorC);
-    this.pixelBuffer.context.clearRect(0, 0, this.pixelBuffer.width, this.pixelBuffer.height);
-    this.pixelBuffer.context.fillStyle = grad;
-    this.pixelBuffer.context.beginPath();
-    this.pixelBuffer.context.arc(this.pixelBuffer.width / 2, this.pixelBuffer.height / 2, this.pixelBuffer.width / 2, Math.PI * 2, false);
-    this.pixelBuffer.context.fill();
-    this.pixelBuffer.context.closePath();
-  }
-
-  this.draw = function(ctx, camera, dt)
-  {
-    if (this.alphaDecay > 0 && this.alpha > 0)
-    {
-      this.alpha -= this.alphaDecay * dt;
-      this.redraw();
-      if (this.alpha < 0)
-        this.alpha = 0;
-    }
-    v.x *= this.friction;
-    v.y *= this.friction;
-
-    ctx.save();
-    ctx.globalAlpha = this.alpha;
-    ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
-    ctx.rotate(t.rotation);
-    ctx.translate(-this.radius, -this.radius);
-    ctx.drawImage(this.pixelBuffer.canvas, 0, 0);
-    ctx.restore();
-  };
-});
 var Guns = {};
 
 Guns.smallRail = function()
@@ -1802,7 +2194,7 @@ Guns.mediumRail = function()
 Guns.mediumRocket = function()
 {
   this.image = new Image();
-  this.image.src = 'res/img/medium-rail.png';
+  this.image.src = 'res/img/medium-rocket.png';
   this.shootSound = 'medium-rail-01';
   this.shootEffect = 'gunFireMedium';
   this.trailEffect = 'mediumRailTrail';
@@ -1927,17 +2319,31 @@ TANK.registerComponent('LightingAndDamage')
   {
     this.mainBuffer.context.save();
     this.mainBuffer.context.clearRect(0, 0, this.mainBuffer.width, this.mainBuffer.height);
-    this.mainBuffer.context.drawImage(this.resource.diffuse, 0, 0);
 
     // Draw lighting
-    var lightDir = [Math.cos(TANK.main.Game.lightDir), Math.sin(TANK.main.Game.lightDir)];
-    for (var i = 0; i < this.resource.lightBuffers.length; ++i)
-    {
-      var lightDirOffset = (Math.PI * 2 / this.resource.lightBuffers.length) * i - Math.PI / 2;
-      this.mainBuffer.context.globalAlpha = Math.max(0, -TANK.Math2D.dot(lightDir, [Math.cos(t.rotation + lightDirOffset), Math.sin(t.rotation + lightDirOffset)]));
-      if (this.mainBuffer.context.globalAlpha > 0)
-        this.mainBuffer.context.drawImage(this.resource.lightBuffers[i], 0, 0);
-    }
+    var lightObj = TANK.main.getChildrenWithComponent('DirectionalLight');
+    if (lightObj)
+      lightObj = lightObj[Object.keys(lightObj)[0]];
+
+    var rotation = t.rotation;
+    while (rotation < 0)
+      rotation += Math.PI * 2;
+    rotation %= Math.PI * 2;
+
+    var numBuffers = this.resource.lightBuffers.length;
+    var angleChunk = Math.PI * 2 / numBuffers;
+    var lightAngle = (Math.atan2(lightObj.Pos2D.y - t.y, t.x - lightObj.Pos2D.x) + rotation + Math.PI) % (Math.PI * 2);
+    var lightDir = [Math.cos(lightAngle), Math.sin(lightAngle)];
+    var indexA = Math.floor(lightAngle / angleChunk) % numBuffers;
+    var indexB = Math.ceil(lightAngle / angleChunk) % numBuffers;
+    var alphaA = 1 - (Math.abs(lightAngle - angleChunk * indexA) / angleChunk);
+    var alphaB = 1 - alphaA;
+
+    this.mainBuffer.context.globalCompositeOperation = 'lighter';
+    this.mainBuffer.context.globalAlpha = alphaA;
+    this.mainBuffer.context.drawImage(this.resource.lightBuffers[indexA], 0, 0);
+    this.mainBuffer.context.globalAlpha = alphaB;
+    this.mainBuffer.context.drawImage(this.resource.lightBuffers[indexB], 0, 0);
 
     // Draw damage buffer
     this.mainBuffer.context.globalAlpha = 1;
@@ -1945,6 +2351,7 @@ TANK.registerComponent('LightingAndDamage')
     this.mainBuffer.context.drawImage(this.decalBuffer.canvas, 0, 0);
     this.mainBuffer.context.globalCompositeOperation = 'destination-out';
     this.mainBuffer.context.drawImage(this.damageBuffer.canvas, 0, 0);
+
     this.mainBuffer.context.restore();
   };
 });
@@ -2098,7 +2505,6 @@ Locations.start =
   ],
   bgColor: [0, 0, 20, 1],
   lightColor: [0.7, 0.7, 1],
-  lightDir: Math.PI * 2 * 0.8,
   spawns:
   [
     {components: {Pos2D: {x: 0, y: 0}, Planet: {}}}
@@ -2113,12 +2519,12 @@ Locations.abandonedOutpost =
   [
     {probability: 2.5, name: 'pirate'},
     {probability: 2, name: 'derelict'},
+    {probability: 1.5, name: 'returnStolenEnforcer'},
     {probability: 1, name: 'civilian'},
     {probability: 0.5, name: 'police'},
   ],
   bgColor: [0, 20, 0, 1],
   lightColor: [0.8, 1, 0.8],
-  lightDir: Math.PI * 2 * 0.5,
   spawns:
   [
     {components: {Clouds: {cloudColor: [180, 255, 180]}}},
@@ -2135,12 +2541,12 @@ Locations.researchStation =
     {probability: 1.2, name: 'pirate'},
     {probability: 1, name: 'derelict'},
     {probability: 1.2, name: 'civilian'},
+    {probability: 0.7, name: 'investigatePrototypeShip'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.5, name: 'police'},
   ],
   bgColor: [20, 20, 0, 1],
   lightColor: [1, 1, 0.8],
-  lightDir: Math.PI * 2 * 0.2,
   spawns:
   [
     {components: {Clouds: {numClouds: 50, cloudColor: [255, 255, 180]}}},
@@ -2160,7 +2566,6 @@ Locations.pirateBase =
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
-  lightDir: Math.PI * 2 * 0.9,
   spawns:
   [
     {components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}
@@ -2173,6 +2578,7 @@ Locations.oldBattlefield =
   name: 'An old battlefield',
   events:
   [
+    {probability: 100, name: 'investigatePrototypeShipEncounter'},
     {probability: 1, name: 'pirate'},
     {probability: 2, name: 'civilian'},
     {probability: 1, name: 'empty'},
@@ -2181,7 +2587,6 @@ Locations.oldBattlefield =
   ],
   bgColor: [0, 20, 20, 1],
   lightColor: [0.8, 1, 1],
-  lightDir: Math.PI * 2 * 0.9,
   spawns:
   [
     {components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}
@@ -2201,44 +2606,61 @@ Locations.deepSpace =
   ],
   bgColor: [0, 0, 0, 1],
   lightColor: [0.9, 0.9, 1],
-  lightDir: Math.PI * 2 * 0.2,
   spawns: []
 };
 
 Locations.redDwarf =
 {
-  text: 'A red dwarf in this system bathes the scenery in a faintly rose-colored light.',
-  name: 'Red dwarf star',
+  text: 'The red dwarf star in this system bathes the scenery in a faintly rose-colored light.',
+  name: 'A red dwarf star',
   events:
   [
+    {probability: 100, name: 'returnStolenEnforcerBattle'},
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'},
+    {probability: 1.5, name: 'empty'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.6, name: 'police'},
   ],
   bgColor: [10, 0, 0, 1],
   lightColor: [1, 0.8, 0.8],
-  lightDir: Math.PI * 2 * 0.7,
   spawns: []
 };
 
 Locations.asteroidField =
 {
   text: 'Here in the depths of an asteroid field, anything can happen. Watch your back.',
-  name: 'Asteroid field',
+  name: 'An asteroid field',
   events:
   [
     {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'returnStolenEnforcer'},
     {probability: 1.2, name: 'derelict'},
-    {probability: 0.3, name: 'police'},
+    {probability: 0.4, name: 'empty'},
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
-  lightDir: Math.PI * 2 * 0.2,
   spawns:
   [
     {components: {Clouds: {numClouds: 75, cloudColor: [220, 180, 180]}}},
     {components: {AsteroidField: {numAsteroids: 40}}}
+  ]
+};
+
+Locations.policeOutpost =
+{
+  text: 'This close to the galaxy\'s center, a police station is a rare haven for law-abiding pilots.',
+  name: 'A police station',
+  events:
+  [
+    {probability: 4, name: 'police'},
+    {probability: 2, name: 'empty'},
+    {probability: 1, name: 'civilian'},
+  ],
+  bgColor: [0, 0, 20, 1],
+  lightColor: [0.8, 0.8, 1],
+  spawns:
+  [
+    {components: {Clouds: {numClouds: 30, cloudColor: [180, 255, 255]}}}
   ]
 };
 TANK.registerComponent('MainMenu')
@@ -2313,12 +2735,13 @@ TANK.registerComponent('MapGeneration')
   this.map = {};
   var rng = new RNG();
 
-  this.generateNode = function(depth)
+  this.generateNode = function(depth, possibleLocations)
   {
     var node = {};
 
     // Pick a location for this node to represent
-    var possibleLocations = Object.keys(Locations);
+    if (!possibleLocations)
+      possibleLocations = Object.keys(Locations);
     possibleLocations.splice(possibleLocations.indexOf('start'), 1);
     var index = Math.floor(Math.random() * possibleLocations.length);
     node.locationName = possibleLocations[index];
@@ -2340,7 +2763,9 @@ TANK.registerComponent('MapGeneration')
       if (i === 1)
         childDepth = 1;
 
-      var childNode = this.generateNode(node.depth + childDepth);
+      var currentLocations = node.paths.map(function(val) {return val.locationName;});
+      var possibleLocations = Object.keys(Locations).filter(function(val) {return currentLocations.indexOf(val) === -1;});
+      var childNode = this.generateNode(node.depth + childDepth, possibleLocations);
       if (childNode)
         node.paths.push(childNode);
     }
@@ -2353,10 +2778,10 @@ var ParticleLibrary = {};
 
 ParticleLibrary.slowMediumFire = function()
 {
-  var e = TANK.createEntity("ParticleEmitter");
+  var e = TANK.createEntity('ParticleEmitter');
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-50, -50];
   emitter.spawnOffsetMax = [50, 50];
   emitter.spawnScaleMin = 1;
@@ -2389,13 +2814,13 @@ ParticleLibrary.explosionMedium = function(x, y)
 
 ParticleLibrary.explosionMediumFire = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-40, -40];
   emitter.spawnOffsetMax = [40, 40];
   emitter.spawnSpeedMin = 150;
@@ -2421,13 +2846,13 @@ ParticleLibrary.explosionMediumFire = function(x, y)
 
 ParticleLibrary.explosionMediumFireballs = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 250;
@@ -2451,14 +2876,14 @@ ParticleLibrary.explosionMediumFireballs = function(x, y)
 
 ParticleLibrary.explosionMediumSparks = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 350;
@@ -2482,14 +2907,14 @@ ParticleLibrary.explosionMediumSparks = function(x, y)
 
 ParticleLibrary.explosionMediumSmoke = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-70, -70];
   emitter.spawnOffsetMax = [70, 70];
   emitter.spawnSpeedMin = 50;
@@ -2523,14 +2948,14 @@ ParticleLibrary.gunFireSmall = function(x, y, angle)
 
 ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 8;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-8, -8];
   emitter.spawnOffsetMax = [8, 8];
   emitter.spawnSpeedMin = 100;
@@ -2556,14 +2981,14 @@ ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
 
 ParticleLibrary.gunFireSmallSparks = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -2597,14 +3022,14 @@ ParticleLibrary.gunFireMedium = function(x, y, angle)
 
 ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 8;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-20, -20];
   emitter.spawnOffsetMax = [20, 20];
   emitter.spawnSpeedMin = 100;
@@ -2630,14 +3055,14 @@ ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
 
 ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 350;
@@ -2661,14 +3086,14 @@ ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
 
 ParticleLibrary.damageSmall = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -2693,14 +3118,14 @@ ParticleLibrary.damageSmall = function(x, y, angle)
 
 ParticleLibrary.damageMedium = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -2725,9 +3150,9 @@ ParticleLibrary.damageMedium = function(x, y, angle)
 
 ParticleLibrary.smallRailTrail = function()
 {
-  var e = TANK.createEntity(["ParticleEmitter"]);
+  var e = TANK.createEntity(['ParticleEmitter']);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnPerSecond = 100;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.3;
@@ -2741,9 +3166,9 @@ ParticleLibrary.smallRailTrail = function()
 
 ParticleLibrary.mediumRailTrail = function()
 {
-  var e = TANK.createEntity(["ParticleEmitter"]);
+  var e = TANK.createEntity(['ParticleEmitter']);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnPerSecond = 200;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.4;
@@ -2752,6 +3177,18 @@ ParticleLibrary.mediumRailTrail = function()
   TANK.main.addChild(e);
   return e;
 };
+var Perks = {};
+
+Perks.gunReloadTime =
+{
+  name: 'Gunners on Speed',
+  desc: 'This controversial substance will allow your gunners to reload their guns in half the time! Accuracy may suffer.',
+  cost: 4,
+  reloadTimeMult: 0.5,
+  gunSpreadMult: 2
+};
+
+
 function PixelBuffer()
 {
   this.createBuffer = function(width, height)
@@ -3162,7 +3599,7 @@ var PlanetColors =
 }());
 TANK.registerComponent('Player')
 
-.includes('Ship')
+.includes(['Ship', 'ShipHud'])
 
 .construct(function()
 {
@@ -3174,7 +3611,6 @@ TANK.registerComponent('Player')
   this.headingRight = false;
   this.speedUp = false;
   this.speedDown = false;
-  this.fireButtons = [];
 })
 
 .initialize(function()
@@ -3184,76 +3620,26 @@ TANK.registerComponent('Player')
 
   TANK.main.Renderer2D.add(this);
 
-  this.clearSelection = function()
-  {
-    for (var i = 0; i < this.selectedShips.length; ++i)
-      this.selectedShips[i].Ship.selected = false;
-    this.selectedShips = [];
-  };
-
+  //
+  // Camera shake
+  //
   this.shakeCamera = function(duration)
   {
     this.shakeTime = duration;
   };
 
-  this.mouseDownHandler = function(e)
-  {
-    this.mouseDown = true;
-
-    // Handle tapping a fire button
-    var mousePos = TANK.Math2D.subtract(TANK.main.Game.mousePosScreen, [window.innerWidth / 2, window.innerHeight / 2]);
-    for (var i = 0; i < this.fireButtons.length; ++i)
-    {
-      var pos = TANK.Math2D.scale(this.fireButtons[i].pos, TANK.main.Game.scaleFactor);
-      pos = TANK.Math2D.add(pos, this.headingPos);
-      var dist = TANK.Math2D.pointDistancePoint(pos, mousePos);
-      if (dist < this.fireButtons[i].radius * TANK.main.Game.scaleFactor)
-      {
-        this.fireButtonDown = true;
-        this._entity.Weapons.fireGuns(this.fireButtons[i].side);
-        return;
-      }
-    }
-  };
-
-  this.mouseUpHandler = function(e)
-  {
-    this.mouseDown = false;
-    this.fireButtonDown = false;
-  };
-
-  this.mouseMoveHandler = function(e)
-  {
-    // Handle changing heading
-    if (this.mouseDown && !this.fireButtonDown && !this.selecting && !this.pendingTarget)
-    {
-      var mousePos = TANK.Math2D.subtract(TANK.main.Game.mousePosScreen, [window.innerWidth / 2, window.innerHeight / 2]);
-
-      var dist = TANK.Math2D.pointDistancePoint(this.headingPos, mousePos);
-      if (dist < this.headingRadiusScaled)
-      {
-        // Ignore if we are too close to center
-        if (dist > this.headingRadiusScaled * 0.1)
-        {
-          // Get heading
-          var newHeading = Math.atan2(mousePos[1] - this.headingPos[1], mousePos[0] - this.headingPos[0]);
-          ship.heading = newHeading;
-
-          // Get speed
-          ship.desiredSpeed = (dist / this.headingRadiusScaled) * ship.shipData.maxSpeed;
-        }
-        else
-          ship.desiredSpeed = 0;
-      }
-    }
-  };
-
+  //
+  // Listen for player death
+  //
   this.listenTo(this._entity, 'explode', function()
   {
     TANK.main.Game.addStory('You exploded.');
     TANK.main.dispatchTimed(3, 'gamelose');
   });
 
+  //
+  // Listen for collisions
+  //
   this.listenTo(this._entity, 'collide', function(obj)
   {
     if (obj.Bullet && obj.Bullet.owner !== this._entity)
@@ -3265,20 +3651,17 @@ TANK.registerComponent('Player')
     }
   });
 
-  this.listenTo(TANK.main, 'killplayershields', function()
-  {
-    this._entity.Ship.shieldObj.Shield.disable(15);
-  });
-
+  //
+  // Camera shake message
+  //
   this.listenTo(TANK.main, 'camerashake', function(duration)
   {
     this.shakeCamera(duration);
   });
 
-  this.listenTo(TANK.main, 'mousedown', this.mouseDownHandler);
-  this.listenTo(TANK.main, 'mouseup', this.mouseUpHandler);
-  this.listenTo(TANK.main, 'mousemove', this.mouseMoveHandler);
-
+  //
+  // Key input
+  //
   this.listenTo(TANK.main, 'keydown', function(e)
   {
     if (e.keyCode === TANK.Key.W)
@@ -3303,25 +3686,33 @@ TANK.registerComponent('Player')
       this.headingRight = false;
   });
 
+  //
+  // Update loop
+  //
   this.update = function(dt)
   {
-    // Calculate HUD size
-    this.headingRadius = 50;
-    this.headingRadiusScaled = this.headingRadius * TANK.main.Game.scaleFactor;
-    this.headingPos = [window.innerWidth / 2 - this.headingRadiusScaled - 30, window.innerHeight / 2 - this.headingRadiusScaled - 60];
-    this.fireButtons =
-    [
-      {side: 'left', pos: [0, -this.headingRadius * 0.75], radius: 6},
-      {side: 'right', pos: [0, this.headingRadius * 0.75], radius: 6},
-      {side: 'front', pos: [this.headingRadius * 0.75, 0], radius: 6},
-      {side: 'back', pos: [-this.headingRadius * 0.75, 0], radius: 6},
-    ];
+    // Check for warp jammer
+    var warpJammers = TANK.main.getChildrenWithComponent('WarpJammer');
+    if (warpJammers && Object.keys(warpJammers).length)
+    {
+      if (!ship.warpJammed)
+      {
+        ship.warpJammed = true;
+        TANK.main.Game.addEventLog('Warp drive is being jammed!');
+      }
+      ship.warpCharge = 0;
+    }
+    else if (ship.warpJammed)
+    {
+      ship.warpJammed = false;
+      TANK.main.Game.addEventLog('Warp drive is no longer jammed');
+    }
 
     // Heading controls
     if (this.headingLeft)
-      ship.heading -= dt * 3;
+      ship.heading = t.rotation - 0.3;
     if (this.headingRight)
-      ship.heading += dt * 3;
+      ship.heading = t.rotation + 0.3;
 
     // Speed controls
     if (this.speedUp)
@@ -3352,65 +3743,12 @@ TANK.registerComponent('Player')
     }
   };
 
+  //
+  // Render
+  //
   this.draw = function(ctx, camera)
   {
-    // Draw player HUD
-    ctx.save();
-    ctx.scale(camera.z, camera.z);
-    ctx.translate(this.headingPos[0], this.headingPos[1]);
-    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
 
-    // Draw compass
-    // Outer circle
-    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.headingRadius, Math.PI * 2, false);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, this.headingRadius * 0.1, Math.PI * 2, false);
-    ctx.closePath();
-    ctx.stroke();
-
-    // Heading line
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(ship.heading) * this.headingRadius, Math.sin(ship.heading) * this.headingRadius);
-    ctx.closePath();
-    ctx.stroke();
-
-    // Speed line
-    ctx.strokeStyle = 'rgba(100, 100, 250, 0.8)';
-    ctx.lineWidth = 1.5;
-    var speedPercent = ship.desiredSpeed / ship.shipData.maxSpeed;
-    var startPos = [Math.cos(ship.heading), Math.sin(ship.heading)];
-    ctx.beginPath();
-    ctx.moveTo(startPos[0], startPos[1]);
-    ctx.lineTo(startPos[0] + Math.cos(ship.heading) * (this.headingRadius) * speedPercent,
-               startPos[1] + Math.sin(ship.heading) * (this.headingRadius) * speedPercent);
-    ctx.closePath();
-    ctx.stroke();
-
-    var that = this;
-    function drawGun(gun)
-    {
-      ctx.beginPath();
-      ctx.moveTo(gun.pos[0], gun.pos[1]);
-      ctx.arc(gun.pos[0], gun.pos[1], gun.radius, that._entity.Weapons.reloadPercent(gun.side) * Math.PI * -2, false);
-      ctx.lineTo(gun.pos[0], gun.pos[1]);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // Draw weapon buttons
-    ctx.fillStyle = 'rgba(255, 80, 80, 0.5)';
-    for (var i = 0; i < this.fireButtons.length; ++i)
-    {
-      drawGun(this.fireButtons[i]);
-    }
-
-    ctx.restore();
   };
 });
 TANK.registerComponent('RemoveOnLevelChange')
@@ -3552,7 +3890,7 @@ TANK.registerComponent('Shield')
   this.regenRate = 0.1;
   this.radius = 5;
   this.burstTimer = 0;
-  this.burstTime = 5;
+  this.burstTime = 15;
   this.disabledTimer = 0;
   this.bubbleOpacity = 0;
   this.disabled = false;
@@ -3665,6 +4003,8 @@ TANK.registerComponent('Ship')
   this.heading = 0;
   this.desiredSpeed = 0;
   this.warpCharge = 0;
+  this.warpChargeTime = 5;
+  this.warpJammed = false;
   this.fuel = 0;
   this.shieldTimer = 5;
   this.shieldRecharging = false;
@@ -3793,6 +4133,13 @@ TANK.registerComponent('Ship')
     }
   };
 
+  this.addRandomDamage = function(radius)
+  {
+    var x = Math.random() * this.width;
+    var y = Math.random() * this.height;
+    this.addDamage(x, y, radius);
+  };
+
   //
   // Explode the ship
   //
@@ -3809,7 +4156,7 @@ TANK.registerComponent('Ship')
     this._entity.SoundEmitter.play(this.shipData.explodeSound);
 
     // Create some fuel spawns
-    var numFuelCells = Math.round(Math.random() * 3);
+    var numFuelCells = Math.round(Math.random() * 2);
     for (var i = 0; i < numFuelCells; ++i)
     {
       var e = TANK.createEntity('FuelCell');
@@ -4004,6 +4351,99 @@ TANK.registerComponent('Ship')
     ctx.restore();
   };
 });
+TANK.registerComponent('ShipHud')
+
+.construct(function()
+{
+  this.htmlText =
+  [
+    '<div class="console-window ship-hud">',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Speed</div>',
+    ' <div class="ship-hud-value ship-hud-speed"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Armor</div>',
+    ' <div class="ship-hud-value ship-hud-armor"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Shield</div>',
+    ' <div class="ship-hud-value ship-hud-shield"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Fore</div>',
+    ' <div class="ship-hud-value ship-hud-fore"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Starboard</div>',
+    ' <div class="ship-hud-value ship-hud-starboard"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Aft</div>',
+    ' <div class="ship-hud-value ship-hud-aft"></div>',
+    '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Port</div>',
+    ' <div class="ship-hud-value ship-hud-port"></div>',
+    '</div>',
+    '</div>'
+  ].join('\n');
+
+  this.barSize = 10;
+  this.fillChar = '=';
+  this.emptyChar = '-';
+})
+
+.initialize(function()
+{
+  var ship = this._entity.Ship;
+  var weapons = this._entity.Weapons;
+  var shield = ship.shieldObj.Shield;
+
+  //
+  // Create UI
+  //
+  this.container = document.createElement('div');
+  this.container.innerHTML = this.htmlText;
+  document.body.appendChild(this.container);
+
+  //
+  // Get UI handles
+  //
+  this.speedValue = this.container.querySelector('.ship-hud-speed');
+  this.armorValue = this.container.querySelector('.ship-hud-armor');
+  this.shieldValue = this.container.querySelector('.ship-hud-shield');
+  this.foreValue = this.container.querySelector('.ship-hud-fore');
+  this.starboardValue = this.container.querySelector('.ship-hud-starboard');
+  this.aftValue = this.container.querySelector('.ship-hud-aft');
+  this.portValue = this.container.querySelector('.ship-hud-port');
+
+  this.buildBarText = function(percent)
+  {
+    var chars = [];
+    var fillNum = Math.round(this.barSize * percent);
+    for (var i = 0; i < this.barSize; ++i)
+      chars.push(i < fillNum ? this.fillChar : this.emptyChar);
+    return chars.join('');
+  };
+
+  this.update = function(dt)
+  {
+    this.speedValue.innerHTML = this.buildBarText(ship.desiredSpeed / ship.shipData.maxSpeed);
+    this.armorValue.innerHTML = this.buildBarText(ship.health / ship.shipData.health);
+    this.shieldValue.innerHTML = this.buildBarText(shield.health / ship.shipData.shield);
+
+    this.foreValue.innerHTML = this.buildBarText(weapons.reloadPercent('front'));
+    this.starboardValue.innerHTML = this.buildBarText(weapons.reloadPercent('right'));
+    this.aftValue.innerHTML = this.buildBarText(weapons.reloadPercent('back'));
+    this.portValue.innerHTML = this.buildBarText(weapons.reloadPercent('left'));
+  };
+})
+
+.uninitialize(function()
+{
+  document.body.removeChild(this.container);
+});
 TANK.registerComponent('ShipSelection')
 
 .construct(function()
@@ -4061,9 +4501,9 @@ TANK.registerComponent('ShipSelection')
     if (!ship.playable || !TANK.main.Game.shipUnlocked(i))
       continue;
 
-    var e = TANK.createEntity('Ship');
+    var e = TANK.createEntity(['Ship', 'ShipStats']);
     e.Pos2D.x = x;
-    e.Pos2D.y = 0;
+    e.Pos2D.y = -100;
     e.Ship.shipData = ship;
     e.shipType = i;
     TANK.main.addChild(e);
@@ -4103,6 +4543,48 @@ TANK.registerComponent('ShipSelection')
     TANK.main.removeChild(this.ships[i]);
   this.ship = [];
 });
+TANK.registerComponent('ShipStats')
+
+.construct(function()
+{
+  this.zdepth = 10;
+})
+
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+  var ship = this._entity.Ship;
+
+  TANK.main.Renderer2D.add(this);
+
+  var stats =
+  [
+    {name: 'Name', property: 'name'},
+    {name: 'Starting fuel', property: 'maxFuel'},
+    {name: 'Max speed', property: 'maxSpeed'},
+    {name: 'Armor', property: 'health'},
+    {name: 'Shield', property: 'shield'},
+    {name: 'Shield regen', property: 'shieldGen'},
+  ];
+
+  this.draw = function(ctx, camera)
+  {
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+    ctx.scale(TANK.main.Game.scaleFactor, TANK.main.Game.scaleFactor);
+
+    ctx.fillStyle = '#ddd';
+    ctx.font = '10px space-frigate';
+
+    // Draw stats
+    for (var i = 0; i < stats.length; ++i)
+    {
+      ctx.fillText(stats[i].name + ' - ' + ship.shipData[stats[i].property], ship.width / -2, ship.height / 2 + i * 12 - 5);
+    };
+
+    ctx.restore();
+  };
+});
 var Ships = {};
 
 Ships.fighter = function()
@@ -4118,7 +4600,6 @@ Ships.fighter = function()
   this.shield = 0.2;
   this.shieldGen = 0.01;
   this.shieldRadius = 30;
-  this.warpChargeTime = 10;
   this.maxFuel = 5;
   this.optimalAngle = 0;
   this.engineSize = [18, 8];
@@ -4151,7 +4632,6 @@ Ships.bomber = function()
   this.shield = 0.4;
   this.shieldGen = 0.01;
   this.shieldRadius = 50;
-  this.warpChargeTime = 15;
   this.maxFuel = 7;
   this.optimalAngle = 0;
   this.engineSize = [24, 12];
@@ -4185,7 +4665,6 @@ Ships.frigate = function()
   this.shield = 0.5;
   this.shieldGen = 0.01;
   this.shieldRadius = 80;
-  this.warpChargeTime = 60;
   this.maxFuel = 10;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [24, 16];
@@ -4232,7 +4711,6 @@ Ships.blade = function()
   this.shield = 0.25;
   this.shieldGen = 0.015;
   this.shieldRadius = 85;
-  this.warpChargeTime = 30;
   this.maxFuel = 7;
   this.optimalAngle = Math.PI / 2;
   this.engineSize = [48, 24];
@@ -4276,7 +4754,6 @@ Ships.albatross = function()
   this.shield = 1;
   this.shieldGen = 0.01;
   this.shieldRadius = 80;
-  this.warpChargeTime = 60;
   this.maxFuel = 13;
   this.optimalAngle = 0;
   this.engineSize = [36, 20];
@@ -4325,7 +4802,6 @@ Ships.rhino = function()
   this.shield = 0.5;
   this.shieldGen = 0.01;
   this.shieldRadius = 80;
-  this.warpChargeTime = 60;
   this.maxFuel = 10;
   this.optimalAngle = 0;
   this.engineSize = [36, 16];
@@ -4365,11 +4841,10 @@ Ships.enforcer = function()
   this.maxSpeed = 175;
   this.accel = 18;
   this.turnAccel = 1.4;
-  this.health = 0.25;
-  this.shield = 1;
-  this.shieldGen = 0.01;
+  this.health = 0.3;
+  this.shield = 1.5;
+  this.shieldGen = 0.012;
   this.shieldRadius = 80;
-  this.warpChargeTime = 20;
   this.maxFuel = 6;
   this.optimalAngle = 0;
   this.engineSize = [32, 16];
@@ -4459,6 +4934,13 @@ TANK.registerComponent('SoundEmitter')
 });
 var Spawns = {};
 
+Spawns.custom = function(obj)
+{
+  var e = TANK.createEntity();
+  e.load(obj);
+  TANK.main.addChild(e);
+};
+
 Spawns.civilian = function()
 {
   var e = TANK.createEntity('AICivilian');
@@ -4468,10 +4950,26 @@ Spawns.civilian = function()
   TANK.main.addChild(e);
 };
 
+Spawns.warpJammer = function()
+{
+  var e = TANK.createEntity('WarpJammer');
+  TANK.main.addChild(e);
+};
+
 Spawns.pirate = function()
 {
+  var ships =
+  [
+    'bomber',
+    'frigate',
+    'blade',
+    'albatross',
+    'rhino'
+  ];
+  var ship = ships[Math.floor(Math.random() * ships.length)];
+
   var e = TANK.createEntity('AIAttackPlayer');
-  e.Ship.shipData = new Ships.frigate();
+  e.Ship.shipData = new Ships[ship]();
   e.Pos2D.x = -2000 + Math.random() * 4000;
   e.Pos2D.y = -2000 + Math.random() * 4000;
   TANK.main.addChild(e);
@@ -4495,12 +4993,48 @@ Spawns.derelict = function()
   TANK.main.addChild(e);
 
   e = TANK.createEntity('TriggerRadius');
-  e.TriggerRadius.radius = 1000;
+  e.TriggerRadius.radius = 500;
   e.TriggerRadius.events = [{probability: 0.25, name: 'derelict_1a'}, {probability: 0.75, name: 'derelict_1b'}];
   e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
   TANK.main.addChild(e);
 };
+TANK.registerComponent('Star')
+.includes(['Pos2D', 'DirectionalLight'])
+.construct(function()
+{
+  this.zdepth = 10;
+  this.radius = 2000;
+  this.innerColor = [255, 255, 255];
+  this.outerColor = [255, 0, 255];
+})
+.initialize(function()
+{
+  var t = this._entity.Pos2D;
+
+  TANK.main.Renderer2D.add(this);
+
+  this.draw = function(ctx, camera, dt)
+  {
+    ctx.save();
+    ctx.translate(t.x - camera.x, t.y - camera.y);
+
+    var grad = ctx.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius);
+    grad.addColorStop(0.0, 'rgb(' + this.innerColor.join(', ') + ')');
+    grad.addColorStop(0.3, 'rgba(' + this.innerColor.join(', ') + ', 0.5)');
+    grad.addColorStop(0.8, 'rgba(' + this.outerColor.join(', ') + ', 0.1)');
+    grad.addColorStop(1.0, 'rgba(' + this.outerColor.join(', ') + ', 0.0)');
+
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius, Math.PI * 2, false);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  };
+});
 TANK.registerComponent("StarField")
 
 .construct(function()
@@ -4566,6 +5100,7 @@ TANK.registerComponent('TriggerRadius')
   this.radius = 1000;
   this.events = [];
   this.removeOnTrigger = true;
+  this.triggered = false;
 })
 
 .serialize(function(serializer)
@@ -4583,12 +5118,19 @@ TANK.registerComponent('TriggerRadius')
   {
     // Check if player comes within a certain range
     var player = TANK.main.Game.player;
-    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius)
+    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius && !this.triggered)
     {
-      var weights = this.events.map(function(ev) {return ev.probability;});
-      var chosenIndex = TANK.main.Game.randomWeighted(weights);
-      var chosenEvent = this.events[chosenIndex];
-      TANK.main.Game.triggerEvent(chosenEvent.name);
+      this.triggered = true;
+
+      if (this.events.length)
+      {
+        var weights = this.events.map(function(ev) {return ev.probability;});
+        var chosenIndex = TANK.main.Game.randomWeighted(weights);
+        var chosenEvent = this.events[chosenIndex];
+        TANK.main.Game.triggerEvent(chosenEvent.name);
+      }
+
+      this._entity.dispatch('triggerradius');
 
       if (this.removeOnTrigger)
         this._entity.removeComponent(this._name);
@@ -4600,13 +5142,12 @@ TANK.registerComponent('WarpEffect')
 .construct(function()
 {
   this.et = 1;
+  this.blackAlpha = 0;
   this.zdepth = 10;
 })
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
-  // this.oldClearColor = TANK.main.Renderer2D.clearColor;
-  // TANK.main.Renderer2D.clearColor = [0, 0, 0, 0];
 
   var scale = 2;
   var context = TANK.main.Renderer2D.context;
@@ -4615,42 +5156,50 @@ TANK.registerComponent('WarpEffect')
   pixelBuffer.context.scale(1 / scale, 1 / scale);
   pixelBuffer.context.drawImage(context.canvas, 0, 0);
 
-  var pixelBufferCopy = new PixelBuffer();
-  pixelBufferCopy.createBuffer(Math.floor(context.canvas.width / scale), Math.floor(context.canvas.height / scale));
-  pixelBufferCopy.context.scale(1 / scale, 1 / scale);
-  pixelBufferCopy.context.drawImage(context.canvas, 0, 0);
-  pixelBufferCopy.readBuffer();
-
   this.draw = function(ctx, camera, dt)
   {
+    this.et += dt;
+    this.blackAlpha += dt;
+
     camera.z = 1;
 
     ctx.save();
-    this.et += dt;
     pixelBuffer.readBuffer();
-    for (var i = 0; i < 3000; ++i)
+    for (var i = 0; i < 8000; ++i)
     {
       var point = [Math.random() * pixelBuffer.width, Math.random() * pixelBuffer.height];
-      var vec = TANK.Math2D.scale(TANK.Math2D.normalize(TANK.Math2D.subtract([pixelBuffer.width / 2, pixelBuffer.height / 2], point)), this.et * this.et * 2);
+      var dist = Math.sqrt(Math.pow(point[0] - pixelBuffer.width / 2, 2) + Math.pow(point[1] - pixelBuffer.height / 2, 2));
+      var vec = TANK.Math2D.scale(TANK.Math2D.subtract([pixelBuffer.width / 2, pixelBuffer.height / 2], point), this.et * this.et * 0.05);
       var sample = pixelBuffer.getPixel(Math.floor(point[0]), Math.floor(point[1])).map(function(v) {return v * 1.1;});
+
+      pixelBuffer.setPixel(Math.floor(point[0]), Math.floor(point[1]), [0, 0, 0, 255]);
       pixelBuffer.setPixel(Math.floor(point[0] + vec[0]), Math.floor(point[1] + vec[1]), sample);
-      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 2), Math.floor(point[1] + vec[1] * 2), sample);
-      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 1.5), Math.floor(point[1] + vec[1] * 1.5), sample);
-      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] / 2), Math.floor(point[1] + vec[1] / 2), sample);
-      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] / 4), Math.floor(point[1] + vec[1] / 4), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 0.9), Math.floor(point[1] + vec[1] * 0.9), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 0.8), Math.floor(point[1] + vec[1] * 0.8), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 0.7), Math.floor(point[1] + vec[1] * 0.7), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 0.6), Math.floor(point[1] + vec[1] * 0.6), sample);
+      pixelBuffer.setPixel(Math.floor(point[0] + vec[0] * 0.5), Math.floor(point[1] + vec[1] * 0.5), sample);
     }
     pixelBuffer.applyBuffer();
 
     ctx.scale(scale, scale);
     ctx.translate(-pixelBuffer.width / 2, -pixelBuffer.height / 2);
     ctx.drawImage(pixelBuffer.canvas, 0, 0);
+    ctx.globalAlpha = this.blackAlpha / 3;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, pixelBuffer.width, pixelBuffer.height);
     ctx.restore();
   };
 })
 
 .uninitialize(function()
 {
-  // TANK.main.Renderer2D.clearColor = this.oldClearColor;
+});
+TANK.registerComponent('WarpJammer')
+.includes(['Life', 'RemoveOnLevelChange'])
+.initialize(function()
+{
+  this._entity.Life.life = 60;
 });
 TANK.registerComponent('Weapons')
 
@@ -4721,7 +5270,7 @@ TANK.registerComponent('Weapons')
   this.fireGun = function(gunIndex, gunSide)
   {
     var gun = this.guns[gunSide][gunIndex];
-    if (gun.reloadTimer > 0)
+    if (!gun || gun.reloadTimer > 0)
       return;
     gun.reloadTimer = gun.reloadTime;
     this._entity.dispatch('gunfired', gun);

@@ -7,12 +7,13 @@ TANK.registerComponent('MapGeneration')
   this.map = {};
   var rng = new RNG();
 
-  this.generateNode = function(depth)
+  this.generateNode = function(depth, possibleLocations)
   {
     var node = {};
 
     // Pick a location for this node to represent
-    var possibleLocations = Object.keys(Locations);
+    if (!possibleLocations)
+      possibleLocations = Object.keys(Locations);
     possibleLocations.splice(possibleLocations.indexOf('start'), 1);
     var index = Math.floor(Math.random() * possibleLocations.length);
     node.locationName = possibleLocations[index];
@@ -34,7 +35,9 @@ TANK.registerComponent('MapGeneration')
       if (i === 1)
         childDepth = 1;
 
-      var childNode = this.generateNode(node.depth + childDepth);
+      var currentLocations = node.paths.map(function(val) {return val.locationName;});
+      var possibleLocations = Object.keys(Locations).filter(function(val) {return currentLocations.indexOf(val) === -1;});
+      var childNode = this.generateNode(node.depth + childDepth, possibleLocations);
       if (childNode)
         node.paths.push(childNode);
     }

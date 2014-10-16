@@ -10,7 +10,7 @@ TANK.registerComponent('Game')
   this.menuOptions = [];
 
   // Event log
-  this.eventLogs = [];
+  this.eventLogsTimed = [];
   this.story = [];
 
   // Mouse positions
@@ -29,6 +29,9 @@ TANK.registerComponent('Game')
     'frigate': true,
     'albatross': true
   };
+
+  // Active perks
+  this.activePerks = {};
 })
 
 .initialize(function()
@@ -92,6 +95,10 @@ TANK.registerComponent('Game')
   resources.add('fuel-cell-normals', 'res/img/fuel-cell-normals.png');
   resources.add('fuel-cell', null, ['fuel-cell-diffuse', 'fuel-cell-normals'], loadLighting);
 
+  resources.add('ball-diffuse', 'res/img/ball-diffuse.png');
+  resources.add('ball-normals', 'res/img/ball-normals.png');
+  resources.add('ball', null, ['ball-diffuse', 'ball-normals'], loadLighting);
+
   //
   // Rebuild lighting
   //
@@ -148,6 +155,26 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Update light source
+  //
+  this.updateLightSource = function()
+  {
+    if (!this.lightSource)
+    {
+      this.lightSource = TANK.createEntity('Star');
+      TANK.main.addChild(this.lightSource);
+    }
+
+    this.lightSource.Pos2D.x = Math.cos(this.lightDir) * 5000;
+    this.lightSource.Pos2D.y = Math.sin(this.lightDir) * 5000;
+
+    if (this.currentLocation)
+    {
+      this.lightSource.Star.outerColor = this.currentLocation.lightColor.map(function(val) {return Math.floor(val * 255);});
+    }
+  };
+
+  //
   // Move to the main menu state
   //
   this.goToMainMenu = function()
@@ -166,6 +193,9 @@ TANK.registerComponent('Game')
     this.mainMenu = TANK.createEntity('MainMenu');
     TANK.main.addChild(this.mainMenu);
 
+    // Create light source entity
+    this.updateLightSource();
+
     // Handle main menu interactions
     this.listenTo(this.mainMenu, 'newgame', function()
     {
@@ -174,10 +204,10 @@ TANK.registerComponent('Game')
     });
 
     // Remove event log
-    if (this.eventLogUI)
+    if (this.eventLog)
     {
-      this.eventLogUI.teardown();
-      this.eventLogUI = null;
+      TANK.main.removeChild(this.eventLog);
+      this.eventLog = null;
     }
   };
 
@@ -234,8 +264,8 @@ TANK.registerComponent('Game')
   //
   this.randomWeighted = function(weights)
   {
-    weights = weights.filter(function(val) {return val > 0;});
-    var minValue = Math.min.apply(null, weights);
+    var weightsNoZero = weights.filter(function(val) {return val > 0;});
+    var minValue = Math.min.apply(null, weightsNoZero);
     var weightsNormalized = weights.map(function(val) {return val * (1 / minValue);});
     var weightArray = [];
     for (var i = 0; i < weightsNormalized.length; ++i)
@@ -249,14 +279,24 @@ TANK.registerComponent('Game')
     return weightArray[index];
   };
 
+  this.pickRandomNamedOption = function(options)
+  {
+    var weights = options.map(function(val) {return val.probability;});
+    var chosenIndex = this.randomWeighted(weights);
+    return options[chosenIndex].name;
+  };
+
   //
   // Add an event log
   //
   this.addEventLog = function(logText)
   {
-    this.eventLogs.push({text: logText});
-    var logContainer = document.querySelector('.event-log');
-    logContainer.scrollTop = logContainer.scrollHeight;
+    this.eventLog.EventLog.add(logText);
+  };
+
+  this.addEventLogTimed = function(logText, time)
+  {
+    this.eventLogsTimed.push({text: logText, time: time});
   };
 
   //
@@ -264,8 +304,8 @@ TANK.registerComponent('Game')
   //
   this.clearEventLog = function()
   {
-    while (this.eventLogs.length)
-      this.eventLogs.pop();
+    if (this.eventLog)
+      this.eventLog.EventLog.clear();
   };
 
   //
@@ -298,19 +338,68 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Show shop menu
+  //
+  this.showShopMenu = function(items)
+  {
+    // Build options
+    var options = [];
+    for (var i = 0; i < items.length; ++i)
+    {
+      var item = Perks[items[i]];
+      options.push({text: item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells'});
+    }
+
+    // Show option menu
+    this.triggerPlayerChoice('Choose item', options);
+
+    // Wait for choice
+    this.listenTo(this.eventLog, 'choicemade', function(index)
+    {
+      var item = Perks[items[index]];
+      this.takePlayerFuel(item.cost);
+      this.activePerks[items[index]] = true;
+    });
+  };
+
+  //
   // Show location options
   //
   this.showLocationOptions = function()
   {
+    // Verify jump is possible
+    if (!this.warpReady)
+    {
+      this.addEventLog('Warp drive is not fully charged');
+      return;
+    }
+    if (this.player.Ship.fuel < 1)
+    {
+      this.addEventLog('No fuel.');
+      return;
+    }
+
+    // Build option list
+    var options = [];
     for (var i = 0; i < this.currentNode.paths.length; ++i)
     {
       var node = this.currentNode.paths[i];
       var location = Locations[node.locationName];
-      var desc = (node.depth < 1) ? 'Indirect route' : 'Direct route';
-      this.addEventLog((i + 1) + '. ' + location.name + ' (' + desc + ')');
+      var desc = (node.depth - this.currentNode.depth === 1) ? 'Direct route' : 'Indirect route';
+      var option = {};
+      option.text = location.name + ' (' + desc + ')';
+      option.node = node;
+      option.script = function()
+      {
+        TANK.main.unpause();
+        TANK.main.Game.takePlayerFuel(1);
+        TANK.main.Game.goToNode(this.node);
+      };
+      options.push(option);
     }
 
-    this.waitingForJump = true;
+    // Show option menu
+    this.triggerPlayerChoice('Choose destination', options);
   };
 
   //
@@ -343,8 +432,9 @@ TANK.registerComponent('Game')
     // Set location attributes
     TANK.main.Renderer2D.clearColor = 'rgba(' + location.bgColor.join(', ') + ')';
     Lightr.lightDiffuse = location.lightColor;
-    this.lightDir = location.lightDir;
+    this.lightDir = Math.random() * Math.PI * 2;
     this.rebuildLighting();
+    this.updateLightSource();
 
     // Create player entity if it doesn't exist
     if (!this.player)
@@ -354,15 +444,11 @@ TANK.registerComponent('Game')
       TANK.main.addChild(this.player);
     }
 
-    // Build event log ractive
-    if (!this.eventLogUI)
+    // Build event log ui
+    if (!this.eventLog)
     {
-      this.eventLogUI = new Ractive(
-      {
-        el: 'eventLogContainer',
-        template: '#eventLogTemplate',
-        data: {logs: this.eventLogs}
-      });
+      this.eventLog = TANK.createEntity('EventLog');
+      TANK.main.addChild(this.eventLog);
     }
 
     // Position player
@@ -417,8 +503,11 @@ TANK.registerComponent('Game')
 
       // Pick a random event
       var chosenIndex = this.randomWeighted(weights);
-      var chosenEvent = location.events[chosenIndex];
-      this.triggerEvent(chosenEvent.name);
+      if (typeof chosenIndex !== 'undefined')
+      {
+        var chosenEvent = location.events[chosenIndex];
+        this.triggerEvent(chosenEvent.name);
+      }
     }
 
     // Log default tutorial message
@@ -437,71 +526,32 @@ TANK.registerComponent('Game')
   this.triggerEvent = function(eventName)
   {
     var event = Events[eventName];
-    event.spawns = event.spawns || [];
-    event.options = event.options || [];
-
-    // Show event text
-    this.addEventLog(event.text);
-
-    // Add event story
-    if (event.story)
-    {
-      this.addStory(event.story.eventText);
-    }
 
     // Call event script
     if (event.script)
       event.script();
-
-    // Set any event flags
-    if (event.setFlags)
-    {
-      for (var i = 0; i < event.setFlags.length; ++i)
-        Flags[event.setFlags[i]] = true;
-    }
-
-    // Unset any event flags
-    if (event.unsetFlags)
-    {
-      for (var i = 0; i < event.unsetFlags.length; ++i)
-        Flags[event.unsetFlags[i]] = false;
-    }
-
-    // Spawn event entities
-    for (var i = 0; i < event.spawns.length; ++i)
-    {
-      var spawn = event.spawns[i];
-
-      // Using Spawns library
-      if (typeof spawn === 'string')
-      {
-        Spawns[spawn]();
-      }
-      // Or using an object literal as a prototype
-      else
-      {
-        var e = TANK.createEntity();
-        e.load(spawn);
-        TANK.main.addChild(e);
-      }
-    }
-
-    // Dispatch any messages the event has
-    if (event.dispatchEvent)
-      TANK.main.dispatch(event.dispatchEvent);
-
-    // If the event has options, wait for a choice to be made
-    if (event.options.length > 0)
-    {
-      this.eventAwaitingInput = event;
-      this.waitingForJump = false;
-      for (var i = 0; i < event.options.length; ++i)
-        this.addEventLog((i + 1) + '. ' + event.options[i].text);
-    }
   };
 
   //
-  // Give player fuel
+  // Trigger a player choice
+  //
+  this.triggerPlayerChoice = function(prompt, options)
+  {
+    this.eventLog.EventLog.showOptions(prompt, options);
+    this.listenTo(this.eventLog, 'choicemade', this.handleOptionChoice);
+    TANK.main.pause();
+  };
+
+  //
+  // Handle event option choice
+  //
+  this.handleOptionChoice = function(index)
+  {
+    TANK.main.unpause();
+  };
+
+  //
+  // Player manipulation
   //
   this.givePlayerFuel = function(amount)
   {
@@ -523,11 +573,27 @@ TANK.registerComponent('Game')
     this.player.Ship.fuel -= amount;
   };
 
+  this.resetPlayerWarp = function()
+  {
+    this.player.Ship.warpCharge = 0;
+    this.addEventLog('Your warp drive was jammed and the charge lost.');
+  };
+
+  this.killPlayerShields = function()
+  {
+    this.player.Ship.shieldObj.Shield.health = 0;
+    this.player.Ship.shieldObj.Shield.burstTimer = this.player.Ship.shieldObj.Shield.burstTime;
+    this.player.Ship.shieldObj.Shield.recovering = true;
+    this.addEventLog('Your shields have been disabled.');
+  };
+
   //
   // Unlock methods
   //
   this.unlockShip = function(name)
   {
+    var shipData = new Ships[name]();
+    this.addEventLog('You can now choose the ' + shipData.name + ' when beginning a new game.');
     this.unlockedShips[name] = true;
     this.save();
   };
@@ -600,52 +666,12 @@ TANK.registerComponent('Game')
       // 0 index choice from 1 key
       var choice = e.keyCode - TANK.Key.NUM1;
 
-      // Choose to jump to a location
-      if (this.waitingForJump)
-      {
-        this.waitingForJump = false;
-
-        if (!this.warpReady)
-        {
-          var timeRemaining = this.player.Ship.shipData.warpChargeTime - this.player.Ship.warpCharge;
-          this.addEventLog('Warp drive charged in ' + Math.round(timeRemaining) + ' seconds.');
-          return;
-        }
-
-        if (this.player.Ship.fuel < 1)
-        {
-          this.addEventLog('No fuel.');
-          return;
-        }
-
-        if (choice < this.currentNode.paths.length)
-        {
-          this.player.Ship.fuel -= 1;
-          this.goToNode(this.currentNode.paths[choice]);
-        }
-      }
       // Choose an answer for an event
-      else if (this.eventAwaitingInput)
+      if (this.eventAwaitingInput)
       {
         if (choice < this.eventAwaitingInput.options.length)
         {
-          // Show response text
-          var chosenOption = this.eventAwaitingInput.options[choice];
-          if (chosenOption.responseText)
-            this.addEventLog(chosenOption.responseText);
 
-          // Add story
-          if (chosenOption.story)
-            this.addStory(chosenOption.story.eventText);
-
-          // Trigger an event, if any
-          if (chosenOption.events)
-          {
-            var weights = chosenOption.events.map(function(ev) {return ev.probability;});
-            var chosenIndex = this.randomWeighted(weights);
-            var chosenEvent = chosenOption.events[chosenIndex];
-            this.triggerEvent(chosenEvent.name);
-          }
 
           this.eventAwaitingInput = null;
         }
@@ -661,12 +687,22 @@ TANK.registerComponent('Game')
     // Check if player is ready to warp
     if (this.player)
     {
-      if (this.player.Ship.warpCharge >= this.player.Ship.shipData.warpChargeTime && !this.warpReady)
+      if (this.player.Ship.warpCharge >= this.player.Ship.warpChargeTime && !this.warpReady)
       {
         this.addEventLog('...Warp drive charged. Press J to warp when ready.');
         this.warpReady = true;
       }
     }
+
+    // Handle timed event logs
+    for (var i = 0; i < this.eventLogsTimed.length; ++i)
+    {
+      var log = this.eventLogsTimed[i];
+      log.time -= dt;
+      if (log.time <= 0)
+        this.addEventLog(log.text);
+    }
+    this.eventLogsTimed = this.eventLogsTimed.filter(function(val) {return val.time > 0;});
 
     // Handle warp logic
     if (this.warpTimer > 0)

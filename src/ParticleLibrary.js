@@ -2,10 +2,10 @@ var ParticleLibrary = {};
 
 ParticleLibrary.slowMediumFire = function()
 {
-  var e = TANK.createEntity("ParticleEmitter");
+  var e = TANK.createEntity('ParticleEmitter');
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-50, -50];
   emitter.spawnOffsetMax = [50, 50];
   emitter.spawnScaleMin = 1;
@@ -38,13 +38,13 @@ ParticleLibrary.explosionMedium = function(x, y)
 
 ParticleLibrary.explosionMediumFire = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-40, -40];
   emitter.spawnOffsetMax = [40, 40];
   emitter.spawnSpeedMin = 150;
@@ -70,13 +70,13 @@ ParticleLibrary.explosionMediumFire = function(x, y)
 
 ParticleLibrary.explosionMediumFireballs = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 250;
@@ -100,14 +100,14 @@ ParticleLibrary.explosionMediumFireballs = function(x, y)
 
 ParticleLibrary.explosionMediumSparks = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-60, -60];
   emitter.spawnOffsetMax = [60, 60];
   emitter.spawnSpeedMin = 350;
@@ -131,14 +131,14 @@ ParticleLibrary.explosionMediumSparks = function(x, y)
 
 ParticleLibrary.explosionMediumSmoke = function(x, y)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 10;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-70, -70];
   emitter.spawnOffsetMax = [70, 70];
   emitter.spawnSpeedMin = 50;
@@ -172,14 +172,14 @@ ParticleLibrary.gunFireSmall = function(x, y, angle)
 
 ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 8;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-8, -8];
   emitter.spawnOffsetMax = [8, 8];
   emitter.spawnSpeedMin = 100;
@@ -205,14 +205,14 @@ ParticleLibrary.gunFireSmallSmoke = function(x, y, angle)
 
 ParticleLibrary.gunFireSmallSparks = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -246,14 +246,14 @@ ParticleLibrary.gunFireMedium = function(x, y, angle)
 
 ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 8;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
-  emitter.blendMode = "source-over";
-  emitter.particleImage.src = "res/img/particle-smoke-1.png";
+  emitter.blendMode = 'source-over';
+  emitter.particleImage.src = 'res/img/particle-smoke-1.png';
   emitter.spawnOffsetMin = [-20, -20];
   emitter.spawnOffsetMax = [20, 20];
   emitter.spawnSpeedMin = 100;
@@ -279,14 +279,14 @@ ParticleLibrary.gunFireMediumSmoke = function(x, y, angle)
 
 ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 350;
@@ -310,14 +310,14 @@ ParticleLibrary.gunFireMediumSparks = function(x, y, angle)
 
 ParticleLibrary.damageSmall = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -342,14 +342,14 @@ ParticleLibrary.damageSmall = function(x, y, angle)
 
 ParticleLibrary.damageMedium = function(x, y, angle)
 {
-  var e = TANK.createEntity(["ParticleEmitter", "Life"]);
+  var e = TANK.createEntity(['ParticleEmitter', 'Life']);
   e.Pos2D.x = x;
   e.Pos2D.y = y;
   e.Life.life = 3;
   var emitter = e.ParticleEmitter;
   emitter.zdepth = 5;
   emitter.alignRotationToSpawnAngle = true;
-  emitter.particleImage.src = "res/img/particle-fire-1.png";
+  emitter.particleImage.src = 'res/img/particle-fire-1.png';
   emitter.spawnOffsetMin = [-5, -5];
   emitter.spawnOffsetMax = [5, 5];
   emitter.spawnSpeedMin = 250;
@@ -374,9 +374,9 @@ ParticleLibrary.damageMedium = function(x, y, angle)
 
 ParticleLibrary.smallRailTrail = function()
 {
-  var e = TANK.createEntity(["ParticleEmitter"]);
+  var e = TANK.createEntity(['ParticleEmitter']);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnPerSecond = 100;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.3;
@@ -390,9 +390,9 @@ ParticleLibrary.smallRailTrail = function()
 
 ParticleLibrary.mediumRailTrail = function()
 {
-  var e = TANK.createEntity(["ParticleEmitter"]);
+  var e = TANK.createEntity(['ParticleEmitter']);
   var emitter = e.ParticleEmitter;
-  emitter.particleImage.src = "res/img/particle-spark-1.png";
+  emitter.particleImage.src = 'res/img/particle-spark-1.png';
   emitter.spawnPerSecond = 200;
   emitter.particleLifeMin = 0.2;
   emitter.particleLifeMax = 0.4;
