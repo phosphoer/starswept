@@ -3,7 +3,7 @@ TANK.registerComponent('AIPolice')
 .construct(function()
 {
   this.target = null;
-  this.scanDistance = 1000;
+  this.scanDistance = 500;
   this.patienceTime = 10;
   this.patienceTimer = 0;
   this.scanTime = 5;
@@ -88,7 +88,7 @@ TANK.registerComponent('AIPolice')
       this.patienceTimer += dt;
 
       // Check if player has stopped
-      if (this.target.Ship.desiredSpeed < 0.01 && targetDist < this.scanDistance)
+      if (targetDist < this.scanDistance)
       {
         this.waitingForScan = true;
         this.scanTimer += dt;
@@ -110,6 +110,15 @@ TANK.registerComponent('AIPolice')
             this.done = true;
           }
         }
+      }
+
+      if (this.target.Ship.desiredSpeed < 0.01)
+      {
+        this.waitingForScan = true;
+      }
+      else
+      {
+        this.waitingForScan = false;
       }
 
       // If we run out of patience

@@ -7,6 +7,7 @@ TANK.registerComponent('TriggerRadius')
   this.radius = 1000;
   this.events = [];
   this.removeOnTrigger = true;
+  this.triggered = false;
 })
 
 .serialize(function(serializer)
@@ -24,12 +25,19 @@ TANK.registerComponent('TriggerRadius')
   {
     // Check if player comes within a certain range
     var player = TANK.main.Game.player;
-    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius)
+    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius && !this.triggered)
     {
-      var weights = this.events.map(function(ev) {return ev.probability;});
-      var chosenIndex = TANK.main.Game.randomWeighted(weights);
-      var chosenEvent = this.events[chosenIndex];
-      TANK.main.Game.triggerEvent(chosenEvent.name);
+      this.triggered = true;
+
+      if (this.events.length)
+      {
+        var weights = this.events.map(function(ev) {return ev.probability;});
+        var chosenIndex = TANK.main.Game.randomWeighted(weights);
+        var chosenEvent = this.events[chosenIndex];
+        TANK.main.Game.triggerEvent(chosenEvent.name);
+      }
+
+      this._entity.dispatch('triggerradius');
 
       if (this.removeOnTrigger)
         this._entity.removeComponent(this._name);

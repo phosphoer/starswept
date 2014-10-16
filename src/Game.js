@@ -10,7 +10,6 @@ TANK.registerComponent('Game')
   this.menuOptions = [];
 
   // Event log
-  this.eventLogs = [];
   this.eventLogsTimed = [];
   this.story = [];
 
@@ -30,6 +29,9 @@ TANK.registerComponent('Game')
     'frigate': true,
     'albatross': true
   };
+
+  // Active perks
+  this.activePerks = {};
 })
 
 .initialize(function()
@@ -202,10 +204,10 @@ TANK.registerComponent('Game')
     });
 
     // Remove event log
-    if (this.eventLogUI)
+    if (this.eventLog)
     {
-      this.eventLogUI.teardown();
-      this.eventLogUI = null;
+      TANK.main.removeChild(this.eventLog);
+      this.eventLog = null;
     }
   };
 
@@ -277,14 +279,19 @@ TANK.registerComponent('Game')
     return weightArray[index];
   };
 
+  this.pickRandomNamedOption = function(options)
+  {
+    var weights = options.map(function(val) {return val.probability;});
+    var chosenIndex = this.randomWeighted(weights);
+    return options[chosenIndex].name;
+  };
+
   //
   // Add an event log
   //
   this.addEventLog = function(logText)
   {
-    this.eventLogs.push({text: logText});
-    var logContainer = document.querySelector('.event-log');
-    logContainer.scrollTop = logContainer.scrollHeight;
+    this.eventLog.EventLog.add(logText);
   };
 
   this.addEventLogTimed = function(logText, time)
@@ -297,8 +304,8 @@ TANK.registerComponent('Game')
   //
   this.clearEventLog = function()
   {
-    while (this.eventLogs.length)
-      this.eventLogs.pop();
+    if (this.eventLog)
+      this.eventLog.EventLog.clear();
   };
 
   //
@@ -331,6 +338,31 @@ TANK.registerComponent('Game')
   };
 
   //
+  // Show shop menu
+  //
+  this.showShopMenu = function(items)
+  {
+    // Build options
+    var options = [];
+    for (var i = 0; i < items.length; ++i)
+    {
+      var item = Perks[items[i]];
+      options.push({text: item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells'});
+    }
+
+    // Show option menu
+    this.triggerPlayerChoice('Choose item', options);
+
+    // Wait for choice
+    this.listenTo(this.eventLog, 'choicemade', function(index)
+    {
+      var item = Perks[items[index]];
+      this.takePlayerFuel(item.cost);
+      this.activePerks[items[index]] = true;
+    });
+  };
+
+  //
   // Show location options
   //
   this.showLocationOptions = function()
@@ -354,23 +386,20 @@ TANK.registerComponent('Game')
       var node = this.currentNode.paths[i];
       var location = Locations[node.locationName];
       var desc = (node.depth - this.currentNode.depth === 1) ? 'Direct route' : 'Indirect route';
-      options.push({text: location.name + ' (' + desc + ')'});
+      var option = {};
+      option.text = location.name + ' (' + desc + ')';
+      option.node = node;
+      option.script = function()
+      {
+        TANK.main.unpause();
+        TANK.main.Game.takePlayerFuel(1);
+        TANK.main.Game.goToNode(this.node);
+      };
+      options.push(option);
     }
 
     // Show option menu
-    this.choiceScreen = TANK.createEntity('ChoiceScreen');
-    this.choiceScreen.ChoiceScreen.title = 'Choose destination';
-    this.choiceScreen.ChoiceScreen.options = options;
-    TANK.main.addChild(this.choiceScreen);
-    TANK.main.pause();
-
-    // Wait for choice
-    this.listenTo(this.choiceScreen, 'choicemade', function(index)
-    {
-      TANK.main.unpause();
-      this.player.Ship.fuel -= 1;
-      this.goToNode(this.currentNode.paths[index]);
-    });
+    this.triggerPlayerChoice('Choose destination', options);
   };
 
   //
@@ -415,15 +444,11 @@ TANK.registerComponent('Game')
       TANK.main.addChild(this.player);
     }
 
-    // Build event log ractive
-    if (!this.eventLogUI)
+    // Build event log ui
+    if (!this.eventLog)
     {
-      this.eventLogUI = new Ractive(
-      {
-        el: 'eventLogContainer',
-        template: '#eventLogTemplate',
-        data: {logs: this.eventLogs}
-      });
+      this.eventLog = TANK.createEntity('EventLog');
+      TANK.main.addChild(this.eventLog);
     }
 
     // Position player
@@ -501,69 +526,20 @@ TANK.registerComponent('Game')
   this.triggerEvent = function(eventName)
   {
     var event = Events[eventName];
-    event.spawns = event.spawns || [];
-    event.options = event.options || [];
-
-    // Show event text
-    this.addEventLog(event.text);
-
-    // Add event story
-    if (event.story)
-    {
-      this.addStory(event.story.eventText);
-    }
 
     // Call event script
     if (event.script)
       event.script();
+  };
 
-    // Set any event flags
-    if (event.setFlags)
-    {
-      for (var i = 0; i < event.setFlags.length; ++i)
-        Flags[event.setFlags[i]] = true;
-    }
-
-    // Unset any event flags
-    if (event.unsetFlags)
-    {
-      for (var i = 0; i < event.unsetFlags.length; ++i)
-        Flags[event.unsetFlags[i]] = false;
-    }
-
-    // Spawn event entities
-    for (var i = 0; i < event.spawns.length; ++i)
-    {
-      var spawn = event.spawns[i];
-
-      // Using Spawns library
-      if (typeof spawn === 'string')
-      {
-        Spawns[spawn]();
-      }
-      // Or using an object literal as a prototype
-      else
-      {
-        var e = TANK.createEntity();
-        e.load(spawn);
-        TANK.main.addChild(e);
-      }
-    }
-
-    // Dispatch any messages the event has
-    if (event.dispatchEvent)
-      TANK.main.dispatch(event.dispatchEvent);
-
-    // If the event has options, wait for a choice to be made
-    if (event.options.length > 0)
-    {
-      this.eventAwaitingInput = event;
-      this.choiceScreen = TANK.createEntity('ChoiceScreen');
-      this.choiceScreen.ChoiceScreen.options = event.options;
-      TANK.main.addChild(this.choiceScreen);
-      this.listenTo(this.choiceScreen, 'choicemade', this.handleOptionChoice);
-      TANK.main.pause();
-    }
+  //
+  // Trigger a player choice
+  //
+  this.triggerPlayerChoice = function(prompt, options)
+  {
+    this.eventLog.EventLog.showOptions(prompt, options);
+    this.listenTo(this.eventLog, 'choicemade', this.handleOptionChoice);
+    TANK.main.pause();
   };
 
   //
@@ -572,38 +548,6 @@ TANK.registerComponent('Game')
   this.handleOptionChoice = function(index)
   {
     TANK.main.unpause();
-
-    // Show response text
-    var chosenOption = this.eventAwaitingInput.options[index];
-    if (chosenOption.responseText)
-      this.addEventLog(chosenOption.responseText);
-
-    // Add story
-    if (chosenOption.story)
-      this.addStory(chosenOption.story.eventText);
-
-    // Set any event flags
-    if (chosenOption.setFlags)
-    {
-      for (var i = 0; i < chosenOption.setFlags.length; ++i)
-        Flags[chosenOption.setFlags[i]] = true;
-    }
-
-    // Unset any event flags
-    if (chosenOption.unsetFlags)
-    {
-      for (var i = 0; i < chosenOption.unsetFlags.length; ++i)
-        Flags[chosenOption.unsetFlags[i]] = false;
-    }
-
-    // Trigger an event, if any
-    if (chosenOption.events)
-    {
-      var weights = chosenOption.events.map(function(ev) {return ev.probability;});
-      var chosenIndex = this.randomWeighted(weights);
-      var chosenEvent = chosenOption.events[chosenIndex];
-      this.triggerEvent(chosenEvent.name);
-    }
   };
 
   //
