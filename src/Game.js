@@ -165,8 +165,8 @@ TANK.registerComponent('Game')
       TANK.main.addChild(this.lightSource);
     }
 
-    this.lightSource.Pos2D.x = Math.cos(this.lightDir) * 5000;
-    this.lightSource.Pos2D.y = Math.sin(this.lightDir) * 5000;
+    this.lightSource.Pos2D.x = Math.cos(this.lightDir) * 4500;
+    this.lightSource.Pos2D.y = Math.sin(this.lightDir) * 4500;
 
     if (this.currentLocation)
     {
@@ -347,8 +347,12 @@ TANK.registerComponent('Game')
     for (var i = 0; i < items.length; ++i)
     {
       var item = Perks[items[i]];
-      options.push({text: item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells'});
+      var option = {};
+      option.text = item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells';
+      option.disabled = item.cost > this.player.Ship.fuel;
+      options.push(option);
     }
+    options.push({text: 'Back'});
 
     // Show option menu
     this.triggerPlayerChoice('Choose item', options);
@@ -356,10 +360,25 @@ TANK.registerComponent('Game')
     // Wait for choice
     this.listenTo(this.eventLog, 'choicemade', function(index)
     {
+      if (index === options.length - 1)
+        return;
+
       var item = Perks[items[index]];
       this.takePlayerFuel(item.cost);
       this.activePerks[items[index]] = true;
     });
+  };
+
+  this.makeShopAvailable = function(items)
+  {
+    this.pendingShopItems = items;
+    this.player.ShipHud.showShopOption();
+  };
+
+  this.makeShopUnavailable = function()
+  {
+    this.pendingShopItems = null;
+    this.player.ShipHud.hideShopOption();
   };
 
   //
@@ -660,22 +679,10 @@ TANK.registerComponent('Game')
       this.showLocationOptions();
     }
 
-    // Numbered choice keys
-    if (e.keyCode >= TANK.Key.NUM0 && e.keyCode <= TANK.Key.NUM9)
+    // Key to open shop
+    if (e.keyCode === TANK.Key.E && this.pendingShopItems)
     {
-      // 0 index choice from 1 key
-      var choice = e.keyCode - TANK.Key.NUM1;
-
-      // Choose an answer for an event
-      if (this.eventAwaitingInput)
-      {
-        if (choice < this.eventAwaitingInput.options.length)
-        {
-
-
-          this.eventAwaitingInput = null;
-        }
-      }
+      this.showShopMenu(this.pendingShopItems);
     }
   });
 

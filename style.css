@@ -178,9 +178,19 @@ html, body
   padding: 10px 0;
 }
 
+.event-log-option.disabled
+{
+  opacity: 0.5;
+}
+
 .event-log-option:hover
 {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+.event-log-option.disabled:hover
+{
+  background-color: transparent;
 }
 
 .ship-hud

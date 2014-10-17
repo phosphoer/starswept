@@ -58,6 +58,8 @@ TANK.registerComponent('EventLog')
       optionUI.className = 'event-log-option';
       optionUI.innerText = '> ' + options[i].text;
       optionUI.setAttribute('data-index', i);
+      if (options[i].disabled)
+        optionUI.classList.add('disabled');
       optionsContainer.appendChild(optionUI);
     }
     this.logContainer.appendChild(optionsContainer);
@@ -67,8 +69,10 @@ TANK.registerComponent('EventLog')
     {
       if (!e.target.classList.contains('event-log-option'))
         return;
+      if (e.target.classList.contains('disabled'))
+        return;
 
-      var index = e.target.getAttribute('data-index');
+      var index = +e.target.getAttribute('data-index');
       this._entity.dispatch('choicemade', index);
       if (options[index].script)
         options[index].script();

@@ -291,7 +291,8 @@ TANK.registerComponent('AIShop')
 })
 .initialize(function()
 {
-  this._entity.TriggerRadius = 100;
+  this._entity.TriggerRadius.radius = 500;
+  this._entity.TriggerRadius.removeOnTrigger = false;
 
   //
   // Chose which items to sell
@@ -307,9 +308,13 @@ TANK.registerComponent('AIShop')
   //
   // Listen for trigger
   //
-  this.listenTo(this._entity, 'triggerradius', function()
+  this.listenTo(this._entity, 'triggerRadiusEnter', function()
   {
-    TANK.main.Game.showShopMenu(this.items);
+    TANK.main.Game.makeShopAvailable(this.items);
+  });
+  this.listenTo(this._entity, 'triggerRadiusLeave', function()
+  {
+    TANK.main.Game.makeShopUnavailable();
   });
 });
 TANK.registerComponent('AIStolenEnforcer')
@@ -924,6 +929,8 @@ TANK.registerComponent('EventLog')
       optionUI.className = 'event-log-option';
       optionUI.innerText = '> ' + options[i].text;
       optionUI.setAttribute('data-index', i);
+      if (options[i].disabled)
+        optionUI.classList.add('disabled');
       optionsContainer.appendChild(optionUI);
     }
     this.logContainer.appendChild(optionsContainer);
@@ -933,8 +940,10 @@ TANK.registerComponent('EventLog')
     {
       if (!e.target.classList.contains('event-log-option'))
         return;
+      if (e.target.classList.contains('disabled'))
+        return;
 
-      var index = e.target.getAttribute('data-index');
+      var index = +e.target.getAttribute('data-index');
       this._entity.dispatch('choicemade', index);
       if (options[index].script)
         options[index].script();
@@ -1591,8 +1600,8 @@ TANK.registerComponent('Game')
       TANK.main.addChild(this.lightSource);
     }
 
-    this.lightSource.Pos2D.x = Math.cos(this.lightDir) * 5000;
-    this.lightSource.Pos2D.y = Math.sin(this.lightDir) * 5000;
+    this.lightSource.Pos2D.x = Math.cos(this.lightDir) * 4500;
+    this.lightSource.Pos2D.y = Math.sin(this.lightDir) * 4500;
 
     if (this.currentLocation)
     {
@@ -1773,8 +1782,12 @@ TANK.registerComponent('Game')
     for (var i = 0; i < items.length; ++i)
     {
       var item = Perks[items[i]];
-      options.push({text: item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells'});
+      var option = {};
+      option.text = item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells';
+      option.disabled = item.cost > this.player.Ship.fuel;
+      options.push(option);
     }
+    options.push({text: 'Back'});
 
     // Show option menu
     this.triggerPlayerChoice('Choose item', options);
@@ -1782,10 +1795,25 @@ TANK.registerComponent('Game')
     // Wait for choice
     this.listenTo(this.eventLog, 'choicemade', function(index)
     {
+      if (index === options.length - 1)
+        return;
+
       var item = Perks[items[index]];
       this.takePlayerFuel(item.cost);
       this.activePerks[items[index]] = true;
     });
+  };
+
+  this.makeShopAvailable = function(items)
+  {
+    this.pendingShopItems = items;
+    this.player.ShipHud.showShopOption();
+  };
+
+  this.makeShopUnavailable = function()
+  {
+    this.pendingShopItems = null;
+    this.player.ShipHud.hideShopOption();
   };
 
   //
@@ -2086,22 +2114,10 @@ TANK.registerComponent('Game')
       this.showLocationOptions();
     }
 
-    // Numbered choice keys
-    if (e.keyCode >= TANK.Key.NUM0 && e.keyCode <= TANK.Key.NUM9)
+    // Key to open shop
+    if (e.keyCode === TANK.Key.E && this.pendingShopItems)
     {
-      // 0 index choice from 1 key
-      var choice = e.keyCode - TANK.Key.NUM1;
-
-      // Choose an answer for an event
-      if (this.eventAwaitingInput)
-      {
-        if (choice < this.eventAwaitingInput.options.length)
-        {
-
-
-          this.eventAwaitingInput = null;
-        }
-      }
+      this.showShopMenu(this.pendingShopItems);
     }
   });
 
@@ -4386,6 +4402,13 @@ TANK.registerComponent('ShipHud')
     ' <div class="ship-hud-label">Port</div>',
     ' <div class="ship-hud-value ship-hud-port"></div>',
     '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Fuel</div>',
+    ' <div class="ship-hud-value ship-hud-fuel"></div>',
+    '</div>',
+    '<div class="ship-hud-item ship-hud-shop">',
+    'Press E to open shop',
+    '</div>',
     '</div>'
   ].join('\n');
 
@@ -4417,7 +4440,26 @@ TANK.registerComponent('ShipHud')
   this.starboardValue = this.container.querySelector('.ship-hud-starboard');
   this.aftValue = this.container.querySelector('.ship-hud-aft');
   this.portValue = this.container.querySelector('.ship-hud-port');
+  this.fuelValue = this.container.querySelector('.ship-hud-fuel');
+  this.shopLabel = this.container.querySelector('.ship-hud-shop');
 
+  //
+  // Show the shop option
+  //
+  this.showShopOption = function()
+  {
+    this.shopLabel.style.display = 'block';
+  };
+
+  this.hideShopOption = function()
+  {
+    this.shopLabel.style.display = 'none';
+  };
+  this.hideShopOption();
+
+  //
+  // Helper to build bar ui
+  //
   this.buildBarText = function(percent)
   {
     var chars = [];
@@ -4427,6 +4469,9 @@ TANK.registerComponent('ShipHud')
     return chars.join('');
   };
 
+  //
+  // Update
+  //
   this.update = function(dt)
   {
     this.speedValue.innerHTML = this.buildBarText(ship.desiredSpeed / ship.shipData.maxSpeed);
@@ -4437,6 +4482,8 @@ TANK.registerComponent('ShipHud')
     this.starboardValue.innerHTML = this.buildBarText(weapons.reloadPercent('right'));
     this.aftValue.innerHTML = this.buildBarText(weapons.reloadPercent('back'));
     this.portValue.innerHTML = this.buildBarText(weapons.reloadPercent('left'));
+
+    this.fuelValue.innerHTML = ship.fuel;
   };
 })
 
@@ -5118,7 +5165,8 @@ TANK.registerComponent('TriggerRadius')
   {
     // Check if player comes within a certain range
     var player = TANK.main.Game.player;
-    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius && !this.triggered)
+    var dist = TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]);
+    if (dist < this.radius && !this.triggered)
     {
       this.triggered = true;
 
@@ -5130,10 +5178,15 @@ TANK.registerComponent('TriggerRadius')
         TANK.main.Game.triggerEvent(chosenEvent.name);
       }
 
-      this._entity.dispatch('triggerradius');
+      this._entity.dispatch('triggerRadiusEnter');
 
       if (this.removeOnTrigger)
         this._entity.removeComponent(this._name);
+    }
+    else if (dist > this.radius && this.triggered)
+    {
+      this.triggered = false;
+      this._entity.dispatch('triggerRadiusLeave');
     }
   };
 });
@@ -5165,7 +5218,7 @@ TANK.registerComponent('WarpEffect')
 
     ctx.save();
     pixelBuffer.readBuffer();
-    for (var i = 0; i < 8000; ++i)
+    for (var i = 0; i < 5000; ++i)
     {
       var point = [Math.random() * pixelBuffer.width, Math.random() * pixelBuffer.height];
       var dist = Math.sqrt(Math.pow(point[0] - pixelBuffer.width / 2, 2) + Math.pow(point[1] - pixelBuffer.height / 2, 2));

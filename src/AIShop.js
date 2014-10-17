@@ -8,7 +8,8 @@ TANK.registerComponent('AIShop')
 })
 .initialize(function()
 {
-  this._entity.TriggerRadius = 100;
+  this._entity.TriggerRadius.radius = 500;
+  this._entity.TriggerRadius.removeOnTrigger = false;
 
   //
   // Chose which items to sell
@@ -24,8 +25,12 @@ TANK.registerComponent('AIShop')
   //
   // Listen for trigger
   //
-  this.listenTo(this._entity, 'triggerradius', function()
+  this.listenTo(this._entity, 'triggerRadiusEnter', function()
   {
-    TANK.main.Game.showShopMenu(this.items);
+    TANK.main.Game.makeShopAvailable(this.items);
+  });
+  this.listenTo(this._entity, 'triggerRadiusLeave', function()
+  {
+    TANK.main.Game.makeShopUnavailable();
   });
 });

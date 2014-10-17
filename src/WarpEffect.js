@@ -26,7 +26,7 @@ TANK.registerComponent('WarpEffect')
 
     ctx.save();
     pixelBuffer.readBuffer();
-    for (var i = 0; i < 8000; ++i)
+    for (var i = 0; i < 5000; ++i)
     {
       var point = [Math.random() * pixelBuffer.width, Math.random() * pixelBuffer.height];
       var dist = Math.sqrt(Math.pow(point[0] - pixelBuffer.width / 2, 2) + Math.pow(point[1] - pixelBuffer.height / 2, 2));

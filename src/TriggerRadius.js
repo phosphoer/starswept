@@ -25,7 +25,8 @@ TANK.registerComponent('TriggerRadius')
   {
     // Check if player comes within a certain range
     var player = TANK.main.Game.player;
-    if (TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]) < this.radius && !this.triggered)
+    var dist = TANK.Math2D.pointDistancePoint([player.Pos2D.x, player.Pos2D.y], [t.x, t.y]);
+    if (dist < this.radius && !this.triggered)
     {
       this.triggered = true;
 
@@ -37,10 +38,15 @@ TANK.registerComponent('TriggerRadius')
         TANK.main.Game.triggerEvent(chosenEvent.name);
       }
 
-      this._entity.dispatch('triggerradius');
+      this._entity.dispatch('triggerRadiusEnter');
 
       if (this.removeOnTrigger)
         this._entity.removeComponent(this._name);
+    }
+    else if (dist > this.radius && this.triggered)
+    {
+      this.triggered = false;
+      this._entity.dispatch('triggerRadiusLeave');
     }
   };
 });

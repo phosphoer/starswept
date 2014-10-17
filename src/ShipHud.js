@@ -33,6 +33,13 @@ TANK.registerComponent('ShipHud')
     ' <div class="ship-hud-label">Port</div>',
     ' <div class="ship-hud-value ship-hud-port"></div>',
     '</div>',
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Fuel</div>',
+    ' <div class="ship-hud-value ship-hud-fuel"></div>',
+    '</div>',
+    '<div class="ship-hud-item ship-hud-shop">',
+    'Press E to open shop',
+    '</div>',
     '</div>'
   ].join('\n');
 
@@ -64,7 +71,26 @@ TANK.registerComponent('ShipHud')
   this.starboardValue = this.container.querySelector('.ship-hud-starboard');
   this.aftValue = this.container.querySelector('.ship-hud-aft');
   this.portValue = this.container.querySelector('.ship-hud-port');
+  this.fuelValue = this.container.querySelector('.ship-hud-fuel');
+  this.shopLabel = this.container.querySelector('.ship-hud-shop');
 
+  //
+  // Show the shop option
+  //
+  this.showShopOption = function()
+  {
+    this.shopLabel.style.display = 'block';
+  };
+
+  this.hideShopOption = function()
+  {
+    this.shopLabel.style.display = 'none';
+  };
+  this.hideShopOption();
+
+  //
+  // Helper to build bar ui
+  //
   this.buildBarText = function(percent)
   {
     var chars = [];
@@ -74,6 +100,9 @@ TANK.registerComponent('ShipHud')
     return chars.join('');
   };
 
+  //
+  // Update
+  //
   this.update = function(dt)
   {
     this.speedValue.innerHTML = this.buildBarText(ship.desiredSpeed / ship.shipData.maxSpeed);
@@ -84,6 +113,8 @@ TANK.registerComponent('ShipHud')
     this.starboardValue.innerHTML = this.buildBarText(weapons.reloadPercent('right'));
     this.aftValue.innerHTML = this.buildBarText(weapons.reloadPercent('back'));
     this.portValue.innerHTML = this.buildBarText(weapons.reloadPercent('left'));
+
+    this.fuelValue.innerHTML = ship.fuel;
   };
 })
 
