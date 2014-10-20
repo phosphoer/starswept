@@ -105,8 +105,8 @@ Ships.frigate = function()
   };
   this.engines =
   [
-    {x: 18, y: 39},
-    {x: 6, y: 84},
+    {x: 18, y: 40},
+    {x: 5, y: 85},
   ];
 };
 

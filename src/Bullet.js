@@ -17,7 +17,6 @@ TANK.registerComponent('Bullet')
   var t = this._entity.Pos2D;
 
   this._entity.Collider2D.collisionLayer = 'bullets';
-
   this.trailEmitter = ParticleLibrary[this.trailEffect]();
 
   TANK.main.Renderer2D.add(this);
@@ -31,12 +30,13 @@ TANK.registerComponent('Bullet')
     this._entity.Velocity.y += Math.sin(t.rotation) * this.accel * dt;
   };
 
-  this.draw = function(ctx, camera)
+  this.draw = function(ctx, camera, dt)
   {
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(1, 2);
     ctx.rotate(t.rotation);
+    ctx.scale(2, 1);
+
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(0, 0, this.size, Math.PI * 2, false);

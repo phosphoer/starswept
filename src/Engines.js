@@ -24,8 +24,9 @@ TANK.registerComponent('Engines')
     var context = this.engineBuffer.context;
     var canvas = this.engineBuffer.canvas;
 
+    var minSize = Math.min(canvas.width / 4, canvas.width / 2);
     var c1 = [canvas.width * 0.9, canvas.height / 2, canvas.height * 0.1];
-    var c2 = [canvas.width * 0.75, canvas.height / 2, canvas.height / 2];
+    var c2 = [canvas.width * 0.75, canvas.height / 2, minSize];
 
     var grad = context.createRadialGradient(c1[0], c1[1], c1[2], c2[0], c2[1], c2[2]);
     grad.addColorStop(0, 'rgba(255, 255, 255, 1)');

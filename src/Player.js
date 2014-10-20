@@ -4,7 +4,6 @@ TANK.registerComponent('Player')
 
 .construct(function()
 {
-  this.zdepth = 100;
   this.shakeTime = 0;
 
   this.headingPos = [0, 0];
@@ -18,8 +17,6 @@ TANK.registerComponent('Player')
 {
   var ship = this._entity.Ship;
   var t = this._entity.Pos2D;
-
-  TANK.main.Renderer2D.add(this);
 
   //
   // Camera shake
@@ -142,13 +139,5 @@ TANK.registerComponent('Player')
       TANK.main.Renderer2D.camera.x += -5 + Math.random() * 10;
       TANK.main.Renderer2D.camera.y += -5 + Math.random() * 10;
     }
-  };
-
-  //
-  // Render
-  //
-  this.draw = function(ctx, camera)
-  {
-
   };
 });

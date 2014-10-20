@@ -5,9 +5,9 @@ TANK.registerComponent('ProgressIndicator')
   this.htmlText =
   [
     '<div class="console-window progress-indicator">',
-    ' <span class="progress-indicator-begin">&lt;</span>',
+    ' <span class="progress-indicator-begin">start &lt;</span>',
     ' <span class="progress-indicator-value"></span>',
-    ' <span class="progress-indicator-end">&gt;</span>',
+    ' <span class="progress-indicator-end">&gt; end</span>',
     '</div>'
   ].join('\n');
 

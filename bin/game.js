@@ -472,7 +472,6 @@ TANK.registerComponent('Bullet')
   var t = this._entity.Pos2D;
 
   this._entity.Collider2D.collisionLayer = 'bullets';
-
   this.trailEmitter = ParticleLibrary[this.trailEffect]();
 
   TANK.main.Renderer2D.add(this);
@@ -486,12 +485,13 @@ TANK.registerComponent('Bullet')
     this._entity.Velocity.y += Math.sin(t.rotation) * this.accel * dt;
   };
 
-  this.draw = function(ctx, camera)
+  this.draw = function(ctx, camera, dt)
   {
     ctx.save();
     ctx.translate(t.x - camera.x, t.y - camera.y);
-    ctx.scale(1, 2);
     ctx.rotate(t.rotation);
+    ctx.scale(2, 1);
+
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(0, 0, this.size, Math.PI * 2, false);
@@ -827,8 +827,9 @@ TANK.registerComponent('Engines')
     var context = this.engineBuffer.context;
     var canvas = this.engineBuffer.canvas;
 
+    var minSize = Math.min(canvas.width / 4, canvas.width / 2);
     var c1 = [canvas.width * 0.9, canvas.height / 2, canvas.height * 0.1];
-    var c2 = [canvas.width * 0.75, canvas.height / 2, canvas.height / 2];
+    var c2 = [canvas.width * 0.75, canvas.height / 2, minSize];
 
     var grad = context.createRadialGradient(c1[0], c1[1], c1[2], c2[0], c2[1], c2[2]);
     grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
@@ -3611,7 +3612,6 @@ TANK.registerComponent('Player')
 
 .construct(function()
 {
-  this.zdepth = 100;
   this.shakeTime = 0;
 
   this.headingPos = [0, 0];
@@ -3625,8 +3625,6 @@ TANK.registerComponent('Player')
 {
   var ship = this._entity.Ship;
   var t = this._entity.Pos2D;
-
-  TANK.main.Renderer2D.add(this);
 
   //
   // Camera shake
@@ -3750,14 +3748,6 @@ TANK.registerComponent('Player')
       TANK.main.Renderer2D.camera.y += -5 + Math.random() * 10;
     }
   };
-
-  //
-  // Render
-  //
-  this.draw = function(ctx, camera)
-  {
-
-  };
 });
 TANK.registerComponent('ProgressIndicator')
 
@@ -3766,9 +3756,9 @@ TANK.registerComponent('ProgressIndicator')
   this.htmlText =
   [
     '<div class="console-window progress-indicator">',
-    ' <span class="progress-indicator-begin">&lt;</span>',
+    ' <span class="progress-indicator-begin">start &lt;</span>',
     ' <span class="progress-indicator-value"></span>',
-    ' <span class="progress-indicator-end">&gt;</span>',
+    ' <span class="progress-indicator-end">&gt; end</span>',
     '</div>'
   ].join('\n');
 
@@ -4792,8 +4782,8 @@ Ships.frigate = function()
   };
   this.engines =
   [
-    {x: 18, y: 39},
-    {x: 6, y: 84},
+    {x: 18, y: 40},
+    {x: 5, y: 85},
   ];
 };
 
