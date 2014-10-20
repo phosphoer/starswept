@@ -228,3 +228,13 @@ html, body
 {
   color: #d55;
 }
+
+.progress-indicator
+{
+  position: absolute;
+  right: 0;
+  top: 0;
+  color: #ddd;
+  font-family: silkscreen;
+}
+

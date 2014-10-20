@@ -9,7 +9,11 @@ TANK.registerComponent('WarpEffect')
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
+  Wave.play('warp', 0.5);
 
+  //
+  // Set up pixel buffer
+  //
   var scale = 2;
   var context = TANK.main.Renderer2D.context;
   var pixelBuffer = new PixelBuffer();
@@ -17,6 +21,9 @@ TANK.registerComponent('WarpEffect')
   pixelBuffer.context.scale(1 / scale, 1 / scale);
   pixelBuffer.context.drawImage(context.canvas, 0, 0);
 
+  //
+  // Draw
+  //
   this.draw = function(ctx, camera, dt)
   {
     this.et += dt;

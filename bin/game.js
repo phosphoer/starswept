@@ -1257,8 +1257,8 @@ Events.derelict_1b =
       {
         var name = TANK.main.Game.pickRandomNamedOption(
         [
-          {probability: 0.5, name: 'derelict_2a'},
-          {probability: 0.5, name: 'derelict_2b'}
+          {probability: 1, name: 'derelict_2a'},
+          {probability: 1, name: 'derelict_2b'}
         ]);
         TANK.main.Game.triggerEvent(name);
       }
@@ -1621,7 +1621,6 @@ TANK.registerComponent('Game')
     // Remove any existing objects
     this.player = null;
     TANK.main.removeAllChildren();
-    this.clearEventLog();
 
     // Build main menu scene
     this.lightDir = Math.random() * Math.PI * 2;
@@ -1637,13 +1636,6 @@ TANK.registerComponent('Game')
       TANK.main.removeChild(this.mainMenu);
       this.goToShipSelection();
     });
-
-    // Remove event log
-    if (this.eventLog)
-    {
-      TANK.main.removeChild(this.eventLog);
-      this.eventLog = null;
-    }
   };
 
   //
@@ -1785,23 +1777,19 @@ TANK.registerComponent('Game')
       var option = {};
       option.text = item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells';
       option.disabled = item.cost > this.player.Ship.fuel;
+      option.item = item;
+      option.itemName = items[i];
+      option.script = function()
+      {
+        TANK.main.Game.takePlayerFuel(this.item.cost);
+        TANK.main.Game.activePerks[this.itemName] = true;
+      };
       options.push(option);
     }
     options.push({text: 'Back'});
 
     // Show option menu
     this.triggerPlayerChoice('Choose item', options);
-
-    // Wait for choice
-    this.listenTo(this.eventLog, 'choicemade', function(index)
-    {
-      if (index === options.length - 1)
-        return;
-
-      var item = Perks[items[index]];
-      this.takePlayerFuel(item.cost);
-      this.activePerks[items[index]] = true;
-    });
   };
 
   this.makeShopAvailable = function(items)
@@ -2348,7 +2336,11 @@ TANK.registerComponent('LightingAndDamage')
 
     var numBuffers = this.resource.lightBuffers.length;
     var angleChunk = Math.PI * 2 / numBuffers;
-    var lightAngle = (Math.atan2(lightObj.Pos2D.y - t.y, t.x - lightObj.Pos2D.x) + rotation + Math.PI) % (Math.PI * 2);
+    var lightAngle;
+    if (lightObj)
+      lightAngle = (Math.atan2(lightObj.Pos2D.y - t.y, t.x - lightObj.Pos2D.x) + rotation + Math.PI) % (Math.PI * 2);
+    else
+      lightAngle = 0;
     var lightDir = [Math.cos(lightAngle), Math.sin(lightAngle)];
     var indexA = Math.floor(lightAngle / angleChunk) % numBuffers;
     var indexB = Math.ceil(lightAngle / angleChunk) % numBuffers;
@@ -3615,7 +3607,7 @@ var PlanetColors =
 }());
 TANK.registerComponent('Player')
 
-.includes(['Ship', 'ShipHud'])
+.includes(['Ship', 'ShipHud', 'ProgressIndicator'])
 
 .construct(function()
 {
@@ -3766,6 +3758,67 @@ TANK.registerComponent('Player')
   {
 
   };
+});
+TANK.registerComponent('ProgressIndicator')
+
+.construct(function()
+{
+  this.htmlText =
+  [
+    '<div class="console-window progress-indicator">',
+    ' <span class="progress-indicator-begin">&lt;</span>',
+    ' <span class="progress-indicator-value"></span>',
+    ' <span class="progress-indicator-end">&gt;</span>',
+    '</div>'
+  ].join('\n');
+
+  this.indicatorChar = 'x';
+})
+
+.initialize(function()
+{
+  //
+  // Create UI
+  //
+  this.container = document.createElement('div');
+  this.container.innerHTML = this.htmlText;
+  document.body.appendChild(this.container);
+
+  //
+  // Get UI handles
+  //
+  this.valueUI = this.container.querySelector('.progress-indicator-value');
+
+  //
+  // Update display
+  //
+  this.updateDisplay = function()
+  {
+    var currentNode = TANK.main.Game.currentNode;
+    var display = '';
+    for (var i = 0; i < TANK.main.MapGeneration.numLevels; i += 0.5)
+    {
+      if (i < currentNode.depth)
+        display += '-';
+      else if (i > currentNode.depth)
+        display += '=';
+      else
+        display += this.indicatorChar;
+    }
+    this.valueUI.innerHTML = display;
+  };
+
+  //
+  // Listen for location changes
+  //
+  this.listenTo(TANK.main, 'locationchange', this.updateDisplay);
+
+  this.updateDisplay();
+})
+
+.uninitialize(function()
+{
+  document.body.removeChild(this.container);
 });
 TANK.registerComponent('RemoveOnLevelChange')
 .initialize(function()
@@ -4948,7 +5001,8 @@ function LoadSounds()
     'medium-rail-01',
     'explode-01',
     'blip-01',
-    'hit-01'
+    'hit-01',
+    'warp'
   ];
 
   for (var i = 0; i < sounds.length; ++i)
@@ -5201,7 +5255,11 @@ TANK.registerComponent('WarpEffect')
 .initialize(function()
 {
   TANK.main.Renderer2D.add(this);
+  Wave.play('warp', 0.5);
 
+  //
+  // Set up pixel buffer
+  //
   var scale = 2;
   var context = TANK.main.Renderer2D.context;
   var pixelBuffer = new PixelBuffer();
@@ -5209,6 +5267,9 @@ TANK.registerComponent('WarpEffect')
   pixelBuffer.context.scale(1 / scale, 1 / scale);
   pixelBuffer.context.drawImage(context.canvas, 0, 0);
 
+  //
+  // Draw
+  //
   this.draw = function(ctx, camera, dt)
   {
     this.et += dt;

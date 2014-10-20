@@ -186,7 +186,6 @@ TANK.registerComponent('Game')
     // Remove any existing objects
     this.player = null;
     TANK.main.removeAllChildren();
-    this.clearEventLog();
 
     // Build main menu scene
     this.lightDir = Math.random() * Math.PI * 2;
@@ -202,13 +201,6 @@ TANK.registerComponent('Game')
       TANK.main.removeChild(this.mainMenu);
       this.goToShipSelection();
     });
-
-    // Remove event log
-    if (this.eventLog)
-    {
-      TANK.main.removeChild(this.eventLog);
-      this.eventLog = null;
-    }
   };
 
   //
@@ -350,23 +342,19 @@ TANK.registerComponent('Game')
       var option = {};
       option.text = item.name + ' - ' + item.desc + ' - Cost: ' + item.cost + ' fuel cells';
       option.disabled = item.cost > this.player.Ship.fuel;
+      option.item = item;
+      option.itemName = items[i];
+      option.script = function()
+      {
+        TANK.main.Game.takePlayerFuel(this.item.cost);
+        TANK.main.Game.activePerks[this.itemName] = true;
+      };
       options.push(option);
     }
     options.push({text: 'Back'});
 
     // Show option menu
     this.triggerPlayerChoice('Choose item', options);
-
-    // Wait for choice
-    this.listenTo(this.eventLog, 'choicemade', function(index)
-    {
-      if (index === options.length - 1)
-        return;
-
-      var item = Perks[items[index]];
-      this.takePlayerFuel(item.cost);
-      this.activePerks[items[index]] = true;
-    });
   };
 
   this.makeShopAvailable = function(items)

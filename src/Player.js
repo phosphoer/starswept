@@ -1,6 +1,6 @@
 TANK.registerComponent('Player')
 
-.includes(['Ship', 'ShipHud'])
+.includes(['Ship', 'ShipHud', 'ProgressIndicator'])
 
 .construct(function()
 {

@@ -55,7 +55,11 @@ TANK.registerComponent('LightingAndDamage')
 
     var numBuffers = this.resource.lightBuffers.length;
     var angleChunk = Math.PI * 2 / numBuffers;
-    var lightAngle = (Math.atan2(lightObj.Pos2D.y - t.y, t.x - lightObj.Pos2D.x) + rotation + Math.PI) % (Math.PI * 2);
+    var lightAngle;
+    if (lightObj)
+      lightAngle = (Math.atan2(lightObj.Pos2D.y - t.y, t.x - lightObj.Pos2D.x) + rotation + Math.PI) % (Math.PI * 2);
+    else
+      lightAngle = 0;
     var lightDir = [Math.cos(lightAngle), Math.sin(lightAngle)];
     var indexA = Math.floor(lightAngle / angleChunk) % numBuffers;
     var indexB = Math.ceil(lightAngle / angleChunk) % numBuffers;

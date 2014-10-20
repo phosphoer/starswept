@@ -295,8 +295,8 @@ Events.derelict_1b =
       {
         var name = TANK.main.Game.pickRandomNamedOption(
         [
-          {probability: 0.5, name: 'derelict_2a'},
-          {probability: 0.5, name: 'derelict_2b'}
+          {probability: 1, name: 'derelict_2a'},
+          {probability: 1, name: 'derelict_2b'}
         ]);
         TANK.main.Game.triggerEvent(name);
       }

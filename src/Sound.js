@@ -6,7 +6,8 @@ function LoadSounds()
     'medium-rail-01',
     'explode-01',
     'blip-01',
-    'hit-01'
+    'hit-01',
+    'warp'
   ];
 
   for (var i = 0; i < sounds.length; ++i)
