@@ -26,6 +26,7 @@ Locations.abandonedOutpost =
     {probability: 2, name: 'derelict'},
     {probability: 1.5, name: 'returnStolenEnforcer'},
     {probability: 1, name: 'civilian'},
+    {probability: 1, name: 'shopA'},
     {probability: 0.5, name: 'police'},
   ],
   bgColor: [0, 20, 0, 1],
@@ -46,6 +47,7 @@ Locations.researchStation =
     {probability: 1.2, name: 'pirate'},
     {probability: 1, name: 'derelict'},
     {probability: 1.2, name: 'civilian'},
+    {probability: 1, name: 'shopA'},
     {probability: 0.7, name: 'investigatePrototypeShip'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.5, name: 'police'},
@@ -66,7 +68,7 @@ Locations.pirateBase =
   events:
   [
     {probability: 4, name: 'pirate'},
-    {probability: 2, name: 'empty'},
+    {probability: 0.5, name: 'empty'},
     {probability: 1, name: 'civilian'},
   ],
   bgColor: [0, 20, 20, 1],
@@ -84,9 +86,10 @@ Locations.oldBattlefield =
   events:
   [
     {probability: 100, name: 'investigatePrototypeShipEncounter'},
-    {probability: 1, name: 'pirate'},
     {probability: 2, name: 'civilian'},
-    {probability: 1, name: 'empty'},
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'shopA'},
+    {probability: 0.2, name: 'empty'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.2, name: 'police'},
   ],
@@ -104,8 +107,9 @@ Locations.deepSpace =
   name: 'Deep space',
   events:
   [
+    {probability: 2, name: 'empty'},
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'},
+    {probability: 1, name: 'shopA'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.6, name: 'police'},
   ],
@@ -121,8 +125,8 @@ Locations.redDwarf =
   events:
   [
     {probability: 100, name: 'returnStolenEnforcerBattle'},
-    {probability: 1, name: 'civilian'},
     {probability: 1.5, name: 'empty'},
+    {probability: 1, name: 'civilian'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.6, name: 'police'},
   ],
@@ -137,10 +141,10 @@ Locations.asteroidField =
   name: 'An asteroid field',
   events:
   [
+    {probability: 1.2, name: 'derelict'},
     {probability: 1, name: 'pirate'},
     {probability: 1, name: 'returnStolenEnforcer'},
-    {probability: 1.2, name: 'derelict'},
-    {probability: 0.4, name: 'empty'},
+    {probability: 0.2, name: 'empty'},
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
@@ -158,7 +162,8 @@ Locations.policeOutpost =
   events:
   [
     {probability: 4, name: 'police'},
-    {probability: 2, name: 'empty'},
+    {probability: 1, name: 'shopA'},
+    {probability: 0.2, name: 'empty'},
     {probability: 1, name: 'civilian'},
   ],
   bgColor: [0, 0, 20, 1],

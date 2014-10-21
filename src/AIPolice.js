@@ -23,6 +23,7 @@ TANK.registerComponent('AIPolice')
   this.listenTo(this._entity, 'aggro', function(owner)
   {
     TANK.main.Game.addEventLog('<Police>: Prepare to die, criminal!');
+    Flags.wanted = true;
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = owner;
     this._entity.removeComponent('AIPolice');
@@ -105,6 +106,7 @@ TANK.registerComponent('AIPolice')
           else
           {
             TANK.main.Game.addEventLog('<Police>: Alright, you\'re free to go.');
+            TANK.main.dispatch('killwarpjammer');
             this.waitingForScan = false;
             this.waitingForStop = false;
             this.done = true;

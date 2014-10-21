@@ -12,6 +12,20 @@ TANK.registerComponent('AIShop')
   this._entity.TriggerRadius.removeOnTrigger = false;
 
   //
+  // Listen for aggro
+  //
+  this.listenTo(this._entity, 'aggro', function(owner)
+  {
+    TANK.main.Game.makeShopUnavailable();
+    this._entity.removeComponent('TriggerRadius');
+    TANK.main.Game.addEventLog('<Shop Owner>: Big mistake tiny son!');
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = owner;
+    this._entity.removeComponent('AIShop');
+    Flags.wanted = true;
+  });
+
+  //
   // Chose which items to sell
   //
   for (var i = 0; i < this.numItems; ++i)

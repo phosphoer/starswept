@@ -163,6 +163,7 @@ TANK.registerComponent('AIPolice')
   this.listenTo(this._entity, 'aggro', function(owner)
   {
     TANK.main.Game.addEventLog('<Police>: Prepare to die, criminal!');
+    Flags.wanted = true;
     this._entity.addComponent('AIAttack');
     this._entity.AIAttack.target = owner;
     this._entity.removeComponent('AIPolice');
@@ -245,6 +246,7 @@ TANK.registerComponent('AIPolice')
           else
           {
             TANK.main.Game.addEventLog('<Police>: Alright, you\'re free to go.');
+            TANK.main.dispatch('killwarpjammer');
             this.waitingForScan = false;
             this.waitingForStop = false;
             this.done = true;
@@ -293,6 +295,20 @@ TANK.registerComponent('AIShop')
 {
   this._entity.TriggerRadius.radius = 500;
   this._entity.TriggerRadius.removeOnTrigger = false;
+
+  //
+  // Listen for aggro
+  //
+  this.listenTo(this._entity, 'aggro', function(owner)
+  {
+    TANK.main.Game.makeShopUnavailable();
+    this._entity.removeComponent('TriggerRadius');
+    TANK.main.Game.addEventLog('<Shop Owner>: Big mistake tiny son!');
+    this._entity.addComponent('AIAttack');
+    this._entity.AIAttack.target = owner;
+    this._entity.removeComponent('AIShop');
+    Flags.wanted = true;
+  });
 
   //
   // Chose which items to sell
@@ -898,12 +914,17 @@ TANK.registerComponent('EventLog')
     log.className = 'event-log-item';
     log.innerText = text;
     this.logContainer.appendChild(log);
-    this.logContainer.scrollTop = this.logContainer.scrollHeight;
+    this.scrollToBottom();
   };
 
   this.clear = function()
   {
     this.logContainer.innerHTML = '';
+  };
+
+  this.scrollToBottom = function()
+  {
+    this.logContainer.scrollTop = this.logContainer.scrollHeight;
   };
 
   //
@@ -1027,6 +1048,7 @@ Events.police =
 //
 Events.returnStolenEnforcer =
 {
+  refuseFlags: ['returnStolenEnforcer'],
   script: function()
   {
     TANK.main.Game.addEventLog('A police ship hails you and requests that you approach within comms distance.');
@@ -1050,18 +1072,27 @@ Events.returnStolenEnforcer_start =
 {
   script: function()
   {
-    TANK.main.Game.addEventLog('"Greetings pilot, I\'m in a bit of trouble here. I was out on patrol with my buddy when we were ambushed by pirates! They disabled my ship and captured his. If I don\'t get that ship back I\'ll be in big trouble. They were heading towards a red dwarf star when I last saw them."');
-
-    Flags['returnStolenEnforcer'] = true;
-
-    if (Flags['wanted'])
+    var options = [];
+    options.push(
     {
-      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that your wanted status is cleared".');
-    }
-    else
+      text: '"Alright, I\'ll check it out."',
+      script: function()
+      {
+        Flags['returnStolenEnforcer'] = true;
+
+        if (Flags['wanted'])
+          TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that your wanted status is cleared".');
+        else
+          TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that you are rewarded well."');
+      }
+    });
+
+    options.push(
     {
-      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that you are rewarded well."');
-    }
+      text: '"I don\'t have time to help out the police."',
+    });
+
+    TANK.main.Game.triggerPlayerChoice('"Greetings pilot, I\'m in a bit of trouble here. I was out on patrol with my buddy when we were ambushed by pirates! They disabled my ship and captured his. If I don\'t get that ship back I\'ll be in big trouble. They were heading towards a red dwarf star when I last saw them."', options);
   }
 };
 
@@ -1087,6 +1118,8 @@ Events.returnStolenEnforcerBattle =
     e.Pos2D.y = spawnPos[1] + rng.random(-1000, 1000);
     e.Ship.shipType = 'fighter';
     TANK.main.addChild(e);
+
+    Spawns.warpJammer();
   }
 };
 
@@ -1095,6 +1128,7 @@ Events.returnStolenEnforcerBattle =
 //
 Events.investigatePrototypeShip =
 {
+  refuseFlags: ['investigatePrototypeShip'],
   script: function()
   {
     TANK.main.Game.addEventLog('The research station up ahead seems to actually be inhabited by someone.');
@@ -1209,6 +1243,7 @@ Events.investigatePrototypeShip_successA =
   script: function()
   {
     TANK.main.Game.addEventLog('A couple bots explode as they are nudged into open space, causing minor damage to your hull, but on the whole your plan works out ok.');
+    TANK.main.Game.unlockShip('blade');
     TANK.main.Game.player.Ship.health -= TANK.main.Game.player.Ship.health / 4;
     for (var i = 0; i < 5; ++i)
       TANK.main.Game.player.Ship.addRandomDamage(2 + Math.random() * 3);
@@ -1357,6 +1392,7 @@ Events.shopA =
     e.Pos2D.x = -2000 + Math.random() * 2000;
     e.Pos2D.y = -2000 + Math.random() * 2000;
     e.Pos2D.rotation = Math.random() * Math.PI * 2;
+    e.Ship.heading = e.Pos2D.rotation;
     e.Ship.shipType = 'rhino';
     TANK.main.addChild(e);
   }
@@ -1940,6 +1976,18 @@ TANK.registerComponent('Game')
           }
         }
 
+        // If the event refuses any flags that are set, modify
+        // probability to 0
+        if (Events[ev.name].refuseFlags)
+        {
+          var refuseFlags = Events[ev.name].refuseFlags;
+          for (var i = 0; i < refuseFlags.length; ++i)
+          {
+            if (Flags[refuseFlags[i]])
+              return 0;
+          }
+        }
+
         // Otherwise, return regular probability
         return ev.probability;
       });
@@ -1991,6 +2039,7 @@ TANK.registerComponent('Game')
   this.handleOptionChoice = function(index)
   {
     TANK.main.unpause();
+    this.eventLog.EventLog.scrollToBottom();
   };
 
   //
@@ -2530,6 +2579,7 @@ Locations.abandonedOutpost =
     {probability: 2, name: 'derelict'},
     {probability: 1.5, name: 'returnStolenEnforcer'},
     {probability: 1, name: 'civilian'},
+    {probability: 1, name: 'shopA'},
     {probability: 0.5, name: 'police'},
   ],
   bgColor: [0, 20, 0, 1],
@@ -2550,6 +2600,7 @@ Locations.researchStation =
     {probability: 1.2, name: 'pirate'},
     {probability: 1, name: 'derelict'},
     {probability: 1.2, name: 'civilian'},
+    {probability: 1, name: 'shopA'},
     {probability: 0.7, name: 'investigatePrototypeShip'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.5, name: 'police'},
@@ -2570,7 +2621,7 @@ Locations.pirateBase =
   events:
   [
     {probability: 4, name: 'pirate'},
-    {probability: 2, name: 'empty'},
+    {probability: 0.5, name: 'empty'},
     {probability: 1, name: 'civilian'},
   ],
   bgColor: [0, 20, 20, 1],
@@ -2588,9 +2639,10 @@ Locations.oldBattlefield =
   events:
   [
     {probability: 100, name: 'investigatePrototypeShipEncounter'},
-    {probability: 1, name: 'pirate'},
     {probability: 2, name: 'civilian'},
-    {probability: 1, name: 'empty'},
+    {probability: 1, name: 'pirate'},
+    {probability: 1, name: 'shopA'},
+    {probability: 0.2, name: 'empty'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.2, name: 'police'},
   ],
@@ -2608,8 +2660,9 @@ Locations.deepSpace =
   name: 'Deep space',
   events:
   [
+    {probability: 2, name: 'empty'},
     {probability: 1, name: 'civilian'},
-    {probability: 3, name: 'empty'},
+    {probability: 1, name: 'shopA'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.6, name: 'police'},
   ],
@@ -2625,8 +2678,8 @@ Locations.redDwarf =
   events:
   [
     {probability: 100, name: 'returnStolenEnforcerBattle'},
-    {probability: 1, name: 'civilian'},
     {probability: 1.5, name: 'empty'},
+    {probability: 1, name: 'civilian'},
     {probability: 0.5, name: 'derelictReturn'},
     {probability: 0.6, name: 'police'},
   ],
@@ -2641,10 +2694,10 @@ Locations.asteroidField =
   name: 'An asteroid field',
   events:
   [
+    {probability: 1.2, name: 'derelict'},
     {probability: 1, name: 'pirate'},
     {probability: 1, name: 'returnStolenEnforcer'},
-    {probability: 1.2, name: 'derelict'},
-    {probability: 0.4, name: 'empty'},
+    {probability: 0.2, name: 'empty'},
   ],
   bgColor: [30, 0, 0, 1],
   lightColor: [1, 0.7, 0.7],
@@ -2662,7 +2715,8 @@ Locations.policeOutpost =
   events:
   [
     {probability: 4, name: 'police'},
-    {probability: 2, name: 'empty'},
+    {probability: 1, name: 'shopA'},
+    {probability: 0.2, name: 'empty'},
     {probability: 1, name: 'civilian'},
   ],
   bgColor: [0, 0, 20, 1],
@@ -3810,6 +3864,7 @@ TANK.registerComponent('ProgressIndicator')
 {
   document.body.removeChild(this.container);
 });
+
 TANK.registerComponent('RemoveOnLevelChange')
 .initialize(function()
 {
@@ -5053,7 +5108,6 @@ Spawns.pirate = function()
   [
     'bomber',
     'frigate',
-    'blade',
     'albatross',
     'rhino'
   ];
@@ -5078,10 +5132,13 @@ Spawns.police = function()
 Spawns.derelict = function()
 {
   var e = TANK.createEntity('AIDerelict');
-  e.Ship.shipData = new Ships.frigate();
   e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
+  e.Pos2D.rotation = Math.random() * Math.PI * 2;
+  e.Ship.shipData = new Ships.frigate();
+  e.Ship.heading = e.Pos2D.rotation;
   TANK.main.addChild(e);
+  e.Ship.shieldObj.Shield.disable(10000);
 
   e = TANK.createEntity('TriggerRadius');
   e.TriggerRadius.radius = 500;
@@ -5303,7 +5360,12 @@ TANK.registerComponent('WarpJammer')
 .includes(['Life', 'RemoveOnLevelChange'])
 .initialize(function()
 {
-  this._entity.Life.life = 60;
+  this._entity.Life.life = 90;
+
+  this.listenTo(TANK.main, 'killwarpjammer', function()
+  {
+    this._entity._parent.removeChild(this._entity);
+  });
 });
 TANK.registerComponent('Weapons')
 

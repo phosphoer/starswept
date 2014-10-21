@@ -504,6 +504,18 @@ TANK.registerComponent('Game')
           }
         }
 
+        // If the event refuses any flags that are set, modify
+        // probability to 0
+        if (Events[ev.name].refuseFlags)
+        {
+          var refuseFlags = Events[ev.name].refuseFlags;
+          for (var i = 0; i < refuseFlags.length; ++i)
+          {
+            if (Flags[refuseFlags[i]])
+              return 0;
+          }
+        }
+
         // Otherwise, return regular probability
         return ev.probability;
       });
@@ -555,6 +567,7 @@ TANK.registerComponent('Game')
   this.handleOptionChoice = function(index)
   {
     TANK.main.unpause();
+    this.eventLog.EventLog.scrollToBottom();
   };
 
   //

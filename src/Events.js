@@ -64,6 +64,7 @@ Events.police =
 //
 Events.returnStolenEnforcer =
 {
+  refuseFlags: ['returnStolenEnforcer'],
   script: function()
   {
     TANK.main.Game.addEventLog('A police ship hails you and requests that you approach within comms distance.');
@@ -87,18 +88,27 @@ Events.returnStolenEnforcer_start =
 {
   script: function()
   {
-    TANK.main.Game.addEventLog('"Greetings pilot, I\'m in a bit of trouble here. I was out on patrol with my buddy when we were ambushed by pirates! They disabled my ship and captured his. If I don\'t get that ship back I\'ll be in big trouble. They were heading towards a red dwarf star when I last saw them."');
-
-    Flags['returnStolenEnforcer'] = true;
-
-    if (Flags['wanted'])
+    var options = [];
+    options.push(
     {
-      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that your wanted status is cleared".');
-    }
-    else
+      text: '"Alright, I\'ll check it out."',
+      script: function()
+      {
+        Flags['returnStolenEnforcer'] = true;
+
+        if (Flags['wanted'])
+          TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that your wanted status is cleared".');
+        else
+          TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that you are rewarded well."');
+      }
+    });
+
+    options.push(
     {
-      TANK.main.Game.addEventLog('"If you could shoot up the stolen ship just enough for them to abandon it, I\'ll see that you are rewarded well."');
-    }
+      text: '"I don\'t have time to help out the police."',
+    });
+
+    TANK.main.Game.triggerPlayerChoice('"Greetings pilot, I\'m in a bit of trouble here. I was out on patrol with my buddy when we were ambushed by pirates! They disabled my ship and captured his. If I don\'t get that ship back I\'ll be in big trouble. They were heading towards a red dwarf star when I last saw them."', options);
   }
 };
 
@@ -124,6 +134,8 @@ Events.returnStolenEnforcerBattle =
     e.Pos2D.y = spawnPos[1] + rng.random(-1000, 1000);
     e.Ship.shipType = 'fighter';
     TANK.main.addChild(e);
+
+    Spawns.warpJammer();
   }
 };
 
@@ -132,6 +144,7 @@ Events.returnStolenEnforcerBattle =
 //
 Events.investigatePrototypeShip =
 {
+  refuseFlags: ['investigatePrototypeShip'],
   script: function()
   {
     TANK.main.Game.addEventLog('The research station up ahead seems to actually be inhabited by someone.');
@@ -246,6 +259,7 @@ Events.investigatePrototypeShip_successA =
   script: function()
   {
     TANK.main.Game.addEventLog('A couple bots explode as they are nudged into open space, causing minor damage to your hull, but on the whole your plan works out ok.');
+    TANK.main.Game.unlockShip('blade');
     TANK.main.Game.player.Ship.health -= TANK.main.Game.player.Ship.health / 4;
     for (var i = 0; i < 5; ++i)
       TANK.main.Game.player.Ship.addRandomDamage(2 + Math.random() * 3);
@@ -394,6 +408,7 @@ Events.shopA =
     e.Pos2D.x = -2000 + Math.random() * 2000;
     e.Pos2D.y = -2000 + Math.random() * 2000;
     e.Pos2D.rotation = Math.random() * Math.PI * 2;
+    e.Ship.heading = e.Pos2D.rotation;
     e.Ship.shipType = 'rhino';
     TANK.main.addChild(e);
   }

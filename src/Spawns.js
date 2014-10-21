@@ -28,7 +28,6 @@ Spawns.pirate = function()
   [
     'bomber',
     'frigate',
-    'blade',
     'albatross',
     'rhino'
   ];
@@ -53,10 +52,13 @@ Spawns.police = function()
 Spawns.derelict = function()
 {
   var e = TANK.createEntity('AIDerelict');
-  e.Ship.shipData = new Ships.frigate();
   e.Pos2D.x = 3000;
   e.Pos2D.y = 0;
+  e.Pos2D.rotation = Math.random() * Math.PI * 2;
+  e.Ship.shipData = new Ships.frigate();
+  e.Ship.heading = e.Pos2D.rotation;
   TANK.main.addChild(e);
+  e.Ship.shieldObj.Shield.disable(10000);
 
   e = TANK.createEntity('TriggerRadius');
   e.TriggerRadius.radius = 500;

@@ -26,12 +26,17 @@ TANK.registerComponent('EventLog')
     log.className = 'event-log-item';
     log.innerText = text;
     this.logContainer.appendChild(log);
-    this.logContainer.scrollTop = this.logContainer.scrollHeight;
+    this.scrollToBottom();
   };
 
   this.clear = function()
   {
     this.logContainer.innerHTML = '';
+  };
+
+  this.scrollToBottom = function()
+  {
+    this.logContainer.scrollTop = this.logContainer.scrollHeight;
   };
 
   //
