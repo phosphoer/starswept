@@ -238,3 +238,24 @@ html, body
   font-family: silkscreen;
 }
 
+.alert-text
+{
+  position: absolute;
+  left: 0;
+  top: 25%;
+  width: 100%;
+  color: #d55;
+  font-size: 60px;
+  font-family: silkscreen;
+  text-align: center;
+  vertical-align: middle;
+  -webkit-animation: alert-animation 5s ease;
+}
+
+@-webkit-keyframes alert-animation
+{
+  0% {opacity: 1;}
+  5% {-webkit-transform: scale(1.5, 1.5);}
+  50% {opacity: 0.75;}
+  100% {opacity: 0;}
+}

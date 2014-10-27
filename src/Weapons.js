@@ -69,9 +69,13 @@ TANK.registerComponent('Weapons')
     var gun = this.guns[gunSide][gunIndex];
     if (!gun || gun.reloadTimer > 0)
       return;
-    gun.reloadTimer = gun.reloadTime;
-    this._entity.dispatch('gunfired', gun);
 
+    if (this._entity.Player)
+      gun.reloadTimer = gun.reloadTime * TANK.main.Game.getPlayerStat('reloadTimeMult');
+    else
+      gun.reloadTimer = gun.reloadTime;
+
+    this._entity.dispatch('gunfired', gun);
     var pos = gun.worldPos;
 
     // Fire bullet

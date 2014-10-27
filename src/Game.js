@@ -6,9 +6,6 @@ TANK.registerComponent('Game')
   this.scaleFactor = 2;
   this.volume = 0.5;
 
-  // Menu options
-  this.menuOptions = [];
-
   // Event log
   this.eventLogsTimed = [];
   this.story = [];
@@ -607,6 +604,20 @@ TANK.registerComponent('Game')
     this.addEventLog('Your shields have been disabled.');
   };
 
+  this.getPlayerStat = function(name)
+  {
+    var perks = Object.keys(this.activePerks);
+    var value = 1;
+    for (var i = 0; i < perks.length; ++i)
+    {
+      var perk = Perks[perks[i]];
+      if (perk.stats && perk.stats[name])
+        value *= perk.stats[name];
+    }
+
+    return value;
+  };
+
   //
   // Unlock methods
   //
@@ -699,6 +710,10 @@ TANK.registerComponent('Game')
       {
         this.addEventLog('...Warp drive charged. Press J to warp when ready.');
         this.warpReady = true;
+        var alertObj = TANK.createEntity('AlertText');
+        alertObj.AlertText.text = 'Warp drive charged!';
+        alertObj.AlertText.color = '#5d5';
+        TANK.main.addChild(alertObj);
       }
     }
 

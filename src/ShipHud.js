@@ -5,38 +5,52 @@ TANK.registerComponent('ShipHud')
   this.htmlText =
   [
     '<div class="console-window ship-hud">',
+    // Speed
     '<div class="ship-hud-item">',
     ' <div class="ship-hud-label">Speed</div>',
     ' <div class="ship-hud-value ship-hud-speed"></div>',
     '</div>',
+    // Armor
     '<div class="ship-hud-item">',
     ' <div class="ship-hud-label">Armor</div>',
     ' <div class="ship-hud-value ship-hud-armor"></div>',
     '</div>',
+    // Shield
     '<div class="ship-hud-item">',
     ' <div class="ship-hud-label">Shield</div>',
     ' <div class="ship-hud-value ship-hud-shield"></div>',
     '</div>',
+    // Gun front
     '<div class="ship-hud-item">',
     ' <div class="ship-hud-label">Fore</div>',
     ' <div class="ship-hud-value ship-hud-fore"></div>',
     '</div>',
+    // Gun right
     '<div class="ship-hud-item">',
     ' <div class="ship-hud-label">Starboard</div>',
     ' <div class="ship-hud-value ship-hud-starboard"></div>',
     '</div>',
+    // Gun left
     '<div class="ship-hud-item">',
     ' <div class="ship-hud-label">Aft</div>',
     ' <div class="ship-hud-value ship-hud-aft"></div>',
     '</div>',
+    // Gun back
     '<div class="ship-hud-item">',
     ' <div class="ship-hud-label">Port</div>',
     ' <div class="ship-hud-value ship-hud-port"></div>',
     '</div>',
+    // Warp charge
+    '<div class="ship-hud-item">',
+    ' <div class="ship-hud-label">Warp</div>',
+    ' <div class="ship-hud-value ship-hud-warp"></div>',
+    '</div>',
+    // Fuel counter
     '<div class="ship-hud-item">',
     ' <div class="ship-hud-label">Fuel</div>',
     ' <div class="ship-hud-value ship-hud-fuel"></div>',
     '</div>',
+    // Shop indicator
     '<div class="ship-hud-item ship-hud-shop">',
     'Press E to open shop',
     '</div>',
@@ -71,6 +85,7 @@ TANK.registerComponent('ShipHud')
   this.starboardValue = this.container.querySelector('.ship-hud-starboard');
   this.aftValue = this.container.querySelector('.ship-hud-aft');
   this.portValue = this.container.querySelector('.ship-hud-port');
+  this.warpValue = this.container.querySelector('.ship-hud-warp');
   this.fuelValue = this.container.querySelector('.ship-hud-fuel');
   this.shopLabel = this.container.querySelector('.ship-hud-shop');
 
@@ -114,6 +129,7 @@ TANK.registerComponent('ShipHud')
     this.aftValue.innerHTML = this.buildBarText(weapons.reloadPercent('back'));
     this.portValue.innerHTML = this.buildBarText(weapons.reloadPercent('left'));
 
+    this.warpValue.innerHTML = this.buildBarText(ship.warpCharge / ship.warpChargeTime);
     this.fuelValue.innerHTML = ship.fuel;
   };
 })
