@@ -56,6 +56,7 @@ TANK.registerComponent('ShipSelection')
       continue;
 
     var e = TANK.createEntity(['Ship', 'ShipStats']);
+    e.removeComponent('ShipIndicator');
     e.Pos2D.x = x;
     e.Pos2D.y = -100;
     e.Ship.shipData = ship;

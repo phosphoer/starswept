@@ -1,6 +1,6 @@
 TANK.registerComponent('Ship')
 
-.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter'])
+.includes(['Pos2D', 'Velocity', 'LightingAndDamage', 'Engines', 'PixelCollider', 'Weapons', 'SoundEmitter', 'ShipIndicator'])
 
 .construct(function()
 {

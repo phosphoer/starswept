@@ -59,6 +59,9 @@ TANK.registerComponent('AIAttack')
         return true;
     }
 
+    // Set IFF
+    ship.iff = !this.target.Ship.iff;
+
     // Get direction to target
     var targetPos = [this.target.Pos2D.x, this.target.Pos2D.y];
     var targetDist = TANK.Math2D.pointDistancePoint([t.x, t.y], targetPos);

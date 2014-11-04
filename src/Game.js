@@ -401,6 +401,7 @@ TANK.registerComponent('Game')
       };
       options.push(option);
     }
+    options.push({text: 'Back'});
 
     // Show option menu
     this.triggerPlayerChoice('Choose destination', options);

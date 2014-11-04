@@ -27,6 +27,7 @@ html, body
   -ms-user-select: none;
   user-select: none;
   cursor: default;
+  overflow: hidden;
 }
 
 /* Main menu */
@@ -143,6 +144,7 @@ html, body
   bottom: 0;
   width: 400px;
   height: 300px;
+  overflow-x: hidden;
   overflow-y: auto;
 
   transition: left 1s, bottom 1s, width 1s, height 1s;
@@ -160,6 +162,7 @@ html, body
 .event-log-item
 {
   margin: 10px 0;
+  -webkit-animation: event-log-item 1s ease;
 }
 
 .event-log-prompt
@@ -249,6 +252,7 @@ html, body
   font-family: silkscreen;
   text-align: center;
   vertical-align: middle;
+  opacity: 0;
   -webkit-animation: alert-animation 5s ease;
 }
 
@@ -258,4 +262,11 @@ html, body
   5% {-webkit-transform: scale(1.5, 1.5);}
   50% {opacity: 0.75;}
   100% {opacity: 0;}
+}
+
+@-webkit-keyframes event-log-item
+{
+  0% {-webkit-transform: scale(1.1, 1.1);}
+  99% {-webkit-transform: scale(1, 1);}
+  100% {-webkit-transform: none;}
 }
