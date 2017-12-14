@@ -280,14 +280,6 @@
 	"buffers":
 	[
 		{
-			"file": "/Users/david/Documents/Game Projects/Starswept/style.css",
-			"settings":
-			{
-				"buffer_size": 3885,
-				"line_ending": "Unix"
-			}
-		},
-		{
 			"file": "/Users/david/Documents/Game Projects/Starswept/src/Game.js",
 			"settings":
 			{
@@ -296,37 +288,19 @@
 			}
 		},
 		{
-			"file": "/Users/david/Documents/Game Projects/Starswept/src/ShipIndicator.js",
+			"file": "/Users/david/Documents/Game Projects/Starswept/src/Perks.js",
 			"settings":
 			{
-				"buffer_size": 1267,
-				"line_ending": "Unix",
-				"name": "TANK.registerComponent('ShipIndicator')"
-			}
-		},
-		{
-			"file": "/Users/david/Documents/Game Projects/Starswept/src/ShipSelection.js",
-			"settings":
-			{
-				"buffer_size": 2364,
+				"buffer_size": 270,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "/Users/david/Documents/Game Projects/Starswept/src/Ship.js",
+			"file": "/Users/david/Documents/Game Projects/Starswept/src/Weapons.js",
 			"settings":
 			{
-				"buffer_size": 10320,
+				"buffer_size": 5335,
 				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/Users/david/Documents/Game Projects/Starswept/src/AlertText.js",
-			"settings":
-			{
-				"buffer_size": 561,
-				"line_ending": "Unix",
-				"name": "TANK.registerComponent('AlertText')"
 			}
 		}
 	],
@@ -419,69 +393,71 @@
 	],
 	"file_history":
 	[
-		"/Users/david/Documents/Game Projects/Starswept/src/Sound.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/Ships.js",
+		"/Users/david/Documents/Game Projects/Starswept/prj/starswept.sublime-project",
+		"/Users/david/Documents/Game Projects/Starswept/gulpfile.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/Guns.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/Player.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/main.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/MainMenu.js",
+		"/Users/david/Documents/Game Projects/Starswept/lib/wave.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/ParticleLibrary.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Ship.js",
+		"/Users/david/Documents/Game Projects/Starswept/style.css",
+		"/Users/david/Documents/Game Projects/Starswept/src/AlertText.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/AIAttack.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/ShipIndicator.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/AIShop.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/Asteroid.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/AIAttackPlayer.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/Sound.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/Planet.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/AsteroidField.js",
+		"/Users/david/Documents/Game Projects/Starswept/index.html",
+		"/Users/david/Documents/Game Projects/Starswept/src/ShipSelection.js",
+		"/Users/david/Documents/Game Projects/Starswept/src/Ships.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/EndScreen.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/RemoveOnLevelChange.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Resources.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/ParticleLibrary.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Shield.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Events.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/EventLog.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Engines.js",
-		"/Users/david/Documents/Game Projects/Starswept/index.html",
 		"/Users/david/Documents/Game Projects/Starswept/src/ShipHud.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Perks.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/StarField.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/ShipStats.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Weapons.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/main.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/MainMenu.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/Guns.js",
-		"/Users/david/Documents/Game Projects/Starswept/lib/wave.js",
 		"/Users/david/Documents/Game Projects/Starswept/lib/perlin.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Spawns.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/AIShop.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/AIPolice.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/AICivilian.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/PixelCollider.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/Asteroid.js",
 		"/Users/david/Documents/Game Projects/Starswept/package.json",
 		"/Users/david/Documents/Game Projects/Starswept/src/AIStolenEnforcer.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/AIDerelict.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/ProgressIndicator.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/PixelBuffer.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/AIAttack.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/WarpJammer.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/WarpEffect.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Locations.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/LightingAndDamage.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Bullet.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/Player.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/MapGeneration.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/Planet.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Game.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/TriggerRadius.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/SoundEmitter.js",
 		"/Users/david/Documents/Game Projects/Starswept/res/snd/hit-01.wav",
 		"/Users/david/Documents/Game Projects/Starswept/src/ChoiceScreen.js",
-		"/Users/david/Documents/Game Projects/Starswept/style.css",
 		"/Users/david/Documents/Game Projects/Starswept/src/Flags.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/FuelCell.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/DirectionalLight.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/LevelProp.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Star.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/FollowMouse.js",
-		"/Users/david/Documents/Game Projects/Starswept/prj/starswept.sublime-project",
 		"/Users/david/Documents/Game Projects/Starswept/lib/rng.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/Glow.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/DemoEvent.json",
 		"/Users/david/Documents/Game Projects/Starswept/src/Life.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/ShipSelection.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/AIAttackPlayer.js",
-		"/Users/david/Documents/Game Projects/Starswept/src/AsteroidField.js",
-		"/Users/david/Documents/Game Projects/Starswept/gulpfile.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/DustField.js",
 		"/Users/david/Documents/Game Projects/Starswept/src/CircleCollider.js",
 		"/Users/david/Documents/Game Projects/Starswept/lib/tank.js",
@@ -544,9 +520,7 @@
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/WarpEffect.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/Guns.js",
 		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/DemoEvent.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/CampaignMap.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/GenerateLevel.js",
-		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/AIDefend.js"
+		"/Users/david/Documents/Game Projects/StarsweptAdmiral/src/CampaignMap.js"
 	],
 	"find":
 	{
@@ -565,6 +539,11 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"updatemousepos",
+			"mousepos",
+			"left",
+			".iff",
+			"255",
 			"-",
 			"triggerplayer",
 			"triggerplayerw",
@@ -687,12 +666,7 @@
 			"5",
 			"0",
 			"!this.enabled",
-			"testPos",
-			"\"",
-			"testPos",
-			"\"",
-			"t",
-			"this._entity"
+			"testPos"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -712,39 +686,11 @@
 	"groups":
 	[
 		{
-			"selected": 3,
+			"selected": 0,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "/Users/david/Documents/Game Projects/Starswept/style.css",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 3885,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								2251,
-								2251
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/CSS/CSS.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 2007.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
 					"file": "/Users/david/Documents/Game Projects/Starswept/src/Game.js",
 					"semi_transient": false,
 					"settings":
@@ -756,8 +702,8 @@
 						"selection":
 						[
 							[
-								10780,
-								10780
+								17304,
+								17272
 							]
 						],
 						"settings":
@@ -765,32 +711,31 @@
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 6634.0,
+						"translation.y": 11601.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
-					"file": "/Users/david/Documents/Game Projects/Starswept/src/ShipIndicator.js",
+					"buffer": 1,
+					"file": "/Users/david/Documents/Game Projects/Starswept/src/Perks.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1267,
+						"buffer_size": 270,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								651,
-								651
+								0,
+								0
 							]
 						],
 						"settings":
 						{
-							"auto_name": "TANK.registerComponent('ShipIndicator')",
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
@@ -801,20 +746,20 @@
 					"type": "text"
 				},
 				{
-					"buffer": 3,
-					"file": "/Users/david/Documents/Game Projects/Starswept/src/ShipSelection.js",
+					"buffer": 2,
+					"file": "/Users/david/Documents/Game Projects/Starswept/src/Weapons.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2364,
+						"buffer_size": 5335,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1461,
-								1455
+								3292,
+								3298
 							]
 						],
 						"settings":
@@ -822,67 +767,10 @@
 							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 498.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "/Users/david/Documents/Game Projects/Starswept/src/Ship.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 10320,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								155,
-								124
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 1809.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "/Users/david/Documents/Game Projects/Starswept/src/AlertText.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 561,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								96,
-								96
-							]
-						],
-						"settings":
-						{
-							"auto_name": "TANK.registerComponent('AlertText')",
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
 					"type": "text"
 				}
 			]
@@ -935,6 +823,42 @@
 		"selected_items":
 		[
 			[
+				"game",
+				"src/Game.js"
+			],
+			[
+				"gam",
+				"src/Game.js"
+			],
+			[
+				"play",
+				"src/Player.js"
+			],
+			[
+				"mai",
+				"src/main.js"
+			],
+			[
+				"wea",
+				"src/Weapons.js"
+			],
+			[
+				"per",
+				"src/Perks.js"
+			],
+			[
+				"aiat",
+				"src/AIAttack.js"
+			],
+			[
+				"shop",
+				"src/AIShop.js"
+			],
+			[
+				"aiattapl",
+				"src/AIAttackPlayer.js"
+			],
+			[
 				"ship",
 				"src/Ship.js"
 			],
@@ -967,16 +891,8 @@
 				"index.html"
 			],
 			[
-				"mai",
-				"src/main.js"
-			],
-			[
 				"gu",
 				"src/Guns.js"
-			],
-			[
-				"wea",
-				"src/Weapons.js"
 			],
 			[
 				"perk",
@@ -1037,10 +953,6 @@
 			[
 				"eng",
 				"src/Engines.js"
-			],
-			[
-				"play",
-				"src/Player.js"
 			],
 			[
 				"ga",
@@ -1151,10 +1063,6 @@
 				"src/MapGeneration.js"
 			],
 			[
-				"gam",
-				"src/Game.js"
-			],
-			[
 				"aid",
 				"src/AIDerelict.js"
 			],
@@ -1191,10 +1099,6 @@
 				"src/Guns.js"
 			],
 			[
-				"game",
-				"src/Game.js"
-			],
-			[
 				"as",
 				"src/Asteroid.js"
 			],
@@ -1217,10 +1121,6 @@
 			[
 				"aide",
 				"src/AIDerelict.js"
-			],
-			[
-				"aiat",
-				"src/AIAttack.js"
 			],
 			[
 				"clod",
@@ -1433,18 +1333,6 @@
 			[
 				"cont",
 				"src/ControlPoint.js"
-			],
-			[
-				"pla",
-				"src/Planet.js"
-			],
-			[
-				"lig",
-				"src/Lights.js"
-			],
-			[
-				"lights",
-				"src/Lights.js"
 			]
 		],
 		"width": 0.0
